@@ -9,7 +9,7 @@ const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
 const maxNumOfIcons = 1;
 
 const handleError = (err) => {
-    console.log(err.message);
+    console.log(err);
     return err.message;
 }
 
@@ -26,21 +26,20 @@ const createJWTToken = (id) => {
 
 // Check if username/email is already taken
 router.get('/exists/', async (req, res) => {
-    const checkStr = req.body.check;
-    const params = req.params;
+    const query = req.query;
 
     let validTypes = ['email', 'username'];
 
     const sql = `
         SELECT *
         FROM user
-        WHERE ${params.type} = ?
+        WHERE ${query.type} = ?
     `;
 
     try{
-        if(validTypes.indexOf(type) === -1) throw Error('Invalid type.');
+        if(validTypes.indexOf(query.type) === -1) throw Error('Invalid type.');
         
-        const user = await req.conn.queryAsync(sql, [params.str]);
+        const user = await req.conn.queryAsync(sql, [query.str]);
         
         if(user.length > 0){
             res.send({ available: false });
