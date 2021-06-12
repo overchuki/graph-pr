@@ -1,11 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const saltRounds = 10;
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const router = express.Router();
-const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
 
+const saltRounds = 10;
+const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
 const maxNumOfIcons = 1;
 
 const handleError = (err) => {
@@ -17,8 +17,51 @@ const createJWTToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
 }
 
+
+//---------
+//
+//   GET
+//
+//---------
+
+// Check if username/email is already taken
+router.get('/exists/', async (req, res) => {
+    const checkStr = req.body.check;
+    const params = req.params;
+
+    let validTypes = ['email', 'username'];
+
+    const sql = `
+        SELECT *
+        FROM user
+        WHERE ${params.type} = ?
+    `;
+
+    try{
+        if(validTypes.indexOf(type) === -1) throw Error('Invalid type.');
+        
+        const user = await req.conn.queryAsync(sql, [params.str]);
+        
+        if(user.length > 0){
+            res.send({ available: false });
+        }else{
+            res.send({ available: true });
+        }
+    }catch(err){
+        const errors = handleError(err);
+        res.status(400).send({ error: errors });
+    }
+});
+
+
+//----------
+//
+//   POST
+//
+//----------
+
 // Log a user in
-router.post('/login', async (req, res) => {
+router.post('/login/', async (req, res) => {
     const body = req.body;
 
     const sql = `
@@ -50,7 +93,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Sign a user up
-router.post('/signup', async (req, res) => {
+router.post('/signup/', async (req, res) => {
     const body = req.body;
 
     const sql = `
@@ -94,34 +137,74 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// Check if username/email is already taken
-router.post('/checkExisting/:type', async (req, res) => {
-    const checkStr = req.body.check;
-    const type = req.params.type;
 
-    let validTypes = ['email', 'username'];
+//---------
+//
+//   PUT
+//
+//---------
 
-    const sql = `
-        SELECT *
-        FROM user
-        WHERE ${type} = ?
+// Modify a user's account
+router.put('/account/', async (req, res) => {
+    const body = req.body;
+
+    let sql = `
+
     `;
 
     try{
-        if(validTypes.indexOf(type) === -1) throw Error('Invalid check type.');
-        
-        const user = await req.conn.queryAsync(sql, [checkStr]);
-        
-        if(user.length > 0){
-            res.send({ available: false });
-        }else{
-            res.send({ available: true });
-        }
+        res.send('put account endpoint');
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });
     }
 });
+
+// Change a user's password
+router.put('/password/', async (req, res) => {
+    const body = req.body;
+
+    let sql = `
+
+    `;
+
+    try{
+        res.send('put password endpoint');
+    }catch(err){
+        const errors = handleError(err);
+        res.status(400).send({ error: errors });
+    }
+});
+
+
+//------------
+//
+//   DELETE
+//
+//------------
+
+// Delete a user's account
+router.delete('/', async (req, res) => {
+    const body = req.body;
+
+    let sql = `
+
+    `;
+
+    try{
+        res.send('delete account endpoint');
+    }catch(err){
+        const errors = handleError(err);
+        res.status(400).send({ error: errors });
+    }
+});
+
+
+//---------
+//
+//   404
+//
+//---------
 
 router.use((req, res) => {
     res.status(404).send({ error: 'Requested auth endpoint does not exist.' });
