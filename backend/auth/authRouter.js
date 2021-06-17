@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
+const { requireAuth } = require('./authMiddleware');
 const router = express.Router();
 
 const saltRounds = 10;
@@ -15,6 +16,27 @@ const handleError = (err) => {
 
 const createJWTToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
+}
+
+const checkValidStr = (key, value, required, minLen, maxLen, isAscii, isEmail) => {
+    if(!value){
+        if(required) throw Error('Please fill out all required fields.');
+        else return;
+    }
+    if(value.length < minLen) throw Error(key + ' is too short.');
+    if(value.length > maxLen) throw Error(key + ' is too long.');
+    if(isAscii && !validator.isAscii(value)) throw Error('Please use valid characters only (ASCII).');
+    if(isEmail && !validator.isEmail(value)) throw Error('Invalid email address.');
+}
+
+const validateUserInfo = (body, initial) => {
+    checkValidStr('Name', body.name, (true && initial), 2, 20, true, false);
+    checkValidStr('Username', body.username, (true && initial), 4, 20, true, false);
+    checkValidStr('Email', body.email, false, 0, 256, false, true);
+    checkValidStr('Description', body.description, false, 1, 100, true, false);
+    checkValidStr('Password', body.password, (true && initial), 8, 256, true, false);
+
+    if(body.icon_fk && body.icon_fk > maxNumOfIcons) throw Error('Icon index out of bounds.');
 }
 
 
@@ -108,28 +130,17 @@ router.post('/signup/', async (req, res) => {
     `;
 
     try{
-        if(body.name.length > 30) throw Error('Name is too long.');
-        if(body.username.length > 12) throw Error('Username is too long.');
-        if(body.description && body.description.length > 100) throw Error('Description is too long.');
-        if(body.password.length < 8) throw Error('Password is too short.');
+        validateUserInfo(body, true);
 
-        if(!validator.isAscii(body.name) ||
-           !validator.isAscii(body.username) ||
-           (body.description && !validator.isAscii(body.description)) ||
-           !validator.isAscii(body.password)){
-            throw Error('Please use valid characters only (ASCII).');
-        }
-
-        if(body.email && !validator.isEmail(body.email)) throw Error('Invalid email address.');
-
-        if(body.icon_fk > maxNumOfIcons) throw Error('Icon index out of bounds.');
-        
-        bcrypt.hash(body.password, saltRounds, async (err, hash) => {
-            if(err) throw err;
-            let password = hash;
-            let okPacket = await req.conn.queryAsync(sql, [body.name, body.username, body.email, body.description, password, body.icon_fk]);
-            res.send({ success: 'user has been created' });
+        let hashedPW = await new Promise((resolve, reject) => {
+            bcrypt.hash(body.password, saltRounds, async (err, hash) => {
+                if(err) reject(err);
+                else resolve(hash);
+            });
         });
+
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.username, body.email, body.description, hashedPW, body.icon_fk]);
+        res.send({ success: 'User has been created.' });
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });
@@ -144,15 +155,33 @@ router.post('/signup/', async (req, res) => {
 //---------
 
 // Modify a user's account
-router.put('/account/', async (req, res) => {
+router.put('/account/', requireAuth, async (req, res) => {
     const body = req.body;
 
-    let sql = `
-
-    `;
-
     try{
-        res.send('put account endpoint');
+        validateUserInfo(body, false);
+
+        let valueStr = '';
+        let values = [];
+        let keys = Object.keys(body);
+        for(let i = 0;i < keys.length; i++){
+            if(!body[keys[i]]) continue;
+            valueStr += `${keys[i]} = ?,`;
+            values.push(body[keys[i]]);
+        }
+        valueStr = valueStr.substring(0, valueStr.length-1);
+
+        let sql = `
+            UPDATE user
+            SET ${valueStr}
+            WHERE id = ${req.user.id}
+        `;
+        console.log(sql)
+        console.log(values)
+
+        let okPacket = await req.conn.queryAsync(sql, values);
+
+        res.send({ success: "Account has been modified." });
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });
@@ -160,15 +189,31 @@ router.put('/account/', async (req, res) => {
 });
 
 // Change a user's password
-router.put('/password/', async (req, res) => {
+router.put('/password/', requireAuth, async (req, res) => {
     const body = req.body;
 
     let sql = `
-
+        UPDATE user
+        SET password = ?
+        WHERE id = ${req.user.id}
     `;
 
     try{
-        res.send('put password endpoint');
+        const auth = await bcrypt.compare(body.oldPass, req.user.password);
+
+        if(auth){
+            let hashedPW = await new Promise((resolve, reject) => {
+                bcrypt.hash(body.newPass, saltRounds, async (err, hash) => {
+                    if(err) reject(err);
+                    else resolve(hash);
+                });
+            });
+
+            let okPacket = await req.conn.queryAsync(sql, [hashedPW]);
+            res.send({ success: 'Password has been updated.' });
+        }else{
+            throw Error('Old password is wrong.')
+        }
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });
@@ -183,15 +228,24 @@ router.put('/password/', async (req, res) => {
 //------------
 
 // Delete a user's account
-router.delete('/', async (req, res) => {
+router.delete('/', requireAuth, async (req, res) => {
     const body = req.body;
 
     let sql = `
-
+        DELETE
+        FROM user
+        WHERE id = ?
     `;
 
     try{
-        res.send('delete account endpoint');
+        const auth = await bcrypt.compare(body.pass, req.user.password);
+
+        if(auth){
+            let okPacket = await req.conn.queryAsync(sql, [req.user.id]);
+            res.send({ success: 'Account has been deleted.' });
+        }else{
+            throw Error('Password is wrong.')
+        }
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });

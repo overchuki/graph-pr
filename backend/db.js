@@ -16,7 +16,7 @@ module.exports = {
                 });
 
                 connection.connect(async (err) => {
-                    if(err) console.log(err);
+                    if(err) rej(err);
                     else {
                         connection.queryAsync = (sql, args) => {
                             return new Promise((resolve, reject) => {
@@ -33,7 +33,7 @@ module.exports = {
                             try{
                                 await connection.queryAsync(sql, []);
                             }catch(err){
-                                console.log('Error with initial sql.');
+                                console.log('Error with initial sql: ', err);
                                 break;
                             }
                         }

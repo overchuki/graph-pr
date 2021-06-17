@@ -11,7 +11,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
 
     let sql = `
-
+        
     `;
 
     try{
