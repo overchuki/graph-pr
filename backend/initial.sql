@@ -5,6 +5,20 @@ CREATE TABLE IF NOT EXISTS ICON (
 
     PRIMARY KEY (id)
 );
+CREATE TABLE IF NOT EXISTS ACTIVITY_LEVEL (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(25) NOT NULL,
+    description VARCHAR(110) NOT NULL,
+    bmr_multiplier FLOAT NOT NULL,
+
+    PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS GENDER (
+    id INT NOT NULL AUTO_INCREMENT,
+    name STRING NOT NULL,
+
+    PRIMARY KEY (id)
+);
 CREATE TABLE IF NOT EXISTS USER (
     id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(25) NOT NULL,
@@ -13,15 +27,19 @@ CREATE TABLE IF NOT EXISTS USER (
     description VARCHAR(110),
     dob DATE NOT NULL,
     height INT NOT NULL,
-    gender INT NOT NULL,
-    maintenance_cal INT,
+    gender_fk INT NOT NULL,
+    bmr INT NOT NULL,
+    activity_level_fk INT NOT NULL,
+    main_cal INT NOT NULL,
     password CHAR(60) NOT NULL,
     account_type INT NOT NULL DEFAULT 0,
     icon_fk INT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (id),
-    FOREIGN KEY (icon_fk) REFERENCES ICON(id)
+    FOREIGN KEY (icon_fk) REFERENCES ICON(id),
+    FOREIGN KEY (activity_level_fk) REFERENCES ACTIVITY_LEVEL(id),
+    FOREIGN KEY (gender_fk) REFERENCES GENDER(id)
 );
 CREATE TABLE IF NOT EXISTS ITEM_CATEGORY (
     id INT NOT NULL AUTO_INCREMENT,
@@ -171,6 +189,15 @@ CREATE TABLE IF NOT EXISTS BODYWEIGHT (
 
 INSERT IGNORE INTO icon (id, name, location) VALUES (1, 'default_user', 'defaultUser.png');
 INSERT IGNORE INTO icon (id, name, location) VALUES (2, 'default_food', 'defaultFood.png');
+
+INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (1, 'Sedetary', 'Little to no exercise.', 1.2);
+INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (2, 'Lightly Active', 'Light exercise / sports 1-3 days a week.', 1.375);
+INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (3, 'Moderately Active', 'Moderate exercise / 3-5 days a week.', 1.55);
+INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (4, 'Very Active', 'Hard exercise / sports 6-7 days a week.', 1.725);
+INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (5, 'Extra Active', 'Very hard exercise / sports & physical job or 2x training.', 1.9);
+
+INSERT IGNORE INTO GENDER (id, name) VALUES (1, 'Male');
+INSERT IGNORE INTO GENDER (id, name) VALUES (2, 'Female');
 
 INSERT IGNORE INTO item_category (id, name, color) VALUES (1, 'Meat', '#FF0000');
 INSERT IGNORE INTO item_category (id, name, color) VALUES (2, 'Seafood', '#0000FF');

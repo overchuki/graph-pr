@@ -39,6 +39,27 @@ const validateUserInfo = (body, initial) => {
     if(body.icon_fk && body.icon_fk > maxNumOfIcons) throw Error('Icon index out of bounds.');
 }
 
+const getBMR = (bodyweight, height, age, gender) => {
+    let bmr = (10 * bodyweight) + (6.25 * height) - (5 * age);
+    if(gender === 1) bmr += 5;
+    else if(gender === 2) bmr -= 161;
+    else throw Error('Invalid gender int.');
+
+    return bmr;
+}
+
+const getMaintenanceCal = async (req, bmr, activity_level) => {
+    let sql = `
+        SELECT bmr_multiplier
+        FROM activity_level
+        WHERE id = ${activity_level}
+    `;
+
+    let multiplier = await req.conn.queryAsync(sql);
+    console.log(multiplier);
+    return bmr * multiplier[0];
+}
+
 
 //---------
 //
@@ -124,9 +145,15 @@ router.post('/signup/', async (req, res) => {
             username,
             email,
             description,
+            dob,
+            height,
+            gender_fk,
+            bmr,
+            activity_level_fk,
+            main_cal,
             password,
             icon_fk)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try{
@@ -139,7 +166,32 @@ router.post('/signup/', async (req, res) => {
             });
         });
 
-        let okPacket = await req.conn.queryAsync(sql, [body.name, body.username, body.email, body.description, hashedPW, body.icon_fk]);
+        let dob = new Date(body.dob);
+        let curDate = new Date();
+        let age = curDate - dob;
+        console.log(dob);
+        console.log(age);
+        
+        let bmr = getBMR(body.bodyweight, body.height, age);
+        let main_cal = await getMaintenanceCal(req, bmr, body.activity_level);
+
+        let okPacket = await req.conn.queryAsync(sql, [ body.name,
+                                                        body.username,
+                                                        body.email,
+                                                        body.description,
+                                                        dob,
+                                                        body.height,
+                                                        body.gender,
+                                                        bmr,
+                                                        body.activity_level,
+                                                        main_cal,
+                                                        hashedPW,
+                                                        body.icon_fk ]);
+        //new
+        let sql2 = `
+            INSERT
+            INTO bodyweight
+        `;
         res.send({ success: 'User has been created.' });
     }catch(err){
         const errors = handleError(err);

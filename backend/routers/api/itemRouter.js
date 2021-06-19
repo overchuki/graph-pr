@@ -11,11 +11,14 @@ const router = express.Router();
 router.get('/', async (req, res) => {
 
     let sql = `
-        
+        SELECT *
+        FROM item
+        WHERE user_fk = ${req.user.id}
     `;
 
     try{
-        res.send('get item endpoint');
+        let items = await req.conn.queryAsync(sql);
+        res.send(items);
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });
