@@ -7,7 +7,22 @@ const router = express.Router();
 
 const saltRounds = 10;
 const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
-const maxNumOfIcons = 1;
+const millisInYear = 1000 * 60 * 60 * 24 * 365;
+const lbToKgFactor = 0.45359237;
+const kgToLbFactor = 2.20462262;
+
+const nameLenRange = [2, 20];
+const usernameLenRange = [4, 20];
+const emailLenRange = [1, 256];
+const descriptionLenRange = [1, 100];
+const passwordLenRange = [8, 256];
+
+const iconNumRange = [1, 1];
+const heightNumRange = [20, 300];
+const genderNumRange = [1, 2];
+const activityLevelNumRange = [1, 5];
+const ageNumRange = [13, 150];
+const bwUnitNumRange = [1, 2];
 
 const handleError = (err) => {
     console.log(err);
@@ -18,34 +33,55 @@ const createJWTToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
 }
 
-const checkValidStr = (key, value, required, minLen, maxLen, isAscii, isEmail) => {
+const checkValidStr = (key, value, required, range, isAscii, isEmail) => {
     if(!value){
         if(required) throw Error('Please fill out all required fields.');
         else return;
     }
-    if(value.length < minLen) throw Error(key + ' is too short.');
-    if(value.length > maxLen) throw Error(key + ' is too long.');
+    if(value.length < range[0]) throw Error(key + ' is too short.');
+    if(value.length > range[1]) throw Error(key + ' is too long.');
     if(isAscii && !validator.isAscii(value)) throw Error('Please use valid characters only (ASCII).');
     if(isEmail && !validator.isEmail(value)) throw Error('Invalid email address.');
 }
 
-const validateUserInfo = (body, initial) => {
-    checkValidStr('Name', body.name, (true && initial), 2, 20, true, false);
-    checkValidStr('Username', body.username, (true && initial), 4, 20, true, false);
-    checkValidStr('Email', body.email, false, 0, 256, false, true);
-    checkValidStr('Description', body.description, false, 1, 100, true, false);
-    checkValidStr('Password', body.password, (true && initial), 8, 256, true, false);
-
-    if(body.icon_fk && body.icon_fk > maxNumOfIcons) throw Error('Icon index out of bounds.');
+const checkValidInt = (key, value, required, range) => {
+    if(!value){
+        if(required) throw Error('Please fill out all required fields.');
+        else return;
+    }
+    if(value > range[1]) throw Error(key + ' is too large.');
+    if(value < range[0]) throw Error(key + ' is too small.');
 }
 
-const getBMR = (bodyweight, height, age, gender) => {
-    let bmr = (10 * bodyweight) + (6.25 * height) - (5 * age);
-    if(gender === 1) bmr += 5;
-    else if(gender === 2) bmr -= 161;
-    else throw Error('Invalid gender int.');
+const validateUserInfo = (body, initial) => {
+    checkValidStr('Name', body.name, initial, nameLenRange, true, false);
+    checkValidStr('Username', body.username, initial, usernameLenRange, true, false);
+    checkValidStr('Email', body.email, false, emailLenRange, false, true);
+    checkValidStr('Description', body.description, false, descriptionLenRange, true, false);
+    checkValidStr('Password', body.password, initial, passwordLenRange, true, false);
 
-    return bmr;
+    checkValidInt('Height', body.height, initial, heightNumRange);
+    checkValidInt('Gender index', body.gender_fk, initial, genderNumRange);
+    checkValidInt('Activity index', body.activity_level_fk, initial, activityLevelNumRange);
+    checkValidInt('Icon index', body.icon_fk, initial, iconNumRange);
+    checkValidInt('Bw unit index', body.bw_unit, initial, bwUnitNumRange);
+
+    let curDate = new Date();
+    let dob = new Date(body.dob);
+    let dateMax = curDate.setFullYear(curDate.getFullYear() - ageNumRange[0]);
+    let dateMin = curDate.setFullYear(curDate.getFullYear() - ageNumRange[1] + ageNumRange[0]);
+    checkValidInt('Date of Birth', dob, initial, [dateMin, dateMax]);
+}
+
+const getBMR = async (req, bodyweight, height, age, gender) => {
+    let bmr = (10 * bodyweight) + (6.25 * height) - (5 * age);
+
+    let genderNum = await req.conn.queryAsync(`SELECT bmr_num FROM gender WHERE id = ${gender}`);
+    if(genderNum.length === 0) throw Error('Invalid gender index.');
+
+    bmr += genderNum[0].bmr_num;
+
+    return Math.round(bmr);
 }
 
 const getMaintenanceCal = async (req, bmr, activity_level) => {
@@ -56,8 +92,9 @@ const getMaintenanceCal = async (req, bmr, activity_level) => {
     `;
 
     let multiplier = await req.conn.queryAsync(sql);
-    console.log(multiplier);
-    return bmr * multiplier[0];
+    if(multiplier.length === 0) throw Error('Invalid activity level index.');
+    
+    return Math.round(bmr * multiplier[0].bmr_multiplier);
 }
 
 
@@ -168,12 +205,14 @@ router.post('/signup/', async (req, res) => {
 
         let dob = new Date(body.dob);
         let curDate = new Date();
-        let age = curDate - dob;
-        console.log(dob);
-        console.log(age);
+        let age = (curDate - dob) / millisInYear;
         
-        let bmr = getBMR(body.bodyweight, body.height, age);
-        let main_cal = await getMaintenanceCal(req, bmr, body.activity_level);
+        let kgBodyweight;
+        if(body.bw_unit === 2) kgBodyweight = body.bodyweight * lbToKgFactor;
+        else kgBodyweight = body.bodyweight;
+
+        let bmr = await getBMR(req, kgBodyweight, body.height, age, body.gender_fk);
+        let main_cal = await getMaintenanceCal(req, bmr, body.activity_level_fk);
 
         let okPacket = await req.conn.queryAsync(sql, [ body.name,
                                                         body.username,
@@ -181,17 +220,26 @@ router.post('/signup/', async (req, res) => {
                                                         body.description,
                                                         dob,
                                                         body.height,
-                                                        body.gender,
+                                                        body.gender_fk,
                                                         bmr,
-                                                        body.activity_level,
+                                                        body.activity_level_fk,
                                                         main_cal,
                                                         hashedPW,
-                                                        body.icon_fk ]);
-        //new
+                                                        body.icon_fk
+                                                    ]
+        );
+        
         let sql2 = `
             INSERT
-            INTO bodyweight
+            INTO bodyweight (
+                weight,
+                date,
+                unit_fk,
+                user_fk)
+            VALUES (?, ?, ?, ?)
         `;
+        let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, body.bw_unit, okPacket.insertId]);
+        
         res.send({ success: 'User has been created.' });
     }catch(err){
         const errors = handleError(err);

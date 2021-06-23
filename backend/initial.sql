@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS ACTIVITY_LEVEL (
 );
 CREATE TABLE IF NOT EXISTS GENDER (
     id INT NOT NULL AUTO_INCREMENT,
-    name STRING NOT NULL,
+    name VARCHAR(25) NOT NULL,
+    bmr_num INT NOT NULL,
 
     PRIMARY KEY (id)
 );
@@ -196,8 +197,8 @@ INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES
 INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (4, 'Very Active', 'Hard exercise / sports 6-7 days a week.', 1.725);
 INSERT IGNORE INTO ACTIVITY_LEVEL (id, name, description, bmr_multiplier) VALUES (5, 'Extra Active', 'Very hard exercise / sports & physical job or 2x training.', 1.9);
 
-INSERT IGNORE INTO GENDER (id, name) VALUES (1, 'Male');
-INSERT IGNORE INTO GENDER (id, name) VALUES (2, 'Female');
+INSERT IGNORE INTO GENDER (id, name, bmr_num) VALUES (1, 'Male', 5);
+INSERT IGNORE INTO GENDER (id, name, bmr_num) VALUES (2, 'Female', -161);
 
 INSERT IGNORE INTO item_category (id, name, color) VALUES (1, 'Meat', '#FF0000');
 INSERT IGNORE INTO item_category (id, name, color) VALUES (2, 'Seafood', '#0000FF');
