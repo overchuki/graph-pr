@@ -31,7 +31,7 @@ module.exports = {
                         for(let sql of initialSQL){
                             if(sql.length === 0) continue;
                             try{
-                                await connection.queryAsync(sql, []);
+                                await connection.queryAsync(sql);
                             }catch(err){
                                 console.log('Error with initial sql: ', err);
                                 break;

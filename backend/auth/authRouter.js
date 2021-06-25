@@ -10,6 +10,8 @@ const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
 const millisInYear = 1000 * 60 * 60 * 24 * 365;
 const lbToKgFactor = 0.45359237;
 const kgToLbFactor = 2.20462262;
+const inToCmFactor = 2.54;
+const cmToInFactor = 0.393700787;
 
 const nameLenRange = [2, 20];
 const usernameLenRange = [4, 20];
@@ -18,7 +20,7 @@ const descriptionLenRange = [1, 100];
 const passwordLenRange = [8, 256];
 
 const iconNumRange = [1, 1];
-const heightNumRange = [20, 300];
+const heightUnitNumRange = [5, 6];
 const genderNumRange = [1, 2];
 const activityLevelNumRange = [1, 5];
 const ageNumRange = [13, 150];
@@ -31,6 +33,10 @@ const handleError = (err) => {
 
 const createJWTToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
+}
+
+const getDateStr = (date) => {
+    return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
 }
 
 const checkValidStr = (key, value, required, range, isAscii, isEmail) => {
@@ -60,7 +66,7 @@ const validateUserInfo = (body, initial) => {
     checkValidStr('Description', body.description, false, descriptionLenRange, true, false);
     checkValidStr('Password', body.password, initial, passwordLenRange, true, false);
 
-    checkValidInt('Height', body.height, initial, heightNumRange);
+    checkValidInt('Height unit index', body.height_unit_fk, initial, heightUnitNumRange);
     checkValidInt('Gender index', body.gender_fk, initial, genderNumRange);
     checkValidInt('Activity index', body.activity_level_fk, initial, activityLevelNumRange);
     checkValidInt('Icon index', body.icon_fk, initial, iconNumRange);
@@ -95,6 +101,53 @@ const getMaintenanceCal = async (req, bmr, activity_level) => {
     if(multiplier.length === 0) throw Error('Invalid activity level index.');
     
     return Math.round(bmr * multiplier[0].bmr_multiplier);
+}
+
+const updateMaintenanceCal = async (req, userId) => {
+    let userArr = await req.conn.queryAsync(`SELECT * FROM user WHERE id = ${userId}`);
+    let user = userArr[0];
+
+    let dob = new Date(user.dob);
+    let curDate = new Date();
+    let dateStr = getDateStr(curDate);
+    let age = (curDate - dob) / millisInYear;
+
+    let sql = `
+        SELECT weight, unit_fk
+        FROM bodyweight
+        WHERE user_fk = ${user.id}
+        ORDER BY date DESC
+        LIMIT 1
+    `;
+
+    let latestBodyweight = await req.conn.queryAsync(sql);
+    if(latestBodyweight.length === 0) throw Error('User does not have recorded bodyweight');
+
+    let deletePacket = await req.conn.queryAsync(`DELETE FROM maintenance_calories WHERE user_fk = ${user.id} AND date = '${dateStr}'`);
+
+    let kgBodyweight;
+    if(latestBodyweight[0].unit_fk === 2) kgBodyweight = latestBodyweight[0].weight * lbToKgFactor;
+    else kgBodyweight = latestBodyweight[0].weight;
+
+    let cmHeight;
+    if(user.height_unit_fk === 6) cmHeight = user.height * inToCmFactor;
+    else cmHeight = user.height;
+
+    let bmr = await getBMR(req, kgBodyweight, cmHeight, age, user.gender_fk);
+    let main_cal = await getMaintenanceCal(req, bmr, user.activity_level_fk);
+
+    let sql2 = `
+        INSERT
+        INTO maintenance_calories (
+            bmr,
+            calories,
+            date,
+            activity_level_fk,
+            user_fk)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    let okPacket = await req.conn.queryAsync(sql2, [bmr, main_cal, curDate, user.activity_level_fk, user.id]);
+    return okPacket;
 }
 
 
@@ -184,13 +237,12 @@ router.post('/signup/', async (req, res) => {
             description,
             dob,
             height,
+            height_unit_fk,
             gender_fk,
-            bmr,
             activity_level_fk,
-            main_cal,
             password,
             icon_fk)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try{
@@ -205,14 +257,6 @@ router.post('/signup/', async (req, res) => {
 
         let dob = new Date(body.dob);
         let curDate = new Date();
-        let age = (curDate - dob) / millisInYear;
-        
-        let kgBodyweight;
-        if(body.bw_unit === 2) kgBodyweight = body.bodyweight * lbToKgFactor;
-        else kgBodyweight = body.bodyweight;
-
-        let bmr = await getBMR(req, kgBodyweight, body.height, age, body.gender_fk);
-        let main_cal = await getMaintenanceCal(req, bmr, body.activity_level_fk);
 
         let okPacket = await req.conn.queryAsync(sql, [ body.name,
                                                         body.username,
@@ -220,10 +264,9 @@ router.post('/signup/', async (req, res) => {
                                                         body.description,
                                                         dob,
                                                         body.height,
+                                                        body.height_unit_fk,
                                                         body.gender_fk,
-                                                        bmr,
                                                         body.activity_level_fk,
-                                                        main_cal,
                                                         hashedPW,
                                                         body.icon_fk
                                                     ]
@@ -240,6 +283,8 @@ router.post('/signup/', async (req, res) => {
         `;
         let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, body.bw_unit, okPacket.insertId]);
         
+        let okPacket3 = await updateMaintenanceCal(req, okPacket.insertId);
+
         res.send({ success: 'User has been created.' });
     }catch(err){
         const errors = handleError(err);
@@ -261,14 +306,24 @@ router.put('/account/', requireAuth, async (req, res) => {
     try{
         validateUserInfo(body, false);
 
+        let maintenanceAffected = false;
+        let maintenanceFactors = ['dob', 'height', 'height_unit_fk', 'gender_fk', 'activity_level_fk'];
+
         let valueStr = '';
         let values = [];
         let keys = Object.keys(body);
+        
+        if(keys.length === 0) throw Error('Please modify something.');
+        
         for(let i = 0;i < keys.length; i++){
             if(!body[keys[i]]) continue;
+            
+            if(maintenanceFactors.includes(keys[i])) maintenanceAffected = true;
+            
             valueStr += `${keys[i]} = ?,`;
             values.push(body[keys[i]]);
         }
+
         valueStr = valueStr.substring(0, valueStr.length-1);
 
         let sql = `
@@ -276,10 +331,10 @@ router.put('/account/', requireAuth, async (req, res) => {
             SET ${valueStr}
             WHERE id = ${req.user.id}
         `;
-        console.log(sql)
-        console.log(values)
 
         let okPacket = await req.conn.queryAsync(sql, values);
+
+        let okPacket2 = await updateMaintenanceCal(req, req.user.id);
 
         res.send({ success: "Account has been modified." });
     }catch(err){
@@ -302,6 +357,9 @@ router.put('/password/', requireAuth, async (req, res) => {
         const auth = await bcrypt.compare(body.oldPass, req.user.password);
 
         if(auth){
+            const sameAsOld = await bcrypt.compare(body.newPass, req.user.password);
+            if(sameAsOld) throw Error('New password is the same as the old one.');
+
             let hashedPW = await new Promise((resolve, reject) => {
                 bcrypt.hash(body.newPass, saltRounds, async (err, hash) => {
                     if(err) reject(err);
@@ -331,17 +389,51 @@ router.put('/password/', requireAuth, async (req, res) => {
 router.delete('/', requireAuth, async (req, res) => {
     const body = req.body;
 
-    let sql = `
-        DELETE
-        FROM user
-        WHERE id = ?
-    `;
+    
+    //delete maintenance_calories, exercise, exercise_set, lift, lift_set, bodyweight
+    //modify but dont delete item, meal
 
     try{
         const auth = await bcrypt.compare(body.pass, req.user.password);
 
         if(auth){
-            let okPacket = await req.conn.queryAsync(sql, [req.user.id]);
+            let id = req.user.id;
+
+            let exercises = await req.conn.queryAsync(`SELECT id FROM exercise WHERE user_fk = ${id}`);
+            let exerciseStr = '';
+            let lifts = await req.conn.queryAsync(`SELECT id FROM lift WHERE user_fk = ${id}`);
+            let liftStr = '';
+
+            for(let exexerciseId of exercises) exerciseStr += `exercise_fk = ${exexerciseId} OR `;
+            for(let liftId of lifts) liftStr += `lift_fk = ${liftId} OR `;
+
+            exerciseStr = exerciseStr.substring(0, exerciseStr.length - 3);
+            liftStr = liftStr.substring(0, liftStr.length - 3);
+
+            let delete_sql = `
+                UPDATE item SET user_fk = 1 WHERE user_fk = ${id};
+                UPDATE meal SET user_fk = 1 WHERE user_fk = ${id};
+                DELETE FROM exercise_set WHERE ${exerciseStr};
+                DELETE FROM lift_set WHERE ${liftStr};
+                DELETE FROM exercise WHERE user_fk = ${id};
+                DELETE FROM lift WHERE user_fk = ${id};
+                DELETE FROM maintenance_calories WHERE user_fk = ${id};
+                DELETE FROM bodyweight WHERE user_fk = ${id};
+                DELETE FROM user WHERE id = ${id};
+            `;
+
+            let sqlArr = delete_sql.split(';');
+
+            for(let sql of sqlArr){
+                if(sql.length === 0) continue;
+                try{
+                    await req.conn.queryAsync(sql);
+                }catch(err){
+                    console.log('Error with deleting account: ', err);
+                    break;
+                }
+            }
+            
             res.send({ success: 'Account has been deleted.' });
         }else{
             throw Error('Password is wrong.')
