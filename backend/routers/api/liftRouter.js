@@ -52,7 +52,7 @@ const handleError = (err) => {
 //---------
 
 router.use((req, res) => {
-    res.send({ error: 'Requested exercise endpoint does not exist.' });
+    res.send({ error: 'Requested lift endpoint does not exist.' });
 });
 
 module.exports = router;

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../auth/authMiddleware');
-const authRouter = require('../auth/authRouter');
+const authRouter = require('./api/authRouter');
 const itemRouter = require('./api/itemRouter');
 const mealRouter = require('./api/mealRouter');
 const exerciseRouter = require('./api/exerciseRouter');

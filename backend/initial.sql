@@ -78,8 +78,9 @@ CREATE TABLE IF NOT EXISTS ITEM (
     protein INT NOT NULL,
     carbs INT NOT NULL,
     fat INT NOT NULL,
-    cost DECIMAL NOT NULL DEFAULT 0.0,
-    serving_size VARCHAR(25) NOT NULL,
+    cost DECIMAL(10, 2) NOT NULL DEFAULT 0.0,
+    serving_size INT NOT NULL,
+    serving_size_unit_fk INT NOT NULL,
     icon_fk INT NOT NULL DEFAULT 2,
     category_fk INT NOT NULL,
     user_fk INT NOT NULL,
@@ -88,6 +89,7 @@ CREATE TABLE IF NOT EXISTS ITEM (
     PRIMARY KEY (id),
     FOREIGN KEY (icon_fk) REFERENCES ICON (id),
     FOREIGN KEY (category_fk) REFERENCES ITEM_CATEGORY (id),
+    FOREIGN KEY (serving_size_unit_fk) REFERENCES UNIT (id),
     FOREIGN KEY (user_fk) REFERENCES USER (id)
 );
 CREATE TABLE IF NOT EXISTS MEAL (
@@ -103,6 +105,7 @@ CREATE TABLE IF NOT EXISTS MEAL (
 CREATE TABLE IF NOT EXISTS MEAL_ITEM (
     id INT NOT NULL AUTO_INCREMENT,
     item_fk INT NOT NULL,
+    item_percentage DECIMAL(3, 2) NOT NULL,
     meal_fk INT NOT NULL,
 
     PRIMARY KEY (id),
@@ -232,9 +235,10 @@ INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (4, 'miles', 'mi
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (5, 'centimeters', 'cm', 'cm');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (6, 'inches', 'in', 'in');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (7, 'litres', 'ltr', 'ltrs');
-INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (8, 'quart', 'qt', 'qts');
-INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (9, 'grams', 'g', 'g');
+INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (8, 'millilitres', 'mL', 'mL');
+INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (9, 'quart', 'qt', 'qts');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (10, 'ounces', 'oz', 'oz');
+INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (11, 'grams', 'g', 'g');
 
 INSERT IGNORE INTO user (id, name, username, dob, height, height_unit_fk, gender_fk, activity_level_fk, password, created_at) VALUES (1, 'Deleted', 'Deleted', '2000-01-01', '100', 5, 1, 1, 'NO_PASSWORD', '2000-01-01');
 
