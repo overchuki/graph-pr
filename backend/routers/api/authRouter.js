@@ -41,7 +41,7 @@ const validateUserInfo = (body, initial) => {
     serviceFunc.checkValidInt('Gender index', body.gender_fk, initial, genderNumRange);
     serviceFunc.checkValidInt('Activity index', body.activity_level_fk, initial, activityLevelNumRange);
     serviceFunc.checkValidInt('Icon index', body.icon_fk, initial, iconNumRange);
-    serviceFunc.checkValidInt('Bw unit index', body.bw_unit, initial, bwUnitNumRange);
+    serviceFunc.checkValidInt('Bw unit index', body.bw_unit_fk, initial, bwUnitNumRange);
 
     let curDate = new Date();
     let dob = new Date(body.dob);
@@ -138,11 +138,12 @@ router.post('/signup/', async (req, res) => {
             dob,
             height,
             height_unit_fk,
+            bw_unit_fk,
             gender_fk,
             activity_level_fk,
             password,
             icon_fk)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try{
@@ -165,6 +166,7 @@ router.post('/signup/', async (req, res) => {
                                                         dob,
                                                         body.height,
                                                         body.height_unit_fk,
+                                                        body.bw_unit_fk,
                                                         body.gender_fk,
                                                         body.activity_level_fk,
                                                         hashedPW,
@@ -177,13 +179,12 @@ router.post('/signup/', async (req, res) => {
             INTO bodyweight (
                 weight,
                 date,
-                unit_fk,
                 user_fk)
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?)
         `;
-        let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, body.bw_unit, okPacket.insertId]);
+        let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, okPacket.insertId]);
         
-        let okPacket3 = await serviceFunc.updateMaintenanceCal(req, okPacket.insertId);
+        let okPacket3 = await serviceFunc.updateMaintenanceCal(req, okPacket.insertId, new Date());
 
         res.send({ success: 'User has been created.' });
     }catch(err){
@@ -206,8 +207,8 @@ router.put('/account/', requireAuth, async (req, res) => {
     try{
         validateUserInfo(body, false);
 
-        let maintenanceFactors = ['dob', 'height', 'height_unit_fk', 'gender_fk', 'activity_level_fk'];
-        let udpateStr = serviceFunc.getUpdateStr(body, maintenanceFactors);
+        let maintenanceFactors = ['dob', 'height', 'height_unit_fk', 'gender_fk', 'bw_unit_fk', 'activity_level_fk'];
+        let updateStr = serviceFunc.getUpdateStr(body, maintenanceFactors);
 
         let sql = `
             UPDATE user
@@ -217,8 +218,11 @@ router.put('/account/', requireAuth, async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
+        let curDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'MST' }));
+        console.log(curDate);
+
         if(updateStr.affected){
-            let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id);
+            let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, );
         }
 
         res.send({ success: "Account has been modified." });
@@ -298,8 +302,13 @@ router.delete('/', requireAuth, async (req, res) => {
             let delete_sql = `
                 UPDATE item SET user_fk = 1 WHERE user_fk = ${id};
                 UPDATE meal SET user_fk = 1 WHERE user_fk = ${id};
-                DELETE FROM exercise_set WHERE ${exerciseStr};
-                DELETE FROM lift_set WHERE ${liftStr};
+            `;
+
+            if(exerciseStr.length > 0) delete_sql += `DELETE FROM exercise_set WHERE ${exerciseStr};`;
+            
+            if(liftStr.length > 0) delete_sql += `DELETE FROM lift_set WHERE ${liftStr};`;
+            
+            delete_sql += `
                 DELETE FROM exercise WHERE user_fk = ${id};
                 DELETE FROM lift WHERE user_fk = ${id};
                 DELETE FROM maintenance_calories WHERE user_fk = ${id};
@@ -309,15 +318,7 @@ router.delete('/', requireAuth, async (req, res) => {
 
             let sqlArr = delete_sql.split(';');
 
-            for(let sql of sqlArr){
-                if(sql.length === 0) continue;
-                try{
-                    await req.conn.queryAsync(sql);
-                }catch(err){
-                    console.log('Error with deleting account.');
-                    throw err;
-                }
-            }
+            await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error with deleting account.');
             
             res.send({ success: 'Account has been deleted.' });
         }else{

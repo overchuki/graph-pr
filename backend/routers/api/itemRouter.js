@@ -39,6 +39,7 @@ const validateItemInputs = (body) => {
 
 // Get all user's items
 router.get('/', async (req, res) => {
+    const query = req.query;
     const limit = query.limit || 10;
     const offset = query.offset || 0;
 
@@ -106,8 +107,33 @@ router.get('/search/', async (req, res) => {
     }
 });
 
+// Search for items with query param and category
+router.get('/search/category/:catId/', async (req, res) => {
+    const query = req.query;
+    const params = req.params;
+    const limit = query.limit || 10;
+    const offset = query.offset || 0;
+
+    let sql = `
+        SELECT *
+        FROM item
+        WHERE name REGEXP '${query.str}' AND category_fk = ${params.catId}
+        LIMIT ${limit}
+        OFFSET ${offset}
+    `;
+
+    try{
+        let results = await req.conn.queryAsync(sql);
+
+        res.send(results);
+    }catch(err){
+        const errors = handleError(err);
+        res.status(400).send({ error: errors });
+    }
+});
+
 // Get items by category id with limits and offset params
-router.get('/category/:id/', async (req, res) => {
+router.get('/category/:catId/', async (req, res) => {
     const params = req.params;
     const query = req.query;
     const limit = query.limit || 10;
@@ -116,7 +142,7 @@ router.get('/category/:id/', async (req, res) => {
     let sql = `
         SELECT *
         FROM item
-        WHERE category_fk = ${params.id}
+        WHERE category_fk = ${params.catId}
         LIMIT ${limit}
         OFFSET ${offset}
     `;
@@ -207,15 +233,7 @@ router.delete('/:id/', async (req, res) => {
     try{
         let sqlArr = delete_sql.split(';');
 
-        for(let sql of sqlArr){
-            if(sql.length === 0) continue;
-            try{
-                await req.conn.queryAsync(sql);
-            }catch(err){
-                console.log('Error with deleting item.');
-                throw err;
-            }
-        }
+        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error with deleting item.');
 
         res.send({ success: 'Item has been deleted.' });
     }catch(err){

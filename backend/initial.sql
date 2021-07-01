@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS USER (
     dob DATE NOT NULL,
     height INT NOT NULL,
     height_unit_fk INT NOT NULL,
+    bw_unit_fk INT NOT NULL,
     gender_fk INT NOT NULL,
     activity_level_fk INT NOT NULL,
     password CHAR(60) NOT NULL,
@@ -48,6 +49,7 @@ CREATE TABLE IF NOT EXISTS USER (
     FOREIGN KEY (icon_fk) REFERENCES ICON (id),
     FOREIGN KEY (activity_level_fk) REFERENCES ACTIVITY_LEVEL (id),
     FOREIGN KEY (height_unit_fk) REFERENCES UNIT (id),
+    FOREIGN KEY (bw_unit_fk) REFERENCES UNIT (id),
     FOREIGN KEY (gender_fk) REFERENCES GENDER (id)
 );
 CREATE TABLE IF NOT EXISTS MAINTENANCE_CALORIES (
@@ -110,7 +112,9 @@ CREATE TABLE IF NOT EXISTS MEAL_ITEM (
 
     PRIMARY KEY (id),
     FOREIGN KEY (item_fk) REFERENCES ITEM (id),
-    FOREIGN KEY (meal_fk) REFERENCES MEAL (id)
+    FOREIGN KEY (meal_fk) REFERENCES MEAL (id),
+
+    UNIQUE KEY item_meal (item_fk, meal_fk)
 );
 CREATE TABLE IF NOT EXISTS MEAL_DATE (
     id INT NOT NULL AUTO_INCREMENT,
@@ -191,13 +195,11 @@ CREATE TABLE IF NOT EXISTS LIFT_SET (
 );
 CREATE TABLE IF NOT EXISTS BODYWEIGHT (
     id INT NOT NULL AUTO_INCREMENT,
-    weight INT NOT NULL,
+    weight DECIMAL(10,2) NOT NULL,
     date DATE NOT NULL,
-    unit_fk INT NOT NULL,
     user_fk INT NOT NULL,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (unit_fk) REFERENCES UNIT (id),
     FOREIGN KEY (user_fk) REFERENCES USER (id),
 
     UNIQUE KEY user_date (user_fk, date)
@@ -225,7 +227,7 @@ INSERT IGNORE INTO item_category (id, name, color) VALUES (7, 'Vegetables', '#00
 INSERT IGNORE INTO item_category (id, name, color) VALUES (8, 'Fruits', '#FF00FF');
 INSERT IGNORE INTO item_category (id, name, color) VALUES (9, 'Legumes', '#00FF7F');
 INSERT IGNORE INTO item_category (id, name, color) VALUES (10, 'Drinks', '#007FFF');
-INSERT IGNORE INTO item_category (id, name, color) VALUES (11, 'Instant Food', '#7FFF00');
+INSERT IGNORE INTO item_category (id, name, color) VALUES (11, 'Supplements', '#7FFF00');
 INSERT IGNORE INTO item_category (id, name, color) VALUES (12, 'Other', '#FF007F');
 
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (1, 'kilograms', 'kg', 'kgs');
@@ -240,6 +242,19 @@ INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (9, 'quart', 'qt
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (10, 'ounces', 'oz', 'oz');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (11, 'grams', 'g', 'g');
 
-INSERT IGNORE INTO user (id, name, username, dob, height, height_unit_fk, gender_fk, activity_level_fk, password, created_at) VALUES (1, 'Deleted', 'Deleted', '2000-01-01', '100', 5, 1, 1, 'NO_PASSWORD', '2000-01-01');
+INSERT IGNORE INTO user (id, name, username, dob, height, height_unit_fk, bw_unit_fk, gender_fk, activity_level_fk, password, created_at) VALUES (1, 'Deleted', 'Deleted', '2000-01-01', 100, 5, 1, 1, 1, 'NO_PASSWORD', '2000-01-01');
 
 INSERT IGNORE INTO exercise_type (id, name, description) VALUES (1, 'lift', 'weight lifting');
+
+INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+VALUES (1, 'Apple', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
+INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+VALUES (2, 'Orange', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
+INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+VALUES (3, 'Grapes', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
+INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+VALUES (4, 'Whole Milk', 150, 10, 5, 8, 0.71, 8, 10, 2, 4, 2);
+INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+VALUES (5, 'Whey Protein', 140, 25, 0, 1, 0.88, 25, 11, 2, 11, 2);
+INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+VALUES (6, 'Casein Protein', 120, 24, 0, 1, 1.03, 25, 11, 2, 11, 2);
