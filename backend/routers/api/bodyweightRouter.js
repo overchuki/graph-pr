@@ -14,6 +14,14 @@ const validateBWInputs = (body, initial, tz) => {
     serviceFunc.checkValidInt('Date', serviceFunc.getDateFromStr(body.date), initial, [serviceFunc.getDateFromStr('18500101'), serviceFunc.getDateByTZ(new Date(), tz)]);
 }
 
+const verifyUser = async (req, id) => {
+    let sql = `SELECT * FROM bodyweight WHERE id = ${id}`;
+
+    let bw = await req.conn.queryAsync(sql);
+    if(bw[0].user_fk != req.user.id) throw Error('You can only modify your own bodyweight.');
+}
+
+
 //---------
 //
 //   GET
@@ -114,6 +122,7 @@ router.put('/:id/', async (req, res) => {
     const params = req.params;
 
     try{
+        await verifyUser(req, params.id);
         validateBWInputs(body, false, req.user.tz);
 
         let updateStr = serviceFunc.getUpdateStr(body, []);
@@ -155,6 +164,8 @@ router.delete('/:id/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+        
         let bw = await req.conn.queryAsync(sql);
         
         let delete_sql = `

@@ -15,6 +15,13 @@ const validateMealInputs = (body, initial) => {
     serviceFunc.checkValidStr('Description', body.description, false, descLenRange, true, false);
 }
 
+const verifyUser = async (req, id) => {
+    let sql = `SELECT * FROM meal WHERE id = ${id}`;
+
+    let meal = await req.conn.queryAsync(sql);
+    if(meal[0].user_fk != req.user.id) throw Error('You can only modify your own meals.');
+}
+
 
 //---------
 //
@@ -189,6 +196,8 @@ router.post('/:id/item/:itemId/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+
         let itemInMeal = await req.conn.queryAsync(`SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`);
         if(itemInMeal.length > 0) throw Error('Item is already in meal, edit the serving percentage to change its quantity.');
 
@@ -217,6 +226,8 @@ router.post('/:id/date/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+
         let date = serviceFunc.getDateFromStr(body.date);
         serviceFunc.checkValidInt('Meal Date', date, true, [serviceFunc.getDateFromStr('1900-01-01'), serviceFunc.getDateByTZ(new Date(), req.user.tz)]);
 
@@ -245,6 +256,7 @@ router.put('/:id/', async (req, res) => {
     const params = req.params;
 
     try{
+        await verifyUser(req, params.id);
         validateMealInputs(body, false);
 
         let updateStr = serviceFunc.getUpdateStr(body, []);
@@ -276,6 +288,7 @@ router.put('/:id/item/:itemId/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
         serviceFunc.checkValidInt('Item Percentage', body.item_percentage, true, [0, 100]);
 
         let okPacket = await req.conn.queryAsync(sql, [body.item_percentage]);
@@ -304,6 +317,8 @@ router.delete('/:id/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+
         let sqlArr = delete_sql.split(';');
 
         await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error with deleting meal.');
@@ -324,6 +339,8 @@ router.delete('/:id/item/:itemId', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+
         let sqlArr = delete_sql.split(';');
 
         await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error deleting item from meal.');
@@ -344,6 +361,8 @@ router.delete('/:id/date/:dateId/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+        
         let sqlArr = delete_sql.split(';');
 
         await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error deleting meal from date.');

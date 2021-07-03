@@ -284,10 +284,6 @@ router.put('/password/', requireAuth, async (req, res) => {
 router.delete('/', requireAuth, async (req, res) => {
     const body = req.body;
 
-    
-    //delete maintenance_calories, exercise, exercise_set, lift, lift_set, bodyweight
-    //modify but dont delete item, meal
-
     try{
         const auth = await bcrypt.compare(body.pass, req.user.password);
 

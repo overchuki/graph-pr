@@ -30,6 +30,13 @@ const validateItemInputs = (body, initial) => {
     serviceFunc.checkValidInt('Category Index', body.category_fk, initial, categoryNumRange);
 }
 
+const verifyUser = async (req, id) => {
+    let sql = `SELECT * FROM item WHERE id = ${id}`;
+
+    let item = await req.conn.queryAsync(sql);
+    if(item[0].user_fk != req.user.id) throw Error('You can only modify your own items.');
+}
+
 
 //---------
 //
@@ -228,6 +235,7 @@ router.put('/:id/', async (req, res) => {
     const params = req.params;
 
     try{
+        await verifyUser(req, params.id);
         validateItemInputs(body, false);
 
         let updateStr = serviceFunc.getUpdateStr(body, ['serving_size', 'serving_size_unit_fk', 'category_fk']);
@@ -264,6 +272,8 @@ router.delete('/:id/', async (req, res) => {
     `;
 
     try{
+        await verifyUser(req, params.id);
+
         let sqlArr = delete_sql.split(';');
 
         await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error with deleting item.');
