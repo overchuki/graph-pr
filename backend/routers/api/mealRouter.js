@@ -217,8 +217,8 @@ router.post('/:id/date/', async (req, res) => {
     `;
 
     try{
-        let date = new Date(body.date);
-        serviceFunc.checkValidInt('Meal Date', date, true, [new Date('1900-01-01'), new Date()]);
+        let date = serviceFunc.getDateFromStr(body.date);
+        serviceFunc.checkValidInt('Meal Date', date, true, [serviceFunc.getDateFromStr('1900-01-01'), serviceFunc.getDateByTZ(new Date(), req.user.tz)]);
 
         let okPacket = await req.conn.queryAsync(sql, [
             body.date,

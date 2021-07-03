@@ -17,8 +17,20 @@ const unitMatrix = [
     ['g',   -1,      -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,   0.0353,    1]
 ];
 
-const getLocalServerDate = (date, splitBy) => {
-    let curDate = date.toLocaleDateString('en-US', { timeZone: 'America/Denver' });
+// GET TIMEZONE
+// Intl.DateTimeFormat().resolvedOptions().timeZone
+
+const getDateByTZ = (date, tz) => {
+    if(!date) return;
+    let dateStr = getDateStrByTZ(date, '', tz);
+    let realDate = getDateFromStr(dateStr);
+
+    return realDate;
+}
+
+const getDateStrByTZ = (date, splitBy, tz) => {
+    if(!date) return;
+    let curDate = date.toLocaleDateString('en-US', { timeZone: tz });
     curDate = curDate.split('/');
     if(curDate[0].length === 1) curDate[0] = '0' + curDate[0];
     if(curDate[1].length === 1) curDate[1] = '0' + curDate[1];
@@ -26,15 +38,29 @@ const getLocalServerDate = (date, splitBy) => {
 }
 
 const getDateStr = (date, splitBy) => {
+    if(!date) return;
     let month = date.getMonth() + 1;
+    let day = date.getDate();
     if(month < 10) month = '0' + month;
+    if(day < 10) day = '0' + day;
 
-    return date.getFullYear() + splitBy + month + splitBy + date.getDate();
+    return date.getFullYear() + splitBy + month + splitBy + day;
 }
 
-const getDateFromStr = (dateStr, splitBy) => {
+const getDateFromStr = (dateStr) => {
+    if(!dateStr) return;
+    dateStr = dateStr.split('-').join('');
+    dateStr = dateStr.split('/').join('');
+    if(dateStr.length != 8) throw Error('Invalid date string format.');
     let date = new Date();
-    
+    let year = parseInt(dateStr.substring(0, 4));
+    let month = parseInt(dateStr.substring(4, 6)) - 1;
+    let day = parseInt(dateStr.substring(6, 8));
+
+    date.setFullYear(year, month, day);
+    date.setHours(0, 0, 0);
+
+    return date;
 }
 
 const convertUnit = (value, convertFrom, convertTo) => {
@@ -54,7 +80,6 @@ const getLastBodyweight = async (req, userId, date) => {
         ORDER BY date DESC
         LIMIT 1
     `;
-    console.log(sql);
 
     let bw = await req.conn.queryAsync(sql);
     return bw;
@@ -130,13 +155,12 @@ const getMaintenanceCal = async (req, bmr, activity_level) => {
     return Math.round(bmr * multiplier[0].bmr_multiplier);
 }
 
-const updateMaintenanceCal = async (req, userId, updateDate) => {
+const updateMaintenanceCal = async (req, userId, updateDate, tz) => {
     let userArr = await req.conn.queryAsync(`SELECT * FROM user WHERE id = ${userId}`);
     let user = userArr[0];
 
-    let dob = new Date(user.dob);
-    let curDate = new Date();
-    console.log(updateDate)
+    let dob = getDateByTZ(user.dob, tz);
+    let curDate = getDateByTZ(new Date(), tz);
     let age = (curDate - dob) / millisInYear;
 
     let latestBodyweight = await getLastBodyweight(req, userId, updateDate);
@@ -254,5 +278,7 @@ module.exports = {
     getDateTotals,
     convertUnit,
     getLastBodyweight,
-    getLocalServerDate
+    getDateByTZ,
+    getDateFromStr,
+    getDateStrByTZ
 }

@@ -26,16 +26,17 @@ const handleError = (err) => {
     return err.message;
 }
 
-const createJWTToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
+const createJWTToken = (payload) => {
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
 }
 
-const validateUserInfo = (body, initial) => {
+const validateUserInfo = (body, initial, tz) => {
     serviceFunc.checkValidStr('Name', body.name, initial, nameLenRange, true, false);
     serviceFunc.checkValidStr('Username', body.username, initial, usernameLenRange, true, false);
     serviceFunc.checkValidStr('Email', body.email, false, emailLenRange, false, true);
     serviceFunc.checkValidStr('Description', body.description, false, descriptionLenRange, true, false);
     serviceFunc.checkValidStr('Password', body.password, initial, passwordLenRange, true, false);
+    serviceFunc.checkValidStr('Timezone', body.tz, initial, [1, 100], true, false);
 
     serviceFunc.checkValidInt('Height unit index', body.height_unit_fk, initial, heightUnitNumRange);
     serviceFunc.checkValidInt('Gender index', body.gender_fk, initial, genderNumRange);
@@ -43,8 +44,8 @@ const validateUserInfo = (body, initial) => {
     serviceFunc.checkValidInt('Icon index', body.icon_fk, initial, iconNumRange);
     serviceFunc.checkValidInt('Bw unit index', body.bw_unit_fk, initial, bwUnitNumRange);
 
-    let curDate = new Date();
-    let dob = new Date(body.dob);
+    let curDate = serviceFunc.getDateByTZ(new Date(), tz);
+    let dob = serviceFunc.getDateFromStr(body.dob);
     let dateMax = curDate.setFullYear(curDate.getFullYear() - ageNumRange[0]);
     let dateMin = curDate.setFullYear(curDate.getFullYear() - ageNumRange[1] + ageNumRange[0]);
     serviceFunc.checkValidInt('Date of Birth', dob, initial, [dateMin, dateMax]);
@@ -109,7 +110,7 @@ router.post('/login/', async (req, res) => {
             const auth = await bcrypt.compare(body.pass, user[0].password);
             
             if(auth){
-                const token = createJWTToken(user[0].id);
+                const token = createJWTToken({ id: user[0].id, tz: body.tz });
                 res.cookie('jwt', token, { httpOnly: true, maxAge: maxTokenAgeSeconds * 1000 });
                 res.send({ success: 'Login successful.' });
             }else{
@@ -122,6 +123,12 @@ router.post('/login/', async (req, res) => {
         const errors = handleError(err);
         res.status(400).send({ error: errors });
     }
+});
+
+// Log a user out
+router.post('/logout/', requireAuth, async (req, res) => {
+    res.cookie('jwt', '', { maxAge: 1 });
+    res.send({ success: 'User has been logged out.' });
 });
 
 // Sign a user up
@@ -147,7 +154,7 @@ router.post('/signup/', async (req, res) => {
     `;
 
     try{
-        validateUserInfo(body, true);
+        validateUserInfo(body, true, body.tz);
 
         let hashedPW = await new Promise((resolve, reject) => {
             bcrypt.hash(body.password, saltRounds, async (err, hash) => {
@@ -156,8 +163,8 @@ router.post('/signup/', async (req, res) => {
             });
         });
 
-        let dob = new Date(body.dob);
-        let curDate = new Date();
+        let dob = serviceFunc.getDateFromStr(body.dob);
+        let curDate = serviceFunc.getDateByTZ(new Date(), body.tz);
 
         let okPacket = await req.conn.queryAsync(sql, [ body.name,
                                                         body.username,
@@ -184,7 +191,7 @@ router.post('/signup/', async (req, res) => {
         `;
         let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, okPacket.insertId]);
         
-        let okPacket3 = await serviceFunc.updateMaintenanceCal(req, okPacket.insertId, new Date());
+        let okPacket3 = await serviceFunc.updateMaintenanceCal(req, okPacket.insertId, serviceFunc.getDateStr(curDate, ''), body.tz);
 
         res.send({ success: 'User has been created.' });
     }catch(err){
@@ -205,7 +212,7 @@ router.put('/account/', requireAuth, async (req, res) => {
     const body = req.body;
 
     try{
-        validateUserInfo(body, false);
+        validateUserInfo(body, false, req.user.tz);
 
         let maintenanceFactors = ['dob', 'height', 'height_unit_fk', 'gender_fk', 'bw_unit_fk', 'activity_level_fk'];
         let updateStr = serviceFunc.getUpdateStr(body, maintenanceFactors);
@@ -218,11 +225,10 @@ router.put('/account/', requireAuth, async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        let curDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'MST' }));
-        console.log(curDate);
+        let curDate = serviceFunc.getDateByTZ(new Date(), req.user.tz);
 
         if(updateStr.affected){
-            let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, );
+            let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, serviceFunc.getDateStr(curDate, ''), req.user.tz);
         }
 
         res.send({ success: "Account has been modified." });

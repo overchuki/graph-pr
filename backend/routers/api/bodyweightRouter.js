@@ -9,9 +9,9 @@ const handleError = (err) => {
     return err.message;
 }
 
-const validateBWInputs = (body, initial) => {
+const validateBWInputs = (body, initial, tz) => {
     serviceFunc.checkValidInt('Weight', body.weight, initial, weightIntRange);
-    serviceFunc.checkValidInt('Date', new Date(body.weight), initial, [new Date('1850-01-01'), new Date()]);
+    serviceFunc.checkValidInt('Date', serviceFunc.getDateFromStr(body.date), initial, [serviceFunc.getDateFromStr('18500101'), serviceFunc.getDateByTZ(new Date(), tz)]);
 }
 
 //---------
@@ -19,6 +19,11 @@ const validateBWInputs = (body, initial) => {
 //   GET
 //
 //---------
+
+router.get('/test/', (req, res) => {
+    
+    res.send({ test: 'test' });
+});
 
 // Get user's bodyweight with query params
 router.get('/', async (req, res) => {
@@ -28,7 +33,7 @@ router.get('/', async (req, res) => {
     const order = query.order || true;
 
     let orderStr = 'DESC';
-    if(!order) orderStr = 'ASC';
+    if(order === 'false') orderStr = 'ASC';
 
     let sql = `
         SELECT *
@@ -53,7 +58,7 @@ router.get('/', async (req, res) => {
 router.get('/last/', async (req, res) => {
 
     try{
-        let bw = await serviceFunc.getLastBodyweight(req, req.user.id, serviceFunc.getDateStr(new Date(), ''));
+        let bw = await serviceFunc.getLastBodyweight(req, req.user.id, serviceFunc.getDateStrByTZ(new Date(), '', req.user.tz));
 
         res.send(bw);
     }catch(err){
@@ -83,11 +88,11 @@ router.post('/', async (req, res) => {
     `;
 
     try{
-        validateBWInputs(body, true);
+        validateBWInputs(body, true, req.user.tz);
 
         let okPacket = await req.conn.queryAsync(sql, [body.weight, body.date, req.user.id]);
 
-        let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, body.date);
+        let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, body.date, req.user.tz);
 
         res.send({ success: 'BW entry has been added', id: okPacket.insertId });
     }catch(err){
@@ -109,7 +114,7 @@ router.put('/:id/', async (req, res) => {
     const params = req.params;
 
     try{
-        validateBWInputs(body, false);
+        validateBWInputs(body, false, req.user.tz);
 
         let updateStr = serviceFunc.getUpdateStr(body, []);
 
@@ -120,8 +125,10 @@ router.put('/:id/', async (req, res) => {
         `;
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
+        
+        let updatedBW = await req.conn.queryAsync(`SELECT date FROM bodyweight WHERE id = ${params.id}`);
 
-        let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, body.date);
+        let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, serviceFunc.getDateStr(updatedBW[0].date, ''), req.user.tz);
 
         res.send({ success: 'BW entry has been updated' });
     }catch(err){
@@ -151,7 +158,7 @@ router.delete('/:id/', async (req, res) => {
         let bw = await req.conn.queryAsync(sql);
         
         let delete_sql = `
-            DELETE FROM maintenance_calories WHERE user_fk = ${req.user.id} AND date = ${bw[0].date};
+            DELETE FROM maintenance_calories WHERE user_fk = ${req.user.id} AND date = '${serviceFunc.getDateStr(bw[0].date, '')}';
             DELETE FROM bodyweight WHERE id = ${params.id}
         `;
 

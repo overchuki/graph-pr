@@ -18,6 +18,7 @@ const verifyUser = async (req, res, next) => {
             
             if(user.length > 0){
                 req.user = user[0];
+                req.user.tz = decodedToken.tz;
             }else{
                 req.user = null;
             }

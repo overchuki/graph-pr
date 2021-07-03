@@ -16,18 +16,18 @@ const handleError = (err) => {
     return err.message;
 }
 
-const validateItemInputs = (body) => {
-    serviceFunc.checkValidStr('Name', body.name, true, nameLenRange, true, false);
+const validateItemInputs = (body, initial) => {
+    serviceFunc.checkValidStr('Name', body.name, initial, nameLenRange, true, false);
 
-    serviceFunc.checkValidInt('Calories', body.calories, true, caloriesRange);
-    serviceFunc.checkValidInt('Protein', body.protein, true, macroRange);
-    serviceFunc.checkValidInt('Carbs', body.carbs, true, macroRange);
-    serviceFunc.checkValidInt('Fat', body.fat, true, macroRange);
-    serviceFunc.checkValidInt('Cost', body.cost, true, costRange);
-    serviceFunc.checkValidInt('Serving Size', body.serving_size, true, servSizeRange);
-    serviceFunc.checkValidInt('Serving Size Unit Index', body.serving_size_unit_fk, true, servSizeUnitRange);
-    serviceFunc.checkValidInt('Icon Index', body.icon_fk, true, iconNumRange);
-    serviceFunc.checkValidInt('Category Index', body.category_fk, true, categoryNumRange);
+    serviceFunc.checkValidInt('Calories', body.calories, initial, caloriesRange);
+    serviceFunc.checkValidInt('Protein', body.protein, initial, macroRange);
+    serviceFunc.checkValidInt('Carbs', body.carbs, initial, macroRange);
+    serviceFunc.checkValidInt('Fat', body.fat, initial, macroRange);
+    serviceFunc.checkValidInt('Cost', body.cost, initial, costRange);
+    serviceFunc.checkValidInt('Serving Size', body.serving_size, initial, servSizeRange);
+    serviceFunc.checkValidInt('Serving Size Unit Index', body.serving_size_unit_fk, initial, servSizeUnitRange);
+    serviceFunc.checkValidInt('Icon Index', body.icon_fk, initial, iconNumRange);
+    serviceFunc.checkValidInt('Category Index', body.category_fk, initial, categoryNumRange);
 }
 
 
@@ -186,7 +186,7 @@ router.post('/', async (req, res) => {
     `;
 
     try{
-        validateItemInputs(body);
+        validateItemInputs(body, true);
 
         let existingItem = await req.conn.queryAsync(`SELECT * FROM item WHERE name = '${body.name}'`);
         if(existingItem.length > 0){
@@ -209,6 +209,38 @@ router.post('/', async (req, res) => {
         ]);
 
         res.send({ success: 'item has been created', id: okPacket.insertId });
+    }catch(err){
+        const errors = handleError(err);
+        res.status(400).send({ error: errors });
+    }
+});
+
+
+//---------
+//
+//   PUT
+//
+//---------
+
+// Update an item
+router.put('/:id/', async (req, res) => {
+    const body = req.body;
+    const params = req.params;
+
+    try{
+        validateItemInputs(body, false);
+
+        let updateStr = serviceFunc.getUpdateStr(body, []);
+
+        let sql = `
+            UPDATE item
+            SET ${updateStr.valueStr}
+            WHERE id = ${params.id}
+        `;
+
+        let okPacket = await req.conn.queryAsync(sql, updateStr.values);
+
+        res.send({ success: 'item has been updated' });
     }catch(err){
         const errors = handleError(err);
         res.status(400).send({ error: errors });
