@@ -230,7 +230,8 @@ router.put('/:id/', async (req, res) => {
     try{
         validateItemInputs(body, false);
 
-        let updateStr = serviceFunc.getUpdateStr(body, []);
+        let updateStr = serviceFunc.getUpdateStr(body, ['serving_size', 'serving_size_unit_fk', 'category_fk']);
+        if(updateStr.affected) throw Error('Cannot modify these attributes.');
 
         let sql = `
             UPDATE item
