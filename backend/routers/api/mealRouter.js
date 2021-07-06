@@ -5,11 +5,6 @@ const serviceFunc = require('./serviceFunc');
 const nameLenRange = [4, 20];
 const descLenRange = [1, 100];
 
-const handleError = (err) => {
-    console.log(err);
-    return err.message;
-}
-
 const validateMealInputs = (body, initial) => {
     serviceFunc.checkValidStr('Name', body.name, initial, nameLenRange, true, false);
     serviceFunc.checkValidStr('Description', body.description, false, descLenRange, true, false);
@@ -48,13 +43,13 @@ router.get('/', async (req, res) => {
 
         res.send(items);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
 
 // Get meal by id
-router.get('/single/:id/', async (req, res) => {
+router.get('/:id/single/', async (req, res) => {
     const params = req.params;
 
     let sqlMeal = `
@@ -78,7 +73,7 @@ router.get('/single/:id/', async (req, res) => {
 
         res.send({ meal, mealTotals, mealItems });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -102,7 +97,7 @@ router.get('/search/', async (req, res) => {
 
         res.send(results);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -140,7 +135,7 @@ router.get('/date/', async (req, res) => {
 
         res.send({ meals, dayTotals });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -168,15 +163,11 @@ router.post('/', async (req, res) => {
     try{
         validateMealInputs(body, true);
 
-        let okPacket = await req.conn.queryAsync(sql, [
-            body.name,
-            body.description,
-            req.user.id
-        ]);
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.description, req.user.id]);
 
         res.send({ success: 'meal has been created', id: okPacket.insertId });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -207,7 +198,7 @@ router.post('/:id/item/:itemId/', async (req, res) => {
 
         res.send({ success: 'item has been added to meal' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -231,14 +222,11 @@ router.post('/:id/date/', async (req, res) => {
         let date = serviceFunc.getDateFromStr(body.date);
         serviceFunc.checkValidInt('Meal Date', date, true, [serviceFunc.getDateFromStr('1900-01-01'), serviceFunc.getDateByTZ(new Date(), req.user.tz)]);
 
-        let okPacket = await req.conn.queryAsync(sql, [
-            body.date,
-            params.id
-        ]);
+        let okPacket = await req.conn.queryAsync(sql, [body.date, params.id]);
 
         res.send({ success: 'meal has been added to date' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -271,7 +259,7 @@ router.put('/:id/', async (req, res) => {
 
         res.send({ success: 'meal has been updated' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -295,7 +283,7 @@ router.put('/:id/item/:itemId/', async (req, res) => {
 
         res.send({ success: 'item has been modified' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -325,7 +313,7 @@ router.delete('/:id/', async (req, res) => {
 
         res.send({ success: 'Meal has been deleted.' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -347,7 +335,7 @@ router.delete('/:id/item/:itemId', async (req, res) => {
 
         res.send({ success: 'Item has been deleted from meal.' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -369,7 +357,7 @@ router.delete('/:id/date/:dateId/', async (req, res) => {
 
         res.send({ success: 'Meal has been deleted from date.' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });

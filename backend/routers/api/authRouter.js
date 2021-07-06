@@ -21,11 +21,6 @@ const activityLevelNumRange = [1, 5];
 const ageNumRange = [13, 150];
 const bwUnitNumRange = [1, 2];
 
-const handleError = (err) => {
-    console.log(err);
-    return err.message;
-}
-
 const createJWTToken = (payload) => {
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
 }
@@ -81,7 +76,7 @@ router.get('/exists/', async (req, res) => {
             res.send({ available: true });
         }
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -120,7 +115,7 @@ router.post('/login/', async (req, res) => {
             throw Error('Wrong email or username.');
         }
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -195,7 +190,7 @@ router.post('/signup/', async (req, res) => {
 
         res.send({ success: 'User has been created.' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -233,7 +228,7 @@ router.put('/account/', requireAuth, async (req, res) => {
 
         res.send({ success: "Account has been modified." });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -268,7 +263,7 @@ router.put('/password/', requireAuth, async (req, res) => {
             throw Error('Old password is wrong.')
         }
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -327,7 +322,7 @@ router.delete('/', requireAuth, async (req, res) => {
             throw Error('Password is wrong.')
         }
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });

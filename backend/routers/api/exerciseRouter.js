@@ -2,11 +2,6 @@ const express = require('express');
 const router = express.Router();
 const serviceFunc = require('./serviceFunc');
 
-const handleError = (err) => {
-    console.log(err);
-    return err.message;
-}
-
 
 //---------
 //

@@ -11,11 +11,6 @@ const servSizeUnitRange = [7, 11];
 const iconNumRange = [1, 1];
 const categoryNumRange = [1, 12];
 
-const handleError = (err) => {
-    console.log(err);
-    return err.message;
-}
-
 const validateItemInputs = (body, initial) => {
     serviceFunc.checkValidStr('Name', body.name, initial, nameLenRange, true, false);
 
@@ -63,13 +58,13 @@ router.get('/', async (req, res) => {
 
         res.send(items);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
 
 // Get item by id
-router.get('/single/:id/', async (req, res) => {
+router.get('/:id/single/', async (req, res) => {
     const params = req.params;
 
     let sql = `
@@ -85,7 +80,7 @@ router.get('/single/:id/', async (req, res) => {
 
         res.send(item);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -109,7 +104,7 @@ router.get('/search/', async (req, res) => {
 
         res.send(results);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -134,7 +129,7 @@ router.get('/search/category/:catId/', async (req, res) => {
 
         res.send(results);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -159,7 +154,7 @@ router.get('/category/:catId/', async (req, res) => {
 
         res.send(results);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -217,7 +212,7 @@ router.post('/', async (req, res) => {
 
         res.send({ success: 'item has been created', id: okPacket.insertId });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -251,7 +246,7 @@ router.put('/:id/', async (req, res) => {
 
         res.send({ success: 'item has been updated' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -280,7 +275,7 @@ router.delete('/:id/', async (req, res) => {
 
         res.send({ success: 'Item has been deleted.' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });

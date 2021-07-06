@@ -4,11 +4,6 @@ const serviceFunc = require('./serviceFunc');
 
 const weightIntRange = [1, 1000];
 
-const handleError = (err) => {
-    console.log(err);
-    return err.message;
-}
-
 const validateBWInputs = (body, initial, tz) => {
     serviceFunc.checkValidInt('Weight', body.weight, initial, weightIntRange);
     serviceFunc.checkValidInt('Date', serviceFunc.getDateFromStr(body.date), initial, [serviceFunc.getDateFromStr('18500101'), serviceFunc.getDateByTZ(new Date(), tz)]);
@@ -57,7 +52,7 @@ router.get('/', async (req, res) => {
 
         res.send(bw);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -70,7 +65,7 @@ router.get('/last/', async (req, res) => {
 
         res.send(bw);
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -104,7 +99,7 @@ router.post('/', async (req, res) => {
 
         res.send({ success: 'BW entry has been added', id: okPacket.insertId });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -141,7 +136,7 @@ router.put('/:id/', async (req, res) => {
 
         res.send({ success: 'BW entry has been updated' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
@@ -179,7 +174,7 @@ router.delete('/:id/', async (req, res) => {
 
         res.send({ success: 'BW entry has been deleted.' });
     }catch(err){
-        const errors = handleError(err);
+        const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });

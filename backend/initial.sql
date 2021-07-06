@@ -184,14 +184,17 @@ CREATE TABLE IF NOT EXISTS LIFT_SET (
     set_num INT NOT NULL,
     weight INT NOT NULL,
     reps INT NOT NULL,
-    theomax INT NOT NULL,
+    theomax DECIMAL(10, 2) NOT NULL,
     date DATE NOT NULL,
     lift_fk INT NOT NULL,
 
     PRIMARY KEY (id),
     FOREIGN KEY (lift_fk) REFERENCES LIFT (id),
     
-    UNIQUE KEY date_set (lift_fk, set_num, date)
+    UNIQUE KEY date_set (lift_fk, set_num, date),
+
+    INDEX theomax_idx (theomax ASC) INVISIBLE,
+    INDEX date_idx (date ASC) INVISIBLE
 );
 CREATE TABLE IF NOT EXISTS BODYWEIGHT (
     id INT NOT NULL AUTO_INCREMENT,
