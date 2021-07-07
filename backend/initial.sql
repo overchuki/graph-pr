@@ -20,6 +20,13 @@ CREATE TABLE IF NOT EXISTS GENDER (
 
     PRIMARY KEY (id)
 );
+CREATE TABLE IF NOT EXISTS WEIGHT_GOAL (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(110) NOT NULL,
+    percent DECIMAL(10, 2) NOT NULL,
+
+    PRIMARY KEY (id)
+);
 CREATE TABLE IF NOT EXISTS UNIT (
     id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(25) NOT NULL,
@@ -40,6 +47,7 @@ CREATE TABLE IF NOT EXISTS USER (
     bw_unit_fk INT NOT NULL,
     gender_fk INT NOT NULL,
     activity_level_fk INT NOT NULL,
+    weight_goal_fk INT NOT NULL,
     password CHAR(60) NOT NULL,
     account_type INT NOT NULL DEFAULT 0,
     icon_fk INT NOT NULL DEFAULT 1,
@@ -50,7 +58,8 @@ CREATE TABLE IF NOT EXISTS USER (
     FOREIGN KEY (activity_level_fk) REFERENCES ACTIVITY_LEVEL (id),
     FOREIGN KEY (height_unit_fk) REFERENCES UNIT (id),
     FOREIGN KEY (bw_unit_fk) REFERENCES UNIT (id),
-    FOREIGN KEY (gender_fk) REFERENCES GENDER (id)
+    FOREIGN KEY (gender_fk) REFERENCES GENDER (id),
+    FOREIGN KEY (weight_goal_fk) REFERENCES WEIGHT_GOAL (id)
 );
 CREATE TABLE IF NOT EXISTS MAINTENANCE_CALORIES (
     id INT NOT NULL AUTO_INCREMENT,
@@ -58,11 +67,13 @@ CREATE TABLE IF NOT EXISTS MAINTENANCE_CALORIES (
     calories INT NOT NULL,
     date DATE NOT NULL,
     activity_level_fk INT NOT NULL,
+    weight_goal_fk INT NOT NULL,
     user_fk INT NOT NULL,
 
     PRIMARY KEY (id),
     FOREIGN KEY (activity_level_fk) REFERENCES ACTIVITY_LEVEL (id),
-    FOREIGN KEY (user_fk) REFERENCES USER (id)
+    FOREIGN KEY (user_fk) REFERENCES USER (id),
+    FOREIGN KEY (weight_goal_fk) REFERENCES WEIGHT_GOAL (id)
 );
 CREATE TABLE IF NOT EXISTS ITEM_CATEGORY (
     id INT NOT NULL AUTO_INCREMENT,
@@ -217,6 +228,14 @@ INSERT IGNORE INTO activity_level (id, name, description, bmr_multiplier) VALUES
 INSERT IGNORE INTO activity_level (id, name, description, bmr_multiplier) VALUES (4, 'Very Active', 'Hard exercise / sports 6-7 days a week.', 1.725);
 INSERT IGNORE INTO activity_level (id, name, description, bmr_multiplier) VALUES (5, 'Extra Active', 'Very hard exercise / sports & physical job or 2x training.', 1.9);
 
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (1, 'Extreme Loss (2lb / .9kg a week) = 54% of maintenance.', 0.54);
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (2, 'Regular Loss (1lb / .45kg a week) = 77% of maintenance.', 0.77);
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (3, 'Mild Loss (0.5lb / .225kg a week) = 89% of maintenance.', 0.89);
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (4, 'Maintenance (No change) = 100% of maintenance.', 1.00);
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (5, 'Mild Gain (0.5lb / .225kg a week) = 111% of maintenance.', 1.11);
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (6, 'Regular Gain (1lb / .45kg a week) = 123% of maintenance.', 1.23);
+INSERT IGNORE INTO weight_goal (id, name, percent) VALUES (7, 'Extreme Gain (2lb / .9kg a week) = 146% of maintenance.', 1.46);
+
 INSERT IGNORE INTO gender (id, name, bmr_num) VALUES (1, 'Male', 5);
 INSERT IGNORE INTO gender (id, name, bmr_num) VALUES (2, 'Female', -161);
 
@@ -245,7 +264,7 @@ INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (9, 'quart', 'qt
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (10, 'ounces', 'oz', 'oz');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (11, 'grams', 'g', 'g');
 
-INSERT IGNORE INTO user (id, name, username, dob, height, height_unit_fk, bw_unit_fk, gender_fk, activity_level_fk, password, created_at) VALUES (1, 'Deleted', 'Deleted', '2000-01-01', 100, 5, 1, 1, 1, 'NO_PASSWORD', '2000-01-01');
+INSERT IGNORE INTO user (id, name, username, dob, height, height_unit_fk, bw_unit_fk, gender_fk, activity_level_fk, weight_goal_fk, password, created_at) VALUES (1, 'Deleted', 'Deleted', '2000-01-01', 100, 5, 1, 1, 1, 4, 'NO_PASSWORD', '2000-01-01');
 
 INSERT IGNORE INTO exercise_type (id, name, description) VALUES (1, 'lift', 'weight lifting');
 

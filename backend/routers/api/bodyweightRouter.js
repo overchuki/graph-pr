@@ -23,16 +23,11 @@ const verifyUser = async (req, id) => {
 //
 //---------
 
-router.get('/test/', (req, res) => {
-    
-    res.send({ test: 'test' });
-});
-
 // Get user's bodyweight with query params
 router.get('/', async (req, res) => {
     const query = req.query;
-    const limit = query.limit || 10;
-    const offset = query.offset || 0;
+    const limit = query.limit || null;
+    const offset = query.offset || null;
     const order = query.order || true;
 
     let orderStr = 'DESC';
@@ -43,9 +38,13 @@ router.get('/', async (req, res) => {
         FROM bodyweight
         WHERE user_fk = ${req.user.id}
         ORDER BY date ${orderStr}
-        LIMIT ${limit}
-        OFFSET ${offset}
     `;
+    if(limit && offset){
+        sql += `
+            LIMIT ${limit}
+            OFFSET ${offset}
+        `;
+    }
 
     try{
         let bw = await req.conn.queryAsync(sql);

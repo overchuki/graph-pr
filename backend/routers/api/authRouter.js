@@ -20,6 +20,7 @@ const genderNumRange = [1, 2];
 const activityLevelNumRange = [1, 5];
 const ageNumRange = [13, 150];
 const bwUnitNumRange = [1, 2];
+const weightGoalNumRange = [1, 7];
 
 const createJWTToken = (payload) => {
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: maxTokenAgeSeconds });
@@ -36,6 +37,7 @@ const validateUserInfo = (body, initial, tz) => {
     serviceFunc.checkValidInt('Height unit index', body.height_unit_fk, initial, heightUnitNumRange);
     serviceFunc.checkValidInt('Gender index', body.gender_fk, initial, genderNumRange);
     serviceFunc.checkValidInt('Activity index', body.activity_level_fk, initial, activityLevelNumRange);
+    serviceFunc.checkValidInt('Weight goal index', body.weight_goal_fk, initial, weightGoalNumRange);
     serviceFunc.checkValidInt('Icon index', body.icon_fk, initial, iconNumRange);
     serviceFunc.checkValidInt('Bw unit index', body.bw_unit_fk, initial, bwUnitNumRange);
 
@@ -75,6 +77,50 @@ router.get('/exists/', async (req, res) => {
         }else{
             res.send({ available: true });
         }
+    }catch(err){
+        const errors = serviceFunc.handleError(err);
+        res.status(400).send({ error: errors });
+    }
+});
+
+// Get full user profile
+router.get('/', requireAuth, async (req, res) => {
+    
+    const sql = `
+        SELECT
+            u.name,
+            u.username,
+            u.email,
+            u.description,
+            u.dob,
+            u.height,
+            hu.plur_abbr AS height_unit,
+            wu.plur_abbr AS weight_unit,
+            g.name AS gender,
+            al.name AS activity_level,
+            al.description AS activity_level_description,
+            i.location AS icon_location,
+            u.created_at
+        FROM user AS u
+        LEFT JOIN unit AS hu ON u.height_unit_fk = hu.id
+        LEFT JOIN unit AS wu ON u.bw_unit_fk = wu.id
+        LEFT JOIN gender AS g ON u.gender_fk = g.id
+        LEFT JOIN activity_level AS al ON u.activity_level_fk = al.id
+        LEFT JOIN icon AS i ON u.icon_fk = i.id
+        WHERE u.id = ${req.user.id}
+    `;
+
+    try{
+        let user = await req.conn.queryAsync(sql);
+        user = user[0];
+
+        let curDate = serviceFunc.getDateByTZ(new Date(), req.user.tz);
+        let bw = await serviceFunc.getLastBodyweight(req, req.user.id, serviceFunc.getDateStr(curDate, ''));
+        if(bw.length > 0) bw = bw[0];
+        else bw = null;
+        user.weight = bw.weight;
+        
+        res.send(user);
     }catch(err){
         const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
@@ -143,9 +189,10 @@ router.post('/signup/', async (req, res) => {
             bw_unit_fk,
             gender_fk,
             activity_level_fk,
+            weight_goal_fk,
             password,
             icon_fk)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try{
@@ -171,6 +218,7 @@ router.post('/signup/', async (req, res) => {
                                                         body.bw_unit_fk,
                                                         body.gender_fk,
                                                         body.activity_level_fk,
+                                                        body.weight_goal_fk,
                                                         hashedPW,
                                                         body.icon_fk
                                                     ]
@@ -209,7 +257,7 @@ router.put('/account/', requireAuth, async (req, res) => {
     try{
         validateUserInfo(body, false, req.user.tz);
 
-        let maintenanceFactors = ['dob', 'height', 'height_unit_fk', 'gender_fk', 'bw_unit_fk', 'activity_level_fk'];
+        let maintenanceFactors = ['dob', 'height', 'height_unit_fk', 'gender_fk', 'bw_unit_fk', 'activity_level_fk', 'weight_goal_fk'];
         let updateStr = serviceFunc.getUpdateStr(body, maintenanceFactors);
 
         let sql = `
@@ -317,6 +365,7 @@ router.delete('/', requireAuth, async (req, res) => {
 
             await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error with deleting account.');
             
+            res.cookie('jwt', '', { maxAge: 1 });
             res.send({ success: 'Account has been deleted.' });
         }else{
             throw Error('Password is wrong.')

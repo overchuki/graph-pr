@@ -187,10 +187,11 @@ const updateMaintenanceCal = async (req, userId, updateDate, tz) => {
             calories,
             date,
             activity_level_fk,
+            weight_goal_fk,
             user_fk)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
     `;
-    let okPacket = await req.conn.queryAsync(sql, [bmr, main_cal, updateDate, user.activity_level_fk, user.id]);
+    let okPacket = await req.conn.queryAsync(sql, [bmr, main_cal, updateDate, user.activity_level_fk, user.weight_goal_fk, user.id]);
     return okPacket;
 }
 

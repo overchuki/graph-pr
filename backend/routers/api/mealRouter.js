@@ -39,9 +39,9 @@ router.get('/', async (req, res) => {
     `;
 
     try{
-        let items = await req.conn.queryAsync(sql);
+        let meals = await req.conn.queryAsync(sql);
 
-        res.send(items);
+        res.send(meals);
     }catch(err){
         const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
@@ -106,7 +106,7 @@ router.get('/search/', async (req, res) => {
 router.get('/date/', async (req, res) => {
     const query = req.query;
 
-    let sql = `
+    let sqlMeals = `
         SELECT
             md.id,
             md.date,
@@ -120,8 +120,17 @@ router.get('/date/', async (req, res) => {
         WHERE date = '${query.date}'
     `;
 
+    let sqlNutrition = `
+        SELECT
+            mc.calories,
+            wg.percent
+        FROM maintenance_calories AS mc
+        LEFT JOIN weight_goal AS wg ON mc.weight_goal_fk = wg.id
+        WHERE mc.date <= '${query.date}' AND mc.user_fk = ${req.user.id}
+    `;
+
     try{
-        let meals = await req.conn.queryAsync(sql);
+        let meals = await req.conn.queryAsync(sqlMeals);
         
         for(let i = 0;i < meals.length; i++){
             let mealTotal = await serviceFunc.getMealTotals(req, meals[i].meal_fk);
@@ -133,12 +142,16 @@ router.get('/date/', async (req, res) => {
         
         let dayTotals = await serviceFunc.getDateTotals(meals);
 
-        res.send({ meals, dayTotals });
+        let nutritionDetails = await req.conn.queryAsync(sqlNutrition);
+
+        res.send({ nutritionDetails: nutritionDetails[0], meals, dayTotals });
     }catch(err){
         const errors = serviceFunc.handleError(err);
         res.status(400).send({ error: errors });
     }
 });
+
+// TODO: Get for all maintenance calories
 
 
 //----------

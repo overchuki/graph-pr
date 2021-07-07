@@ -127,16 +127,6 @@ router.post('/', async (req, res) => {
     }
 });
 
-// router.get('/:id/test', async (req, res) => {
-//     try{
-//         let info = await serviceFunc.updateLiftMax(req, req.params.id);
-//         res.send(info);
-//     }catch(err){
-//         console.log(err);
-//         res.send('ERROR');
-//     }
-// });
-
 // Create a lift set
 router.post('/:id/set/', async (req, res) => {
     const body = req.body;
@@ -250,18 +240,20 @@ router.put('/:id/set/', async (req, res) => {
             
             if(body.date) setBody.date = body.date;
 
-            if(!sets[i] && Object.keys(setBody).length === 0) continue;
-
-            setBody.weight = sets[i][0];
-            setBody.reps = sets[i][1];
-            setBody.theomax = serviceFunc.getTheoMax(setBody.weight, setBody.reps);
+            if(!sets[i]){
+                if(Object.keys(setBody).length === 0) continue;
+            }else{
+                setBody.weight = sets[i][0];
+                setBody.reps = sets[i][1];
+                setBody.theomax = serviceFunc.getTheoMax(setBody.weight, setBody.reps);
+            }
 
             let updateStr = serviceFunc.getUpdateStr(setBody, []);
 
             let sql = `
                 UPDATE lift_set
                 SET ${updateStr.valueStr}
-                WHERE lift_fk = ${params.id} AND set_num = ${i} AND date = '${body.oldDate}'
+                WHERE lift_fk = ${params.id} AND set_num = ${i + 1} AND date = '${body.oldDate}'
             `;
 
             let okPacket = await req.conn.queryAsync(sql, updateStr.values);
