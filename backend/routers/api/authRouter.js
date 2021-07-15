@@ -333,25 +333,18 @@ router.delete('/', requireAuth, async (req, res) => {
         if(auth){
             let id = req.user.id;
 
-            let exercises = await req.conn.queryAsync(`SELECT id FROM exercise WHERE user_fk = ${id}`);
-            let exerciseStr = '';
-            let lifts = await req.conn.queryAsync(`SELECT id FROM lift WHERE user_fk = ${id}`);
-            let liftStr = '';
-
-            for(let exexerciseId of exercises) exerciseStr += `exercise_fk = ${exexerciseId} OR `;
-            for(let liftId of lifts) liftStr += `lift_fk = ${liftId} OR `;
-
-            exerciseStr = exerciseStr.substring(0, exerciseStr.length - 3);
-            liftStr = liftStr.substring(0, liftStr.length - 3);
-
             let delete_sql = `
                 UPDATE item SET user_fk = 1 WHERE user_fk = ${id};
                 UPDATE meal SET user_fk = 1 WHERE user_fk = ${id};
             `;
 
+            let exerciseStr = await serviceFunc.getDeleteStr(req, 'exercise', id, 'exercise_fk');
+            let liftStr = await serviceFunc.getDeleteStr(req, 'lift', id, 'lift_fk');
+            let mealStr = await serviceFunc.getDeleteStr(req, 'meal_date', id, 'meal_fk');
+
             if(exerciseStr.length > 0) delete_sql += `DELETE FROM exercise_set WHERE ${exerciseStr};`;
-            
             if(liftStr.length > 0) delete_sql += `DELETE FROM lift_set WHERE ${liftStr};`;
+            if(mealStr.length > 0) delete_sql += `DELETE FROM meal_date WHERE ${mealStr};`;
             
             delete_sql += `
                 DELETE FROM exercise WHERE user_fk = ${id};

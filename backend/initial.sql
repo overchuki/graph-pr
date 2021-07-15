@@ -268,15 +268,15 @@ INSERT IGNORE INTO user (id, name, username, dob, height, height_unit_fk, bw_uni
 
 INSERT IGNORE INTO exercise_type (id, name, description) VALUES (1, 'lift', 'weight lifting');
 
-INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
-VALUES (1, 'Apple', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
-INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
-VALUES (2, 'Orange', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
-INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
-VALUES (3, 'Grapes', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
-INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
-VALUES (4, 'Whole Milk', 150, 10, 5, 8, 0.71, 8, 10, 2, 4, 2);
-INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
-VALUES (5, 'Whey Protein', 140, 25, 0, 1, 0.88, 25, 11, 2, 11, 2);
-INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
-VALUES (6, 'Casein Protein', 120, 24, 0, 1, 1.03, 25, 11, 2, 11, 2);
+-- INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+-- VALUES (1, 'Apple', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
+-- INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+-- VALUES (2, 'Orange', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
+-- INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+-- VALUES (3, 'Grapes', 70, 2, 20, 3, 1.21, 50, 11, 2, 8, 2);
+-- INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+-- VALUES (4, 'Whole Milk', 150, 10, 5, 8, 0.71, 8, 10, 2, 4, 2);
+-- INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+-- VALUES (5, 'Whey Protein', 140, 25, 0, 1, 0.88, 25, 11, 2, 11, 2);
+-- INSERT IGNORE INTO item (id, name, calories, protein, carbs, fat, cost, serving_size, serving_size_unit_fk, icon_fk, category_fk, user_fk)
+-- VALUES (6, 'Casein Protein', 120, 24, 0, 1, 1.03, 25, 11, 2, 11, 2);

@@ -8,7 +8,7 @@ const macroRange = [0, 10000];
 const costRange = [0, 10000];
 const servSizeRange = [0, 10000];
 const servSizeUnitRange = [7, 11];
-const iconNumRange = [1, 1];
+const iconNumRange = [2, 2];
 const categoryNumRange = [1, 12];
 
 const validateItemInputs = (body, initial) => {
@@ -76,7 +76,6 @@ router.get('/:id/single/', async (req, res) => {
     try{
         let item = await req.conn.queryAsync(sql);
         item = item[0];
-        console.log(item);
 
         res.send(item);
     }catch(err){

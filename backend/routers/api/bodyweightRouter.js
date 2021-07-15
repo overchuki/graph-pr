@@ -91,6 +91,8 @@ router.post('/', async (req, res) => {
 
     try{
         validateBWInputs(body, true, req.user.tz);
+        let bwDate = await req.conn.queryAsync(`SELECT id FROM bodyweight WHERE user_fk = ${req.user.id} AND date = '${body.date}'`);
+        if(bwDate.length > 0) throw Error('Bodyweight already set on this date.');
 
         let okPacket = await req.conn.queryAsync(sql, [body.weight, body.date, req.user.id]);
 
@@ -118,6 +120,10 @@ router.put('/:id/', async (req, res) => {
     try{
         await verifyUser(req, params.id);
         validateBWInputs(body, false, req.user.tz);
+        if(!(body.date == null)){
+            let bwDate = await req.conn.queryAsync(`SELECT id FROM bodyweight WHERE user_fk = ${req.user.id} AND date = '${body.date}'`);
+            if(bwDate.length > 0) throw Error('Bodyweight already set on this date.');
+        }
 
         let updateStr = serviceFunc.getUpdateStr(body, []);
 

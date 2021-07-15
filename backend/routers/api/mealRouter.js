@@ -122,12 +122,15 @@ router.get('/date/', async (req, res) => {
 
     let sqlNutrition = `
         SELECT
-            mc.calories,
-            wg.percent
+            mc.calories * wg.percent AS calories,
+            mc.calories AS main_calories,
+            wg.percent AS goal_percent
         FROM maintenance_calories AS mc
         LEFT JOIN weight_goal AS wg ON mc.weight_goal_fk = wg.id
-        WHERE mc.date <= '${query.date}' AND mc.user_fk = ${req.user.id}
     `;
+
+    let sqlNutritionLatest = `WHERE mc.date <= '${query.date}' AND mc.user_fk = ${req.user.id}`;
+    let sqlNutritionClosest = `ORDER BY mc.date ASC LIMIT 1`;
 
     try{
         let meals = await req.conn.queryAsync(sqlMeals);
@@ -142,7 +145,10 @@ router.get('/date/', async (req, res) => {
         
         let dayTotals = await serviceFunc.getDateTotals(meals);
 
-        let nutritionDetails = await req.conn.queryAsync(sqlNutrition);
+        let nutritionDetails = await req.conn.queryAsync(sqlNutrition + sqlNutritionLatest);
+        if(nutritionDetails.length === 0){
+            nutritionDetails = await req.conn.queryAsync(sqlNutrition + sqlNutritionClosest);
+        }
 
         res.send({ nutritionDetails: nutritionDetails[0], meals, dayTotals });
     }catch(err){
@@ -313,6 +319,7 @@ router.delete('/:id/', async (req, res) => {
     const params = req.params;
 
     let delete_sql = `
+        DELETE FROM meal_date WHERE meal_fk = ${params.id};
         DELETE FROM meal_item WHERE meal_fk = ${params.id};
         DELETE FROM meal WHERE id = ${params.id}
     `;

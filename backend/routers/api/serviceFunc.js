@@ -18,7 +18,7 @@ const unitMatrix = [
 ];
 
 const handleError = (err) => {
-    console.log('Error:', err.message);
+    console.error(err.message);
     return err.message;
 }
 
@@ -116,8 +116,18 @@ const getUpdateStr = (body, affectedArray) => {
     }
 }
 
+const getDeleteStr = async (req, db, userId, key) => {
+    let entries = await req.conn.queryAsync(`SELECT id FROM ? WHERE user_fk = ${id}`, [db]);
+    let entriesStr = '';
+
+    for(let entryId of entries) entriesStr += (key + ` = ${entryId} OR `);
+    entriesStr = entriesStr.substring(0, entriesStr.length - 3);
+
+    return entriesStr;
+}
+
 const checkValidStr = (key, value, required, range, isAscii, isEmail) => {
-    if(!value){
+    if(value == null){
         if(required) throw Error('Please fill out all required fields (' + key + ').');
         else return;
     }
@@ -128,7 +138,7 @@ const checkValidStr = (key, value, required, range, isAscii, isEmail) => {
 }
 
 const checkValidInt = (key, value, required, range) => {
-    if(!value){
+    if(value == null){
         if(required) throw Error('Please fill out all required fields (' + key + ').');
         else return;
     }
@@ -404,5 +414,6 @@ module.exports = {
     checkExistingLiftSet,
     getLiftInfo,
     getLiftDuration,
-    handleError
+    handleError,
+    getDeleteStr
 }
