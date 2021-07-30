@@ -1,22 +1,36 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const serviceFunc = require('./serviceFunc');
+const serviceFunc = require("./serviceFunc");
 
 const nameLenRange = [4, 20];
 const descLenRange = [1, 100];
 
 const validateMealInputs = (body, initial) => {
-    serviceFunc.checkValidStr('Name', body.name, initial, nameLenRange, true, false);
-    serviceFunc.checkValidStr('Description', body.description, false, descLenRange, true, false);
-}
+  serviceFunc.checkValidStr(
+    "Name",
+    body.name,
+    initial,
+    nameLenRange,
+    true,
+    false
+  );
+  serviceFunc.checkValidStr(
+    "Description",
+    body.description,
+    false,
+    descLenRange,
+    true,
+    false
+  );
+};
 
 const verifyUser = async (req, id) => {
-    let sql = `SELECT * FROM meal WHERE id = ${id}`;
+  let sql = `SELECT * FROM meal WHERE id = ${id}`;
 
-    let meal = await req.conn.queryAsync(sql);
-    if(meal[0].user_fk != req.user.id) throw Error('You can only modify your own meals.');
-}
-
+  let meal = await req.conn.queryAsync(sql);
+  if (meal[0].user_fk != req.user.id)
+    throw Error("You can only modify your own meals.");
+};
 
 //---------
 //
@@ -25,12 +39,12 @@ const verifyUser = async (req, id) => {
 //---------
 
 // Get all user's meals
-router.get('/', async (req, res) => {
-    const query = req.query;
-    const limit = query.limit || 10;
-    const offset = query.offset || 0;
+router.get("/", async (req, res) => {
+  const query = req.query;
+  const limit = query.limit || 10;
+  const offset = query.offset || 0;
 
-    let sql = `
+  let sql = `
         SELECT *
         FROM meal
         WHERE user_fk = ${req.user.id}
@@ -38,21 +52,21 @@ router.get('/', async (req, res) => {
         OFFSET ${offset}
     `;
 
-    try{
-        let meals = await req.conn.queryAsync(sql);
+  try {
+    let meals = await req.conn.queryAsync(sql);
 
-        res.send(meals);
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send(meals);
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Get meal by id
-router.get('/:id/single/', async (req, res) => {
-    const params = req.params;
+router.get("/:id/single/", async (req, res) => {
+  const params = req.params;
 
-    let sqlMeal = `
+  let sqlMeal = `
         SELECT
             id,
             name,
@@ -62,29 +76,29 @@ router.get('/:id/single/', async (req, res) => {
         WHERE id = ${params.id}
     `;
 
-    try{
-        let meal = await req.conn.queryAsync(sqlMeal);
-        if(meal.length === 0) throw Error('Requested meal does not exist.');
-        meal = meal[0];
+  try {
+    let meal = await req.conn.queryAsync(sqlMeal);
+    if (meal.length === 0) throw Error("Requested meal does not exist.");
+    meal = meal[0];
 
-        let mealItems = await serviceFunc.getMealItems(req, meal.id);
-        
-        let mealTotals = await serviceFunc.getMealTotals(req, meal.id);
+    let mealItems = await serviceFunc.getMealItems(req, meal.id);
 
-        res.send({ meal, mealTotals, mealItems });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    let mealTotals = await serviceFunc.getMealTotals(req, meal.id);
+
+    res.send({ meal, mealTotals, mealItems });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Search for meals with query param
-router.get('/search/', async (req, res) => {
-    const query = req.query;
-    const limit = query.limit || 10;
-    const offset = query.offset || 0;
+router.get("/search/", async (req, res) => {
+  const query = req.query;
+  const limit = query.limit || 10;
+  const offset = query.offset || 0;
 
-    let sql = `
+  let sql = `
         SELECT *
         FROM meal
         WHERE name REGEXP '${query.str}'
@@ -92,21 +106,21 @@ router.get('/search/', async (req, res) => {
         OFFSET ${offset}
     `;
 
-    try{
-        let results = await req.conn.queryAsync(sql);
+  try {
+    let results = await req.conn.queryAsync(sql);
 
-        res.send(results);
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send(results);
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Get meals for a date
-router.get('/date/', async (req, res) => {
-    const query = req.query;
+router.get("/date/", async (req, res) => {
+  const query = req.query;
 
-    let sqlMeals = `
+  let sqlMeals = `
         SELECT
             md.id,
             md.date,
@@ -120,7 +134,7 @@ router.get('/date/', async (req, res) => {
         WHERE date = '${query.date}'
     `;
 
-    let sqlNutrition = `
+  let sqlNutrition = `
         SELECT
             mc.calories * wg.percent AS calories,
             mc.calories AS main_calories,
@@ -129,36 +143,39 @@ router.get('/date/', async (req, res) => {
         LEFT JOIN weight_goal AS wg ON mc.weight_goal_fk = wg.id
     `;
 
-    let sqlNutritionLatest = `WHERE mc.date <= '${query.date}' AND mc.user_fk = ${req.user.id}`;
-    let sqlNutritionClosest = `ORDER BY mc.date ASC LIMIT 1`;
+  let sqlNutritionLatest = `WHERE mc.date <= '${query.date}' AND mc.user_fk = ${req.user.id}`;
+  let sqlNutritionClosest = `ORDER BY mc.date ASC LIMIT 1`;
 
-    try{
-        let meals = await req.conn.queryAsync(sqlMeals);
-        
-        for(let i = 0;i < meals.length; i++){
-            let mealTotal = await serviceFunc.getMealTotals(req, meals[i].meal_fk);
-            meals[i] = {
-                ...meals[i],
-                ...mealTotal
-            }
-        }
-        
-        let dayTotals = await serviceFunc.getDateTotals(meals);
+  try {
+    let meals = await req.conn.queryAsync(sqlMeals);
 
-        let nutritionDetails = await req.conn.queryAsync(sqlNutrition + sqlNutritionLatest);
-        if(nutritionDetails.length === 0){
-            nutritionDetails = await req.conn.queryAsync(sqlNutrition + sqlNutritionClosest);
-        }
-
-        res.send({ nutritionDetails: nutritionDetails[0], meals, dayTotals });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
+    for (let i = 0; i < meals.length; i++) {
+      let mealTotal = await serviceFunc.getMealTotals(req, meals[i].meal_fk);
+      meals[i] = {
+        ...meals[i],
+        ...mealTotal,
+      };
     }
+
+    let dayTotals = await serviceFunc.getDateTotals(meals);
+
+    let nutritionDetails = await req.conn.queryAsync(
+      sqlNutrition + sqlNutritionLatest
+    );
+    if (nutritionDetails.length === 0) {
+      nutritionDetails = await req.conn.queryAsync(
+        sqlNutrition + sqlNutritionClosest
+      );
+    }
+
+    res.send({ nutritionDetails: nutritionDetails[0], meals, dayTotals });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // TODO: Get for all maintenance calories
-
 
 //----------
 //
@@ -167,10 +184,10 @@ router.get('/date/', async (req, res) => {
 //----------
 
 // Create a meal
-router.post('/', async (req, res) => {
-    const body = req.body;
+router.post("/", async (req, res) => {
+  const body = req.body;
 
-    let sql = `
+  let sql = `
         INSERT
         INTO meal (
             name,
@@ -179,24 +196,28 @@ router.post('/', async (req, res) => {
         VALUES (?, ?, ?)
     `;
 
-    try{
-        validateMealInputs(body, true);
+  try {
+    validateMealInputs(body, true);
 
-        let okPacket = await req.conn.queryAsync(sql, [body.name, body.description, req.user.id]);
+    let okPacket = await req.conn.queryAsync(sql, [
+      body.name,
+      body.description,
+      req.user.id,
+    ]);
 
-        res.send({ success: 'meal has been created', id: okPacket.insertId });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "meal has been created", id: okPacket.insertId });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Add item to meal
-router.post('/:id/item/:itemId/', async (req, res) => {
-    const params = req.params;
-    const body = req.body;
+router.post("/:id/item/:itemId/", async (req, res) => {
+  const params = req.params;
+  const body = req.body;
 
-    let sql = `
+  let sql = `
         INSERT
         INTO meal_item (
             item_fk,
@@ -205,29 +226,43 @@ router.post('/:id/item/:itemId/', async (req, res) => {
         VALUES (?, ?, ?)
     `;
 
-    try{
-        await verifyUser(req, params.id);
+  try {
+    await verifyUser(req, params.id);
 
-        let itemInMeal = await req.conn.queryAsync(`SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`);
-        if(itemInMeal.length > 0) throw Error('Item is already in meal, edit the serving percentage to change its quantity.');
+    let itemInMeal = await req.conn.queryAsync(
+      `SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`
+    );
+    if (itemInMeal.length > 0)
+      throw Error(
+        "Item is already in meal, edit the serving percentage to change its quantity."
+      );
 
-        serviceFunc.checkValidInt('Item Percentage', body.item_percentage, true, [0, 100]);
+    serviceFunc.checkValidInt(
+      "Item Percentage",
+      body.item_percentage,
+      true,
+      [0, 100]
+    );
 
-        let okPacket = await req.conn.queryAsync(sql, [params.itemId, body.item_percentage, params.id]);
+    let okPacket = await req.conn.queryAsync(sql, [
+      params.itemId,
+      body.item_percentage,
+      params.id,
+    ]);
 
-        res.send({ success: 'item has been added to meal' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "item has been added to meal" });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Add a meal to the day
-router.post('/:id/date/', async (req, res) => {
-    const body = req.body;
-    const params = req.params;
+router.post("/:id/date/", async (req, res) => {
+  const body = req.body;
+  const params = req.params;
 
-    let sql = `
+  let sql = `
         INSERT
         INTO meal_date (
             date,
@@ -235,21 +270,23 @@ router.post('/:id/date/', async (req, res) => {
         VALUES (?, ?)
     `;
 
-    try{
-        await verifyUser(req, params.id);
+  try {
+    await verifyUser(req, params.id);
 
-        let date = serviceFunc.getDateFromStr(body.date);
-        serviceFunc.checkValidInt('Meal Date', date, true, [serviceFunc.getDateFromStr('1900-01-01'), serviceFunc.getDateByTZ(new Date(), req.user.tz)]);
+    let date = serviceFunc.getDateFromStr(body.date);
+    serviceFunc.checkValidInt("Meal Date", date, true, [
+      serviceFunc.getDateFromStr("1900-01-01"),
+      serviceFunc.getDateByTZ(new Date(), req.user.tz),
+    ]);
 
-        let okPacket = await req.conn.queryAsync(sql, [body.date, params.id]);
+    let okPacket = await req.conn.queryAsync(sql, [body.date, params.id]);
 
-        res.send({ success: 'meal has been added to date' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "meal has been added to date" });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
-
 
 //---------
 //
@@ -258,55 +295,59 @@ router.post('/:id/date/', async (req, res) => {
 //---------
 
 // Update a meal
-router.put('/:id/', async (req, res) => {
-    const body = req.body;
-    const params = req.params;
+router.put("/:id/", async (req, res) => {
+  const body = req.body;
+  const params = req.params;
 
-    try{
-        await verifyUser(req, params.id);
-        validateMealInputs(body, false);
+  try {
+    await verifyUser(req, params.id);
+    validateMealInputs(body, false);
 
-        let updateStr = serviceFunc.getUpdateStr(body, []);
+    let updateStr = serviceFunc.getUpdateStr(body, []);
 
-        let sql = `
+    let sql = `
             UPDATE meal
             SET ${updateStr.valueStr}
             WHERE id = ${params.id}
         `;
 
-        let okPacket = await req.conn.queryAsync(sql, updateStr.values);
+    let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        res.send({ success: 'meal has been updated' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "meal has been updated" });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Update item in meal
-router.put('/:id/item/:itemId/', async (req, res) => {
-    const params = req.params;
-    const body = req.body;
+router.put("/:id/item/:itemId/", async (req, res) => {
+  const params = req.params;
+  const body = req.body;
 
-    let sql = `
+  let sql = `
         UPDATE meal_item
         SET item_percentage = ?
         WHERE meal_fk = ${params.id} AND item_fk = ${params.itemId}
     `;
 
-    try{
-        await verifyUser(req, params.id);
-        serviceFunc.checkValidInt('Item Percentage', body.item_percentage, true, [0, 100]);
+  try {
+    await verifyUser(req, params.id);
+    serviceFunc.checkValidInt(
+      "Item Percentage",
+      body.item_percentage,
+      true,
+      [0, 100]
+    );
 
-        let okPacket = await req.conn.queryAsync(sql, [body.item_percentage]);
+    let okPacket = await req.conn.queryAsync(sql, [body.item_percentage]);
 
-        res.send({ success: 'item has been modified' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "item has been modified" });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
-
 
 //------------
 //
@@ -315,73 +356,84 @@ router.put('/:id/item/:itemId/', async (req, res) => {
 //------------
 
 // Delete a meal
-router.delete('/:id/', async (req, res) => {
-    const params = req.params;
+router.delete("/:id/", async (req, res) => {
+  const params = req.params;
 
-    let delete_sql = `
+  let delete_sql = `
         DELETE FROM meal_date WHERE meal_fk = ${params.id};
         DELETE FROM meal_item WHERE meal_fk = ${params.id};
         DELETE FROM meal WHERE id = ${params.id}
     `;
 
-    try{
-        await verifyUser(req, params.id);
+  try {
+    await verifyUser(req, params.id);
 
-        let sqlArr = delete_sql.split(';');
+    let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error with deleting meal.');
+    await serviceFunc.runMultipleLinesOfSql(
+      req,
+      sqlArr,
+      "Error with deleting meal."
+    );
 
-        res.send({ success: 'Meal has been deleted.' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "Meal has been deleted." });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Delete item from a meal
-router.delete('/:id/item/:itemId', async (req, res) => {
-    const params = req.params;
+router.delete("/:id/item/:itemId", async (req, res) => {
+  const params = req.params;
 
-    let delete_sql = `
+  let delete_sql = `
         DELETE FROM meal_item WHERE meal_fk = ${params.id} AND item_fk = ${params.itemId}
     `;
 
-    try{
-        await verifyUser(req, params.id);
+  try {
+    await verifyUser(req, params.id);
 
-        let sqlArr = delete_sql.split(';');
+    let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error deleting item from meal.');
+    await serviceFunc.runMultipleLinesOfSql(
+      req,
+      sqlArr,
+      "Error deleting item from meal."
+    );
 
-        res.send({ success: 'Item has been deleted from meal.' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    res.send({ success: "Item has been deleted from meal." });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
 
 // Delete meal from date
-router.delete('/:id/date/:dateId/', async (req, res) => {
-    const params = req.params;
+router.delete("/:id/date/:dateId/", async (req, res) => {
+  const params = req.params;
 
-    let delete_sql = `
+  let delete_sql = `
         DELETE FROM meal_date WHERE id = ${params.dateId}
     `;
 
-    try{
-        await verifyUser(req, params.id);
-        
-        let sqlArr = delete_sql.split(';');
+  try {
+    await verifyUser(req, params.id);
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, 'Error deleting meal from date.');
+    let sqlArr = delete_sql.split(";");
 
-        res.send({ success: 'Meal has been deleted from date.' });
-    }catch(err){
-        const errors = serviceFunc.handleError(err);
-        res.status(400).send({ error: errors });
-    }
+    await serviceFunc.runMultipleLinesOfSql(
+      req,
+      sqlArr,
+      "Error deleting meal from date."
+    );
+
+    res.send({ success: "Meal has been deleted from date." });
+  } catch (err) {
+    const errors = serviceFunc.handleError(err);
+    res.send({ error: errors });
+  }
 });
-
 
 //---------
 //
@@ -390,7 +442,7 @@ router.delete('/:id/date/:dateId/', async (req, res) => {
 //---------
 
 router.use((req, res) => {
-    res.send({ error: 'Requested meal endpoint does not exist.' });
+  res.status(404).send({ error: "Requested meal endpoint does not exist." });
 });
 
 module.exports = router;

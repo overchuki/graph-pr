@@ -1,7 +1,6 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const serviceFunc = require('./serviceFunc');
-
+const serviceFunc = require("./serviceFunc");
 
 //---------
 //
@@ -9,17 +8,11 @@ const serviceFunc = require('./serviceFunc');
 //
 //---------
 
-
-
-
 //----------
 //
 //   POST
 //
 //----------
-
-
-
 
 //---------
 //
@@ -27,18 +20,11 @@ const serviceFunc = require('./serviceFunc');
 //
 //---------
 
-
-
-
 //------------
 //
 //   DELETE
 //
 //------------
-
-
-
-
 
 //---------
 //
@@ -47,7 +33,7 @@ const serviceFunc = require('./serviceFunc');
 //---------
 
 router.use((req, res) => {
-    res.send({ error: 'Requested exercise endpoint does not exist.' });
+  res.send({ error: "Requested exercise endpoint does not exist." });
 });
 
 module.exports = router;

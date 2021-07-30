@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS USER (
     weight_goal_fk INT NOT NULL,
     password CHAR(60) NOT NULL,
     account_type INT NOT NULL DEFAULT 0,
+    theme INT NOT NULL DEFAULT 0,
     icon_fk INT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 
@@ -184,6 +185,7 @@ CREATE TABLE IF NOT EXISTS LIFT (
     theomax_set INT,
     unit_fk INT NOT NULL,
     user_fk INT NOT NULL,
+    starred INT NOT NULL DEFAULT -1,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (id),
