@@ -33,7 +33,7 @@ const serviceFunc = require("./serviceFunc");
 //---------
 
 router.use((req, res) => {
-  res.send({ error: "Requested exercise endpoint does not exist." });
+    res.send({ error: "Requested exercise endpoint does not exist." });
 });
 
 module.exports = router;

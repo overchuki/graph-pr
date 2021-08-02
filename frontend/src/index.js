@@ -6,12 +6,12 @@ import { ThemeCtxProvider } from "./contexts/ThemeContext";
 import { UserCtxProvider } from "./contexts/UserContext";
 
 ReactDOM.render(
-  <React.StrictMode>
-    <ThemeCtxProvider>
-      <UserCtxProvider>
-        <App />
-      </UserCtxProvider>
-    </ThemeCtxProvider>
-  </React.StrictMode>,
-  document.getElementById("root")
+    <React.StrictMode>
+        <ThemeCtxProvider>
+            <UserCtxProvider>
+                <App />
+            </UserCtxProvider>
+        </ThemeCtxProvider>
+    </React.StrictMode>,
+    document.getElementById("root")
 );

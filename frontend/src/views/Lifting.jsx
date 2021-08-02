@@ -1,5 +1,5 @@
 const Lifting = () => {
-  return <div>Lifting</div>;
+    return <div>Lifting</div>;
 };
 
 export default Lifting;
