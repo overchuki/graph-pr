@@ -15,6 +15,7 @@ import Config from "./Config";
 import { useUpdateUser } from "./contexts/UserContext";
 import { useUpdateTheme } from "./contexts/ThemeContext";
 import { useEffect } from "react";
+import PublicRoute from "./components/PublicRoute";
 
 function App() {
     const theme = useTheme();
@@ -65,8 +66,8 @@ function App() {
                             <PrivateRoute path="/lifting" component={Lifting} />
                             <PrivateRoute path="/bodyweight" component={Bodyweight} />
                             <PrivateRoute path="/profile" component={Profile} />
-                            <Route path="/signup" render={(props) => <Signup {...props} title={"Create a new Account."} />} />
-                            <Route path="/login" render={(props) => <Login {...props} title={"Log in here."} />} />
+                            <PublicRoute path="/signup" component={Signup} />
+                            <PublicRoute path="/login" component={Login} componentProps={{ title: "Log in here." }} />
                         </Switch>
                     </div>
                 </Router>

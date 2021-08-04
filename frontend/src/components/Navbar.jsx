@@ -25,7 +25,7 @@ const Navbar = () => {
 
         if (response.success) {
             updateUser(false);
-            updateTheme(0);
+            updateTheme(1);
         }
     };
 

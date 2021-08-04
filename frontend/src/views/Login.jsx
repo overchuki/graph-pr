@@ -1,15 +1,15 @@
 import Grid from "@material-ui/core/Grid";
-import TextField from "@material-ui/core/TextField";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
-import { Link, Redirect, useHistory, useLocation } from "react-router-dom";
+import { Link, useHistory, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { useUser, useUpdateUser } from "../contexts/UserContext";
-import { useTheme, useUpdateTheme } from "../contexts/ThemeContext";
+import { useUpdateUser } from "../contexts/UserContext";
+import { useUpdateTheme } from "../contexts/ThemeContext";
 import isAscii from "validator/lib/isAscii";
 import Config from "../Config";
 import axios from "axios";
+import InputField from "../components/InputField";
 
 const useStyles = makeStyles((theme) => ({
     inputField: {
@@ -99,30 +99,26 @@ function Login({ title }) {
                         {location.state ? location.state.title : title}
                     </Typography>
                 </Grid>
-                <Grid item container justifyContent="center" className={classes.inputField}>
-                    <TextField
-                        label={userError ? userError : "Username or Email"}
-                        type="text"
-                        defaultValue={userField}
-                        error={userError ? true : false}
-                        onChange={(e) => setUserField(e.target.value)}
-                        autoComplete="username email"
-                        variant="outlined"
-                        className={classes.inputField}
-                    />
-                </Grid>
-                <Grid item container justifyContent="center" className={classes.inputField}>
-                    <TextField
-                        label={passError ? passError : "Password"}
-                        type="password"
-                        defaultValue={passField}
-                        error={passError ? true : false}
-                        onChange={(e) => setPassField(e.target.value)}
-                        autoComplete="password"
-                        variant="outlined"
-                        className={classes.inputField}
-                    />
-                </Grid>
+                <InputField
+                    label={userError ? userError : "Username or Email"}
+                    type={"text"}
+                    value={userField}
+                    onChange={setUserField}
+                    error={userError ? true : false}
+                    autoComplete={"username email"}
+                    size={false}
+                    position={-1}
+                />
+                <InputField
+                    label={passError ? passError : "Password"}
+                    type={"password"}
+                    value={passField}
+                    onChange={setPassField}
+                    error={passError ? true : false}
+                    autoComplete={""}
+                    size={false}
+                    position={-1}
+                />
                 <Grid item container alignItems="center" justifyContent="center">
                     <Grid item className={classes.btn}>
                         <Link to="/" style={{ textDecoration: "none" }}>
