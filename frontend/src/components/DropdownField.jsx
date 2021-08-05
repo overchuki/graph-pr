@@ -4,7 +4,7 @@ import InputLabel from "@material-ui/core/InputLabel";
 import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 
-const DropdownField = ({ label, value, onChange, valuesArr, size, position }) => {
+const DropdownField = ({ label, value, onChange, valuesArr, size, position, error }) => {
     // position key -> -1: full row, 0: middle, 1: left, 2: right
     const pStr = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${position === 0 || position === 2 ? "10px" : "0"}`;
 
@@ -20,8 +20,10 @@ const DropdownField = ({ label, value, onChange, valuesArr, size, position }) =>
     return (
         <Grid item container alignItems="center" justifyContent="center" xs={size} style={gridStyle}>
             <FormControl variant="outlined" style={{ width: "100%" }}>
-                <InputLabel id={id}>{label}</InputLabel>
-                <Select labelId={id} value={value} onChange={(e) => onChange(e.target.value)} label={label}>
+                <InputLabel error={error} id={id}>
+                    {label}
+                </InputLabel>
+                <Select labelId={id} value={value} error={error} onChange={(e) => onChange(e.target.value)} label={label}>
                     {valuesArr.map((val, idx) => (
                         <MenuItem key={idx} value={val[0]}>
                             {val[1]}

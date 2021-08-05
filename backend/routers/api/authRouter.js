@@ -44,7 +44,7 @@ const validateUserInfo = (body, initial, tz) => {
     serviceFunc.checkValidInt("Activity index", body.activity_level_fk, initial, activityLevelNumRange);
     serviceFunc.checkValidInt("Weight goal index", body.weight_goal_fk, initial, weightGoalNumRange);
     serviceFunc.checkValidInt("Icon index", body.icon_fk, initial, iconNumRange);
-    serviceFunc.checkValidInt("Bw value", body.bw, initial, bwNumRange);
+    serviceFunc.checkValidInt("Bw value", body.bodyweight, initial, bwNumRange);
     serviceFunc.checkValidInt("Bw unit index", body.bw_unit_fk, initial, bwUnitNumRange);
 
     let curDate = serviceFunc.getDateByTZ(new Date(), tz);
@@ -245,7 +245,12 @@ router.post("/signup/", async (req, res) => {
         `;
         let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, okPacket.insertId]);
 
-        let okPacket3 = await serviceFunc.updateMaintenanceCal(req, okPacket.insertId, serviceFunc.getDateStr(curDate, ""), body.tz);
+        let okPacket3 = await serviceFunc.updateMaintenanceCal(
+            req,
+            okPacket.insertId,
+            serviceFunc.getDateStr(curDate, ""),
+            body.tz
+        );
 
         res.send({ success: "User has been created." });
     } catch (err) {
@@ -267,7 +272,15 @@ router.put("/account/", requireAuth, async (req, res) => {
     try {
         validateUserInfo(body, false, req.user.tz);
 
-        let maintenanceFactors = ["dob", "height", "height_unit_fk", "gender_fk", "bw_unit_fk", "activity_level_fk", "weight_goal_fk"];
+        let maintenanceFactors = [
+            "dob",
+            "height",
+            "height_unit_fk",
+            "gender_fk",
+            "bw_unit_fk",
+            "activity_level_fk",
+            "weight_goal_fk",
+        ];
         let updateStr = serviceFunc.getUpdateStr(body, maintenanceFactors);
 
         let sql = `
@@ -281,7 +294,12 @@ router.put("/account/", requireAuth, async (req, res) => {
         let curDate = serviceFunc.getDateByTZ(new Date(), req.user.tz);
 
         if (updateStr.affected) {
-            let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, serviceFunc.getDateStr(curDate, ""), req.user.tz);
+            let okPacket2 = await serviceFunc.updateMaintenanceCal(
+                req,
+                req.user.id,
+                serviceFunc.getDateStr(curDate, ""),
+                req.user.tz
+            );
         }
 
         res.send({ success: "Account has been modified." });

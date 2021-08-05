@@ -6,7 +6,7 @@ import makeStyles from "@material-ui/core/styles/makeStyles";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import InputField from "../components/InputField";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import CheckIcon from "@material-ui/icons/Check";
 import ClearIcon from "@material-ui/icons/Clear";
 import DropdownField from "../components/DropdownField";
@@ -47,6 +47,7 @@ const Signup = () => {
     // Availability Codes -->  -1: invalid, 0: blank, 1: loading, 2: available, 3: taken
     // Form Codes -->  0: default, 1: in progress
     const classes = useStyles();
+    const history = useHistory();
 
     const defaultTheme = useDefaultTheme();
     const updateTheme = useUpdateTheme();
@@ -67,21 +68,23 @@ const Signup = () => {
     const [emailFieldAvailability, setEmailFieldAvailability] = useState(-1);
 
     const [dobField, setDobField] = useState("");
+    const [dobFieldFormatted, setDobFieldFormatted] = useState("");
     const [dobFieldError, setDobFieldError] = useState(false);
 
     const [genderField, setGenderField] = useState(0);
+    const [genderFieldError, setGenderFieldError] = useState(false);
 
     const [heightField, setHeightField] = useState("");
     const [heightFieldError, setHeightFieldError] = useState(false);
-    const [heightUnitField, setHeightUnitField] = useState(0);
+    const [heightUnitField, setHeightUnitField] = useState(6);
 
     const [bodyweightField, setBodyweightField] = useState("");
     const [bodyweightFieldError, setBodyweightFieldError] = useState(false);
-    const [bodyweightUnitField, setBodyweightUnitField] = useState(0);
+    const [bodyweightUnitField, setBodyweightUnitField] = useState(2);
 
-    const [activityLevelField, setActivityLevelField] = useState(0);
+    const [activityLevelField, setActivityLevelField] = useState(3);
 
-    const [weightGoalField, setWeightGoalField] = useState(0);
+    const [weightGoalField, setWeightGoalField] = useState(4);
 
     const [iconField, setIconField] = useState(1);
 
@@ -101,78 +104,9 @@ const Signup = () => {
         };
     }, []);
 
-    const handleThemeChange = (value) => {
-        setThemeField(value);
-        updateTheme(value);
-    };
-
-    const handleUsernameChange = (value) => {
-        setUsernameField(value);
-        let err = basicVerify("a username", false, value, true, [4, 20], false, true, setUsernameFieldError);
-        if (err) {
-            setUsernameFieldAvailability(-1);
-            return;
-        }
-
-        if (checkedUsernames[0].includes(value)) setUsernameFieldAvailability(2);
-        else if (checkedUsernames[1].includes(value)) setUsernameFieldAvailability(3);
-        else setUsernameFieldAvailability(0);
-    };
-
-    const handleUsernameCheck = async () => {
-        setUsernameFieldAvailability(1);
-        let available = await checkAvailable(usernameField, "username");
-
-        if (available.error) {
-            setUsernameFieldAvailability(0);
-            return;
-        }
-
-        if (available) {
-            setCheckedUsernames([[...checkedUsernames[0], usernameField], checkedUsernames[1]]);
-            setUsernameFieldAvailability(2);
-        } else {
-            setCheckedUsernames([checkedUsernames[0], [...checkedUsernames[1], usernameField]]);
-            setUsernameFieldAvailability(3);
-        }
-    };
-
-    const handleEmailChange = (value) => {
-        setEmailField(value);
-        let err = basicVerify("an email", false, value, false, [1, 256], true, true, setEmailFieldError);
-        if (err) {
-            setEmailFieldAvailability(-1);
-            return;
-        }
-
-        if (checkedEmails[0].includes(value)) {
-            setEmailFieldAvailability(2);
-            setEmailFieldError(false);
-        } else if (checkedEmails[1].includes(value)) {
-            setEmailFieldAvailability(3);
-            setEmailFieldError("Username unavailable.");
-        } else {
-            setEmailFieldAvailability(0);
-            setEmailFieldError(false);
-        }
-    };
-
-    const handleEmailCheck = async () => {
-        setEmailFieldAvailability(1);
-        let available = await checkAvailable(emailField, "email");
-
-        if (available.error) {
-            setEmailFieldAvailability(0);
-            return;
-        }
-
-        if (available) {
-            setCheckedEmails([[...checkedEmails[0], emailField], checkedEmails[1]]);
-            setEmailFieldAvailability(2);
-        } else {
-            setCheckedEmails([checkedEmails[0], [...checkedEmails[1], emailField]]);
-            setEmailFieldAvailability(3);
-        }
+    const setFieldError = (error, setError) => {
+        setError(error);
+        return;
     };
 
     const checkAvailable = async (value, type) => {
@@ -183,14 +117,6 @@ const Signup = () => {
             return response.data;
         }
         return response.data.available;
-    };
-
-    const handleConfirmPasswordFieldChange = (value) => {
-        // validate passwords are same
-    };
-
-    const handleDobFieldChange = (value) => {
-        // validate birthdate and reformat
     };
 
     const basicVerify = (name, int, value, required, range, email, ascii, setError) => {
@@ -219,39 +145,241 @@ const Signup = () => {
         return error;
     };
 
-    const checkErrors = () => {
-        if (
-            generalError ||
-            nameFieldError ||
-            dobFieldError ||
-            usernameFieldError ||
-            emailFieldError ||
-            heightFieldError ||
-            bodyweightFieldError ||
-            descriptionFieldError ||
-            passwordFieldError ||
-            confirmPasswordFieldError
-        ) {
+    const handleThemeChange = (value) => {
+        setThemeField(value);
+        updateTheme(value);
+    };
+
+    const handleUsernameFieldChange = (value) => {
+        setUsernameField(value);
+        let err = basicVerify("a username", false, value, true, [4, 20], false, true, setUsernameFieldError);
+        if (err) {
+            setUsernameFieldAvailability(-1);
             return true;
         }
+
+        if (checkedUsernames[0].includes(value)) {
+            setUsernameFieldAvailability(2);
+            setUsernameFieldError(false);
+            return false;
+        } else if (checkedUsernames[1].includes(value)) {
+            setUsernameFieldAvailability(3);
+            setUsernameFieldError("Username in use.");
+            return true;
+        } else {
+            setUsernameFieldAvailability(0);
+            setUsernameFieldError("Please check availability.");
+            return true;
+        }
+    };
+
+    const handleUsernameCheck = async () => {
+        setUsernameFieldAvailability(1);
+        let available = await checkAvailable(usernameField, "username");
+
+        if (available.error) {
+            setUsernameFieldAvailability(0);
+            return;
+        }
+
+        if (available) {
+            setCheckedUsernames([[...checkedUsernames[0], usernameField], checkedUsernames[1]]);
+            setUsernameFieldAvailability(2);
+            setUsernameFieldError(false);
+        } else {
+            setCheckedUsernames([checkedUsernames[0], [...checkedUsernames[1], usernameField]]);
+            setUsernameFieldAvailability(3);
+            setUsernameFieldError("Username in use.");
+        }
+    };
+
+    const handleEmailFieldChange = (value) => {
+        setEmailField(value);
+        let err = basicVerify("an email", false, value, false, [1, 256], true, true, setEmailFieldError);
+        if (err) {
+            setEmailFieldAvailability(-1);
+            return true;
+        }
+        if (!value) {
+            setEmailFieldAvailability(-1);
+            setEmailFieldError(false);
+            return false;
+        }
+
+        if (checkedEmails[0].includes(value)) {
+            setEmailFieldAvailability(2);
+            setEmailFieldError(false);
+            return false;
+        } else if (checkedEmails[1].includes(value)) {
+            setEmailFieldAvailability(3);
+            setEmailFieldError("Email in use.");
+            return true;
+        } else {
+            setEmailFieldAvailability(0);
+            setEmailFieldError("Please check availability.");
+            return true;
+        }
+    };
+
+    const handleEmailCheck = async () => {
+        setEmailFieldAvailability(1);
+        let available = await checkAvailable(emailField, "email");
+
+        if (available.error) {
+            setEmailFieldAvailability(0);
+            return;
+        }
+
+        if (available) {
+            setCheckedEmails([[...checkedEmails[0], emailField], checkedEmails[1]]);
+            setEmailFieldAvailability(2);
+            setEmailFieldError(false);
+        } else {
+            setCheckedEmails([checkedEmails[0], [...checkedEmails[1], emailField]]);
+            setEmailFieldAvailability(3);
+            setEmailFieldError("Email in use.");
+        }
+    };
+
+    const handleConfirmPasswordFieldChange = (value, regular) => {
+        setConfirmPasswordField(value);
+        const compare = regular || passwordField;
+        if (value === compare) {
+            setConfirmPasswordFieldError(false);
+            return false;
+        } else {
+            setConfirmPasswordFieldError("Passwords do not match.");
+            return true;
+        }
+    };
+
+    const handleDobFieldChange = (value) => {
+        setDobField(value);
+        const ageRange = [13, 150];
+        let curDate = new Date();
+        let dateMax = curDate.setFullYear(curDate.getFullYear() - ageRange[0]);
+        let dateMin = curDate.setFullYear(curDate.getFullYear() - ageRange[1] + ageRange[0]);
+
+        let valArr = value.split("/");
+        if (value.length !== 10 || valArr.length !== 3) return setAndReturnDobError("Invalid Format (MM/DD/YYYY)");
+
+        let month = parseInt(valArr[0]);
+        if (!month || month < 1 || month > 12) return setAndReturnDobError("Invalid Month (1-12)");
+        month--;
+        let day = parseInt(valArr[1]);
+        if (!day || day < 1 || day > 31) return setAndReturnDobError("Invalid Day (1-31)");
+        let year = parseInt(valArr[2]);
+        if (!year) return setAndReturnDobError("Invalid Year (YYYY)");
+
+        let dob = new Date();
+        dob.setFullYear(year, month, day);
+        dob.setHours(0, 0, 0);
+        if (dob > dateMax) return setAndReturnDobError("Must be at least 13.");
+        if (dob < dateMin) return setAndReturnDobError("That's not possible.");
+
+        month++;
+        setDobFieldFormatted(`${year}${month < 10 ? "0" + month : month}${day < 10 ? "0" + day : day}`);
+        setDobFieldError(false);
+        return false;
+    };
+
+    const setAndReturnDobError = (err) => {
+        setDobFieldError(err);
+        return err;
+    };
+
+    const handleNameFieldChange = (value) => {
+        setNameField(value);
+        return basicVerify("your name", false, value, true, [2, 20], false, true, setNameFieldError);
+    };
+
+    const handleGenderFieldChange = (value) => {
+        setGenderField(value);
+        return basicVerify("your gender", true, value, true, [1, 2], false, false, setGenderFieldError);
+    };
+
+    const handleHeightFieldChange = (value) => {
+        value = parseInt(value);
+        setHeightField(value);
+        return basicVerify("your height", true, value, true, [1, 300], false, false, setHeightFieldError);
+    };
+
+    const handleBodyweightFieldChange = (value) => {
+        value = parseInt(value);
+        setBodyweightField(value);
+        return basicVerify("your bodyweight", true, value, true, [1, 2000], false, false, setBodyweightFieldError);
+    };
+
+    const handleDescriptionFieldChange = (value) => {
+        setDescriptionField(value);
+        return basicVerify("your description", false, value, false, [1, 100], false, true, setDescriptionFieldError);
+    };
+
+    const handlePasswordFieldChange = (value) => {
+        setPasswordField(value);
+        handleConfirmPasswordFieldChange(confirmPasswordField, value);
+        return basicVerify("your password", false, value, true, [8, 256], false, true, setPasswordFieldError);
+    };
+
+    const runFullCheck = () => {
+        let errors = [];
+        errors.push(handleNameFieldChange(nameField));
+        errors.push(handleDobFieldChange(dobField));
+        errors.push(handleGenderFieldChange(genderField));
+        errors.push(handleUsernameFieldChange(usernameField));
+        errors.push(handleEmailFieldChange(emailField));
+        errors.push(handleHeightFieldChange(heightField));
+        errors.push(handleBodyweightFieldChange(bodyweightField));
+        errors.push(handleDescriptionFieldChange(descriptionField));
+        errors.push(handlePasswordFieldChange(passwordField));
+        errors.push(handleConfirmPasswordFieldChange(confirmPasswordField));
+        for (let err of errors) if (err) return true;
         return false;
     };
 
     const signup = async () => {
         // TODO: verify everything on click, finish handler functions
-        let errors = checkErrors();
-        console.log(errors);
-        if (errors || usernameFieldAvailability !== 2 || (emailFieldAvailability !== 2 && emailField)) {
-            console.log("err");
+        setGeneralError(false);
+        let errors = runFullCheck();
+        if (errors) {
+            setGeneralError("Please address all errors on screen.");
             return;
         }
 
-        let userData = {};
+        let userData = {
+            name: nameField,
+            username: usernameField,
+            email: emailField || null,
+            description: descriptionField || null,
+            dob: dobFieldFormatted,
+            height: heightField,
+            height_unit_fk: heightUnitField,
+            gender_fk: genderField,
+            bodyweight: bodyweightField,
+            bw_unit_fk: bodyweightUnitField,
+            activity_level_fk: activityLevelField,
+            weight_goal_fk: weightGoalField,
+            password: passwordField,
+            icon_fk: iconField,
+            theme: themeField,
+            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
 
-        // send singup request
-        //   sucess: redirect to login, title: "Log in with your new credentials."
-        //   error: find it with includes and set appropriate field
-        //          fallback to general error
+        let response = await axios.post(Config.apiURL + "/auth/signup/", userData, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            withCredentials: true,
+        });
+        response = response.data;
+
+        if (response.success) {
+            history.replace("/login", { title: "Log in with your new credentials." });
+        } else if (response.error) {
+            setGeneralError("Server Error: " + response.error);
+        } else {
+            setGeneralError("Server Error: " + response);
+        }
     };
 
     return (
@@ -272,7 +400,7 @@ const Signup = () => {
                 {/* Title */}
                 <Grid item>
                     <Typography display="inline" variant="body1" className={generalError ? classes.textError : classes.textMain}>
-                        {generalError ? generalError : "Account Information (Spaces will be deleted)"}
+                        {generalError ? generalError : "Account Information"}
                     </Typography>
                 </Grid>
 
@@ -282,10 +410,7 @@ const Signup = () => {
                         label={nameFieldError ? nameFieldError : "Name (2-20)"}
                         type={"text"}
                         value={nameField}
-                        onChange={(val) => {
-                            setNameField(val);
-                            basicVerify("your name", false, val, true, [2, 20], false, true, setNameFieldError);
-                        }}
+                        onChange={handleNameFieldChange}
                         error={nameFieldError ? true : false}
                         autoComplete={"name"}
                         size={6}
@@ -306,7 +431,7 @@ const Signup = () => {
                     <DropdownField
                         label={"Gender"}
                         value={genderField}
-                        onChange={setGenderField}
+                        onChange={handleGenderFieldChange}
                         valuesArr={[
                             [0, "-Select-"],
                             [1, "Male"],
@@ -314,6 +439,7 @@ const Signup = () => {
                         ]}
                         size={2}
                         position={2}
+                        error={genderFieldError ? true : false}
                     />
                 </Grid>
 
@@ -334,7 +460,7 @@ const Signup = () => {
                             label={usernameFieldError ? usernameFieldError : "Username (4-20)"}
                             type={"text"}
                             value={usernameField}
-                            onChange={handleUsernameChange}
+                            onChange={handleUsernameFieldChange}
                             error={usernameFieldError ? true : false}
                             autoComplete={"username"}
                             size={9}
@@ -392,7 +518,7 @@ const Signup = () => {
                             label={emailFieldError ? emailFieldError : "Email (optional)"}
                             type={"text"}
                             value={emailField}
-                            onChange={handleEmailChange}
+                            onChange={handleEmailFieldChange}
                             error={emailFieldError ? true : false}
                             autoComplete={"email"}
                             size={9}
@@ -442,10 +568,7 @@ const Signup = () => {
                         label={heightFieldError ? heightFieldError : "Height"}
                         type={"number"}
                         value={heightField}
-                        onChange={(val) => {
-                            setHeightField(val);
-                            basicVerify("your height", true, val, true, [1, 300], false, true, setHeightFieldError);
-                        }}
+                        onChange={handleHeightFieldChange}
                         error={heightFieldError ? true : false}
                         autoComplete={""}
                         size={4}
@@ -457,21 +580,18 @@ const Signup = () => {
                         value={heightUnitField}
                         onChange={setHeightUnitField}
                         valuesArr={[
-                            [0, "-Select-"],
-                            [5, "Cm"],
                             [6, "In"],
+                            [5, "Cm"],
                         ]}
                         size={2}
                         position={0}
+                        error={false}
                     />
                     <InputField
                         label={bodyweightFieldError ? bodyweightFieldError : "Bodyweight"}
                         type={"number"}
                         value={bodyweightField}
-                        onChange={(val) => {
-                            setBodyweightField(val);
-                            basicVerify("your bodyweight", true, val, true, [1, 2000], false, true, setBodyweightFieldError);
-                        }}
+                        onChange={handleBodyweightFieldChange}
                         error={bodyweightFieldError ? true : false}
                         autoComplete={""}
                         size={4}
@@ -483,12 +603,12 @@ const Signup = () => {
                         value={bodyweightUnitField}
                         onChange={setBodyweightUnitField}
                         valuesArr={[
-                            [0, "-Select-"],
-                            [1, "Kg"],
                             [2, "Lb"],
+                            [1, "Kg"],
                         ]}
                         size={2}
                         position={2}
+                        error={false}
                     />
                 </Grid>
 
@@ -498,7 +618,6 @@ const Signup = () => {
                     value={activityLevelField}
                     onChange={setActivityLevelField}
                     valuesArr={[
-                        [0, "-Select-"],
                         [1, "Sedetary: Little to no exercise."],
                         [2, "Lightly Active: Light exercise / sports 1-3 days a week."],
                         [3, "Moderately Active: Moderate exercise / 3-5 days a week."],
@@ -507,6 +626,7 @@ const Signup = () => {
                     ]}
                     size={false}
                     position={-1}
+                    error={false}
                 />
 
                 {/* Fourth Row: Weight Goal Level, Theme, Icon */}
@@ -516,7 +636,6 @@ const Signup = () => {
                         value={weightGoalField}
                         onChange={setWeightGoalField}
                         valuesArr={[
-                            [0, "-Select-"],
                             [1, "Extreme Loss (2lb / .9kg a week)"],
                             [2, "Regular Loss (1lb / .45kg a week)"],
                             [3, "Mild Loss (0.5lb / .225kg a week)"],
@@ -527,6 +646,7 @@ const Signup = () => {
                         ]}
                         size={6}
                         position={1}
+                        error={false}
                     />
                     <DropdownField
                         label={"Theme"}
@@ -539,6 +659,7 @@ const Signup = () => {
                         ]}
                         size={3}
                         position={0}
+                        error={false}
                     />
                     <DropdownField
                         label={"Icon"}
@@ -547,6 +668,7 @@ const Signup = () => {
                         valuesArr={[[1, "Default"]]}
                         size={3}
                         position={2}
+                        error={false}
                     />
                 </Grid>
 
@@ -555,10 +677,7 @@ const Signup = () => {
                     label={descriptionFieldError ? descriptionFieldError : "Description (1-100) (optional)"}
                     type={"text"}
                     value={descriptionField}
-                    onChange={(val) => {
-                        setDescriptionField(val);
-                        basicVerify("your description", false, val, false, [1, 100], false, true, setDescriptionFieldError);
-                    }}
+                    onChange={handleDescriptionFieldChange}
                     error={descriptionFieldError ? true : false}
                     autoComplete={""}
                     size={false}
@@ -572,10 +691,7 @@ const Signup = () => {
                         label={passwordFieldError ? passwordFieldError : "Password (8-256)"}
                         type={"password"}
                         value={passwordField}
-                        onChange={(val) => {
-                            setPasswordField(val);
-                            basicVerify("your password", false, val, true, [8, 256], false, true, setPasswordFieldError);
-                        }}
+                        onChange={handlePasswordFieldChange}
                         error={passwordFieldError ? true : false}
                         autoComplete={""}
                         size={6}
