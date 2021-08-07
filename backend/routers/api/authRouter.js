@@ -91,19 +91,25 @@ router.get("/exists/", async (req, res) => {
 // Get full user profile
 router.get("/", requireAuth, async (req, res) => {
     const sql = `
-        SELECT
+            SELECT
             u.name,
             u.username,
             u.email,
             u.description,
             u.dob,
             u.height,
-            u.theme,
             hu.plur_abbr AS height_unit,
+            u.height_unit_fk,
+            u.theme,
             wu.plur_abbr AS weight_unit,
+            u.bw_unit_fk AS weight_unit_fk,
             g.name AS gender,
+            u.gender_fk,
             al.name AS activity_level,
             al.description AS activity_level_description,
+            u.activity_level_fk,
+            wg.name AS weight_goal,
+            u.weight_goal_fk,
             i.location AS icon_location,
             u.created_at
         FROM user AS u
@@ -112,6 +118,7 @@ router.get("/", requireAuth, async (req, res) => {
         LEFT JOIN gender AS g ON u.gender_fk = g.id
         LEFT JOIN activity_level AS al ON u.activity_level_fk = al.id
         LEFT JOIN icon AS i ON u.icon_fk = i.id
+        LEFT JOIN weight_goal AS wg ON u.weight_goal_fk = wg.id
         WHERE u.id = ${req.user.id}
     `;
 
@@ -391,6 +398,7 @@ router.delete("/", requireAuth, async (req, res) => {
             throw Error("Password is wrong.");
         }
     } catch (err) {
+        console.log(err);
         const errors = serviceFunc.handleError(err);
         res.send({ error: errors });
     }

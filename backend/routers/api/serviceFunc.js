@@ -117,7 +117,8 @@ const getUpdateStr = (body, affectedArray) => {
 };
 
 const getDeleteStr = async (req, db, userId, key) => {
-    let entries = await req.conn.queryAsync(`SELECT id FROM ? WHERE user_fk = ${id}`, [db]);
+    console.log(db, userId);
+    let entries = await req.conn.queryAsync(`SELECT id FROM ${db} WHERE user_fk = ${userId}`);
     let entriesStr = "";
 
     for (let entryId of entries) entriesStr += key + ` = ${entryId} OR `;
@@ -181,7 +182,9 @@ const updateMaintenanceCal = async (req, userId, updateDate, tz) => {
     let latestBodyweight = await getLastBodyweight(req, userId, updateDate);
     if (latestBodyweight.length === 0) throw Error("User does not have recorded bodyweight");
 
-    let deletePacket = await req.conn.queryAsync(`DELETE FROM maintenance_calories WHERE user_fk = ${user.id} AND date = '${updateDate}'`);
+    let deletePacket = await req.conn.queryAsync(
+        `DELETE FROM maintenance_calories WHERE user_fk = ${user.id} AND date = '${updateDate}'`
+    );
 
     let kgBodyweight = convertUnit(latestBodyweight[0].weight, user.bw_unit_fk, 1);
 
@@ -201,7 +204,14 @@ const updateMaintenanceCal = async (req, userId, updateDate, tz) => {
             user_fk)
         VALUES (?, ?, ?, ?, ?, ?)
     `;
-    let okPacket = await req.conn.queryAsync(sql, [bmr, main_cal, updateDate, user.activity_level_fk, user.weight_goal_fk, user.id]);
+    let okPacket = await req.conn.queryAsync(sql, [
+        bmr,
+        main_cal,
+        updateDate,
+        user.activity_level_fk,
+        user.weight_goal_fk,
+        user.id,
+    ]);
     return okPacket;
 };
 

@@ -8,24 +8,32 @@ import React from "react";
 import Config from "../Config";
 import axios from "axios";
 
-const Navbar = () => {
+interface LogoutHttpResponse {
+    data: {
+        success?: string;
+        error?: string;
+    };
+}
+
+const Navbar: React.FC = () => {
     const user = useUser();
     const updateUser = useUpdateUser();
     const updateTheme = useUpdateTheme();
 
-    let logout = async () => {
-        let response = await axios.post(
-            Config.apiURL + "/auth/logout/",
+    let logout = async (): Promise<void> => {
+        let response: LogoutHttpResponse = await axios.post(
+            Config.apiUrl + "/auth/logout/",
             {},
             {
                 withCredentials: true,
             }
         );
-        response = response.data;
 
-        if (response.success) {
+        if (response.data.success) {
             updateUser(false);
             updateTheme(1);
+        } else {
+            console.log(response);
         }
     };
 
@@ -43,13 +51,25 @@ const Navbar = () => {
                 <div style={{ flexGrow: 1 }} />
                 {user ? (
                     <React.Fragment>
-                        <NavBarLinkBtn path="/profile" name="PROFILE" contrast={true} onLogout={false} />
-                        <NavBarLinkBtn path="/" name="LOG OUT" contrast={false} onLogout={logout} />
+                        <NavBarLinkBtn
+                            path="/profile"
+                            name="PROFILE"
+                            contrast={true}
+                            logoutBtn={false}
+                            onLogout={async () => {}}
+                        />
+                        <NavBarLinkBtn path="/" name="LOG OUT" contrast={false} logoutBtn={true} onLogout={logout} />
                     </React.Fragment>
                 ) : (
                     <React.Fragment>
-                        <NavBarLinkBtn path="/signup" name="SIGN UP" contrast={true} onLogout={false} />
-                        <NavBarLinkBtn path="/login" name="LOG IN" contrast={false} onLogout={false} />
+                        <NavBarLinkBtn
+                            path="/signup"
+                            name="SIGN UP"
+                            contrast={true}
+                            logoutBtn={false}
+                            onLogout={async () => {}}
+                        />
+                        <NavBarLinkBtn path="/login" name="LOG IN" contrast={false} logoutBtn={false} onLogout={async () => {}} />
                     </React.Fragment>
                 )}
             </Toolbar>

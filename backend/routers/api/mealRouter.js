@@ -116,7 +116,7 @@ router.get("/date/", async (req, res) => {
             m.user_fk
         FROM meal_date AS md
         LEFT JOIN meal AS m ON md.meal_fk = m.id
-        WHERE date = '${query.date}'
+        WHERE user_fk = ${req.user.id} AND date = '${query.date}'
     `;
 
     let sqlNutrition = `
@@ -206,7 +206,9 @@ router.post("/:id/item/:itemId/", async (req, res) => {
     try {
         await verifyUser(req, params.id);
 
-        let itemInMeal = await req.conn.queryAsync(`SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`);
+        let itemInMeal = await req.conn.queryAsync(
+            `SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`
+        );
         if (itemInMeal.length > 0) throw Error("Item is already in meal, edit the serving percentage to change its quantity.");
 
         serviceFunc.checkValidInt("Item Percentage", body.item_percentage, true, [0, 100]);
@@ -229,8 +231,9 @@ router.post("/:id/date/", async (req, res) => {
         INSERT
         INTO meal_date (
             date,
-            meal_fk)
-        VALUES (?, ?)
+            meal_fk,
+            user_fk)
+        VALUES (?, ?, ?)
     `;
 
     try {
@@ -242,7 +245,7 @@ router.post("/:id/date/", async (req, res) => {
             serviceFunc.getDateByTZ(new Date(), req.user.tz),
         ]);
 
-        let okPacket = await req.conn.queryAsync(sql, [body.date, params.id]);
+        let okPacket = await req.conn.queryAsync(sql, [body.date, params.id, req.user.id]);
 
         res.send({ success: "meal has been added to date" });
     } catch (err) {

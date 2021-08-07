@@ -2,7 +2,7 @@ import Grid from "@material-ui/core/Grid";
 import Config from "../Config";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
-import makeStyles from "@material-ui/core/styles/makeStyles";
+import { makeStyles, Theme, createStyles } from "@material-ui/core/styles/";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import InputField from "../components/InputField";
 import { useState, useEffect } from "react";
@@ -14,89 +14,129 @@ import { useUpdateTheme, useDefaultTheme } from "../contexts/ThemeContext";
 import axios from "axios";
 import validator from "validator";
 
-const useStyles = makeStyles((theme) => ({
-    inputField: {
-        width: "100%",
-    },
-    textMain: {
-        color: theme.palette.text.primary,
-    },
-    textSuccess: {
-        color: theme.palette.success.main,
-    },
-    textError: {
-        color: theme.palette.error.main,
-    },
-    wrapper: {
-        height: "90%",
-    },
-    btn: {
-        margin: "0 10px",
-    },
-    btnWarning: {
-        backgroundColor: theme.palette.warning.main,
-        color: theme.palette.warning.contrastText,
-
-        "&:hover": {
-            backgroundColor: theme.palette.warning.light,
+const useStyles = makeStyles((theme: Theme) =>
+    createStyles({
+        inputField: {
+            width: "100%",
         },
-    },
-}));
+        textMain: {
+            color: theme.palette.text.primary,
+        },
+        textSuccess: {
+            color: theme.palette.success.main,
+        },
+        textError: {
+            color: theme.palette.error.main,
+        },
+        wrapper: {
+            height: "90%",
+        },
+        btn: {
+            margin: "0 10px",
+        },
+        btnWarning: {
+            backgroundColor: theme.palette.warning.main,
+            color: theme.palette.warning.contrastText,
 
-const Signup = () => {
+            "&:hover": {
+                backgroundColor: theme.palette.warning.light,
+            },
+        },
+    })
+);
+
+type ErrorType = string | boolean;
+type SetErrorFunc = (err: ErrorType) => void;
+
+interface ExistsFuncRes {
+    available?: boolean;
+    error?: string;
+}
+
+interface ExistsHttpResponse {
+    data: ExistsFuncRes;
+}
+
+interface SignupHttpResponse {
+    data: {
+        success?: string;
+        error?: string;
+    };
+}
+
+interface userDataSend {
+    name: string;
+    username: string;
+    email: string | null;
+    description: string | null;
+    dob: string;
+    height: number;
+    height_unit_fk: number;
+    gender_fk: number;
+    bodyweight: number;
+    bw_unit_fk: number;
+    activity_level_fk: number;
+    weight_goal_fk: number;
+    password: string;
+    icon_fk: number;
+    theme: number;
+    tz: string;
+}
+
+const Signup: React.FC = () => {
     // Availability Codes -->  -1: invalid, 0: blank, 1: loading, 2: available, 3: taken
     // Form Codes -->  0: default, 1: in progress
     const classes = useStyles();
     const history = useHistory();
-
     const defaultTheme = useDefaultTheme();
     const updateTheme = useUpdateTheme();
-    const [generalError, setGeneralError] = useState(false);
-    const [formSubmission, setFormSubmission] = useState(0);
 
-    const [nameField, setNameField] = useState("");
-    const [nameFieldError, setNameFieldError] = useState(false);
+    const [generalError, setGeneralError] = useState<ErrorType>(false);
+    const [formSubmission, setFormSubmission] = useState<number>(0);
 
-    const [usernameField, setUsernameField] = useState("");
-    const [usernameFieldError, setUsernameFieldError] = useState(false);
-    const [checkedUsernames, setCheckedUsernames] = useState([[], []]);
-    const [usernameFieldAvailability, setUsernameFieldAvailability] = useState(-1);
+    const [nameField, setNameField] = useState<string>("");
+    const [nameFieldError, setNameFieldError] = useState<ErrorType>(false);
 
-    const [emailField, setEmailField] = useState("");
-    const [emailFieldError, setEmailFieldError] = useState(false);
-    const [checkedEmails, setCheckedEmails] = useState([[], []]);
-    const [emailFieldAvailability, setEmailFieldAvailability] = useState(-1);
+    const [usernameField, setUsernameField] = useState<string>("");
+    const [usernameFieldError, setUsernameFieldError] = useState<ErrorType>(false);
+    const [checkedUsernames, setCheckedUsernames] = useState<[Array<string>, Array<string>]>([[], []]);
+    const [usernameFieldAvailability, setUsernameFieldAvailability] = useState<number>(-1);
 
-    const [dobField, setDobField] = useState("");
-    const [dobFieldFormatted, setDobFieldFormatted] = useState("");
-    const [dobFieldError, setDobFieldError] = useState(false);
+    const [emailField, setEmailField] = useState<string>("");
+    const [emailFieldError, setEmailFieldError] = useState<ErrorType>(false);
+    const [checkedEmails, setCheckedEmails] = useState<[Array<string>, Array<string>]>([[], []]);
+    const [emailFieldAvailability, setEmailFieldAvailability] = useState<number>(-1);
 
-    const [genderField, setGenderField] = useState(0);
-    const [genderFieldError, setGenderFieldError] = useState(false);
+    const [dobField, setDobField] = useState<string>("");
+    const [dobFieldFormatted, setDobFieldFormatted] = useState<string>("");
+    const [dobFieldError, setDobFieldError] = useState<ErrorType>(false);
 
-    const [heightField, setHeightField] = useState("");
-    const [heightFieldError, setHeightFieldError] = useState(false);
-    const [heightUnitField, setHeightUnitField] = useState(6);
+    const [genderField, setGenderField] = useState<number>(0);
+    const [genderFieldError, setGenderFieldError] = useState<ErrorType>(false);
 
-    const [bodyweightField, setBodyweightField] = useState("");
-    const [bodyweightFieldError, setBodyweightFieldError] = useState(false);
-    const [bodyweightUnitField, setBodyweightUnitField] = useState(2);
+    const [heightField, setHeightField] = useState<number>(0);
+    const [heightFieldError, setHeightFieldError] = useState<ErrorType>(false);
+    const [heightUnitField, setHeightUnitField] = useState<number>(6);
 
-    const [activityLevelField, setActivityLevelField] = useState(3);
+    const [bodyweightField, setBodyweightField] = useState<number>(0);
+    const [bodyweightFieldError, setBodyweightFieldError] = useState<ErrorType>(false);
+    const [bodyweightUnitField, setBodyweightUnitField] = useState<number>(2);
 
-    const [weightGoalField, setWeightGoalField] = useState(4);
+    const [activityLevelField, setActivityLevelField] = useState<number>(3);
 
-    const [iconField, setIconField] = useState(1);
+    const [weightGoalField, setWeightGoalField] = useState<number>(4);
 
-    const [themeField, setThemeField] = useState(defaultTheme);
+    const [iconField, setIconField] = useState<number>(1);
 
-    const [descriptionField, setDescriptionField] = useState("");
-    const [descriptionFieldError, setDescriptionFieldError] = useState(false);
+    const [themeField, setThemeField] = useState<number>(defaultTheme);
 
-    const [passwordField, setPasswordField] = useState("");
-    const [passwordFieldError, setPasswordFieldError] = useState(false);
-    const [confirmPasswordField, setConfirmPasswordField] = useState("");
-    const [confirmPasswordFieldError, setConfirmPasswordFieldError] = useState(false);
+    const [descriptionField, setDescriptionField] = useState<string>("");
+    const [descriptionFieldError, setDescriptionFieldError] = useState<ErrorType>(false);
+
+    const [passwordField, setPasswordField] = useState<string>("");
+    const [passwordFieldError, setPasswordFieldError] = useState<ErrorType>(false);
+    const [confirmPasswordField, setConfirmPasswordField] = useState<string>("");
+    const [confirmPasswordFieldError, setConfirmPasswordFieldError] = useState<ErrorType>(false);
 
     useEffect(() => {
         return () => {
@@ -104,23 +144,27 @@ const Signup = () => {
         };
     }, []);
 
-    const setFieldError = (error, setError) => {
-        setError(error);
-        return;
-    };
-
-    const checkAvailable = async (value, type) => {
-        let response = await axios.get(Config.apiURL + `/auth/exists/?type=${type}&str=${value}`);
+    const checkAvailable = async (value: string, type: string): Promise<ExistsFuncRes> => {
+        let response: ExistsHttpResponse = await axios.get(Config.apiUrl + `/auth/exists/?type=${type}&str=${value}`);
         setGeneralError(false);
         if (response.data.error) {
             setGeneralError("Server error: " + response.data.error);
             return response.data;
         }
-        return response.data.available;
+        return response.data;
     };
 
-    const basicVerify = (name, int, value, required, range, email, ascii, setError) => {
-        let error = false;
+    const basicVerify = (
+        name: string,
+        int: boolean,
+        value: string,
+        required: boolean,
+        range: [number, number],
+        email: boolean,
+        ascii: boolean,
+        setError: SetErrorFunc
+    ): ErrorType => {
+        let error: ErrorType = false;
 
         if (!value) {
             if (required) error = `Please enter ${name}.`;
@@ -130,13 +174,17 @@ const Signup = () => {
         name = name.split(" ")[1];
         name = name.charAt(0).toUpperCase() + name.slice(1);
 
-        if (!error && email && !validator.isEmail(value)) error = `${name} is invalid.`;
-        if (!error && ascii && !validator.isAscii(value)) error = `${name} is invalid.`;
+        if (!error && email && !validator.isEmail(value + "")) error = `${name} is invalid.`;
+        if (!error && ascii && !validator.isAscii(value + "")) error = `${name} is invalid.`;
 
-        if (!error && ((!int && value.length < range[0]) || (int && value < range[0])))
-            error = `${name} is too ${int ? "small" : "short"}.`;
-        if (!error && ((!int && value.length > range[1]) || (int && value > range[1])))
-            error = `${name} is too ${int ? "large" : "long"}.`;
+        if (!error && value.length < range[0]) error = `${name} is too short.`;
+        if (!error && value.length > range[1]) error = `${name} is too long.`;
+
+        if (int) {
+            let valueInt: number = parseInt(value);
+            if (!error && valueInt < range[0]) error = `${name} is too small.`;
+            if (!error && valueInt > range[1]) error = `${name} is too large.`;
+        }
 
         if (error === "skip") return false;
 
@@ -145,14 +193,14 @@ const Signup = () => {
         return error;
     };
 
-    const handleThemeChange = (value) => {
+    const handleThemeChange = (value: number): void => {
         setThemeField(value);
         updateTheme(value);
     };
 
-    const handleUsernameFieldChange = (value) => {
+    const handleUsernameFieldChange = (value: string): boolean => {
         setUsernameField(value);
-        let err = basicVerify("a username", false, value, true, [4, 20], false, true, setUsernameFieldError);
+        let err: ErrorType = basicVerify("a username", false, value, true, [4, 20], false, true, setUsernameFieldError);
         if (err) {
             setUsernameFieldAvailability(-1);
             return true;
@@ -173,16 +221,16 @@ const Signup = () => {
         }
     };
 
-    const handleUsernameCheck = async () => {
+    const handleUsernameCheck = async (): Promise<void> => {
         setUsernameFieldAvailability(1);
-        let available = await checkAvailable(usernameField, "username");
+        let available: ExistsFuncRes = await checkAvailable(usernameField, "username");
 
         if (available.error) {
             setUsernameFieldAvailability(0);
             return;
         }
 
-        if (available) {
+        if (available.available) {
             setCheckedUsernames([[...checkedUsernames[0], usernameField], checkedUsernames[1]]);
             setUsernameFieldAvailability(2);
             setUsernameFieldError(false);
@@ -193,9 +241,9 @@ const Signup = () => {
         }
     };
 
-    const handleEmailFieldChange = (value) => {
+    const handleEmailFieldChange = (value: string): boolean => {
         setEmailField(value);
-        let err = basicVerify("an email", false, value, false, [1, 256], true, true, setEmailFieldError);
+        let err: ErrorType = basicVerify("an email", false, value, false, [1, 256], true, true, setEmailFieldError);
         if (err) {
             setEmailFieldAvailability(-1);
             return true;
@@ -221,16 +269,16 @@ const Signup = () => {
         }
     };
 
-    const handleEmailCheck = async () => {
+    const handleEmailCheck = async (): Promise<void> => {
         setEmailFieldAvailability(1);
-        let available = await checkAvailable(emailField, "email");
+        let available: ExistsFuncRes = await checkAvailable(emailField, "email");
 
         if (available.error) {
             setEmailFieldAvailability(0);
             return;
         }
 
-        if (available) {
+        if (available.available) {
             setCheckedEmails([[...checkedEmails[0], emailField], checkedEmails[1]]);
             setEmailFieldAvailability(2);
             setEmailFieldError(false);
@@ -241,7 +289,7 @@ const Signup = () => {
         }
     };
 
-    const handleConfirmPasswordFieldChange = (value, regular) => {
+    const handleConfirmPasswordFieldChange = (value: string, regular?: string): boolean => {
         setConfirmPasswordField(value);
         const compare = regular || passwordField;
         if (value === compare) {
@@ -253,25 +301,25 @@ const Signup = () => {
         }
     };
 
-    const handleDobFieldChange = (value) => {
+    const handleDobFieldChange = (value: string): ErrorType => {
         setDobField(value);
-        const ageRange = [13, 150];
-        let curDate = new Date();
-        let dateMax = curDate.setFullYear(curDate.getFullYear() - ageRange[0]);
-        let dateMin = curDate.setFullYear(curDate.getFullYear() - ageRange[1] + ageRange[0]);
+        const ageRange: [number, number] = [13, 150];
+        let curDate: Date = new Date();
+        let dateMax: Date = new Date(curDate.setFullYear(curDate.getFullYear() - ageRange[0]));
+        let dateMin: Date = new Date(curDate.setFullYear(curDate.getFullYear() - ageRange[1] + ageRange[0]));
 
-        let valArr = value.split("/");
-        if (value.length !== 10 || valArr.length !== 3) return setAndReturnDobError("Invalid Format (MM/DD/YYYY)");
+        let valArr: Array<string> = value.split("/");
+        if (value.length !== 10 || valArr.length !== 3) return setAndReturnDobError("Invalid (MM/DD/YYYY)");
 
-        let month = parseInt(valArr[0]);
+        let month: number = parseInt(valArr[0]);
         if (!month || month < 1 || month > 12) return setAndReturnDobError("Invalid Month (1-12)");
         month--;
-        let day = parseInt(valArr[1]);
+        let day: number = parseInt(valArr[1]);
         if (!day || day < 1 || day > 31) return setAndReturnDobError("Invalid Day (1-31)");
-        let year = parseInt(valArr[2]);
+        let year: number = parseInt(valArr[2]);
         if (!year) return setAndReturnDobError("Invalid Year (YYYY)");
 
-        let dob = new Date();
+        let dob: Date = new Date();
         dob.setFullYear(year, month, day);
         dob.setHours(0, 0, 0);
         if (dob > dateMax) return setAndReturnDobError("Must be at least 13.");
@@ -283,53 +331,51 @@ const Signup = () => {
         return false;
     };
 
-    const setAndReturnDobError = (err) => {
+    const setAndReturnDobError = (err: string): ErrorType => {
         setDobFieldError(err);
         return err;
     };
 
-    const handleNameFieldChange = (value) => {
+    const handleNameFieldChange = (value: string): ErrorType => {
         setNameField(value);
         return basicVerify("your name", false, value, true, [2, 20], false, true, setNameFieldError);
     };
 
-    const handleGenderFieldChange = (value) => {
+    const handleGenderFieldChange = (value: number): ErrorType => {
         setGenderField(value);
-        return basicVerify("your gender", true, value, true, [1, 2], false, false, setGenderFieldError);
+        return basicVerify("your gender", true, value + "", true, [1, 2], false, false, setGenderFieldError);
     };
 
-    const handleHeightFieldChange = (value) => {
-        value = parseInt(value);
-        setHeightField(value);
+    const handleHeightFieldChange = (value: string): ErrorType => {
+        setHeightField(+value);
         return basicVerify("your height", true, value, true, [1, 300], false, false, setHeightFieldError);
     };
 
-    const handleBodyweightFieldChange = (value) => {
-        value = parseInt(value);
-        setBodyweightField(value);
+    const handleBodyweightFieldChange = (value: string): ErrorType => {
+        setBodyweightField(+value);
         return basicVerify("your bodyweight", true, value, true, [1, 2000], false, false, setBodyweightFieldError);
     };
 
-    const handleDescriptionFieldChange = (value) => {
+    const handleDescriptionFieldChange = (value: string): ErrorType => {
         setDescriptionField(value);
         return basicVerify("your description", false, value, false, [1, 100], false, true, setDescriptionFieldError);
     };
 
-    const handlePasswordFieldChange = (value) => {
+    const handlePasswordFieldChange = (value: string): ErrorType => {
         setPasswordField(value);
         handleConfirmPasswordFieldChange(confirmPasswordField, value);
         return basicVerify("your password", false, value, true, [8, 256], false, true, setPasswordFieldError);
     };
 
-    const runFullCheck = () => {
-        let errors = [];
+    const runFullCheck = (): boolean => {
+        let errors: Array<ErrorType> = [];
         errors.push(handleNameFieldChange(nameField));
         errors.push(handleDobFieldChange(dobField));
         errors.push(handleGenderFieldChange(genderField));
         errors.push(handleUsernameFieldChange(usernameField));
         errors.push(handleEmailFieldChange(emailField));
-        errors.push(handleHeightFieldChange(heightField));
-        errors.push(handleBodyweightFieldChange(bodyweightField));
+        errors.push(handleHeightFieldChange(heightField + ""));
+        errors.push(handleBodyweightFieldChange(bodyweightField + ""));
         errors.push(handleDescriptionFieldChange(descriptionField));
         errors.push(handlePasswordFieldChange(passwordField));
         errors.push(handleConfirmPasswordFieldChange(confirmPasswordField));
@@ -337,16 +383,16 @@ const Signup = () => {
         return false;
     };
 
-    const signup = async () => {
-        // TODO: verify everything on click, finish handler functions
+    const signup = async (): Promise<void> => {
+        setFormSubmission(1);
         setGeneralError(false);
-        let errors = runFullCheck();
+        let errors: boolean = runFullCheck();
         if (errors) {
             setGeneralError("Please address all errors on screen.");
             return;
         }
 
-        let userData = {
+        let userData: userDataSend = {
             name: nameField,
             username: usernameField,
             email: emailField || null,
@@ -365,20 +411,24 @@ const Signup = () => {
             tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
 
-        let response = await axios.post(Config.apiURL + "/auth/signup/", userData, {
-            headers: {
-                "Content-Type": "application/json",
-            },
-            withCredentials: true,
-        });
-        response = response.data;
+        try {
+            let response: SignupHttpResponse = await axios.post(Config.apiUrl + "/auth/signup/", userData, {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                withCredentials: true,
+            });
 
-        if (response.success) {
-            history.replace("/login", { title: "Log in with your new credentials." });
-        } else if (response.error) {
-            setGeneralError("Server Error: " + response.error);
-        } else {
-            setGeneralError("Server Error: " + response);
+            if (response.data.success) {
+                history.replace("/login", { title: "Log in with your new credentials." });
+            } else if (response.data.error) {
+                setGeneralError("Server Error: " + response.data.error);
+            } else {
+                setGeneralError("Server Error: " + response);
+            }
+        } catch (err) {
+            setFormSubmission(0);
+            console.log(err);
         }
     };
 
@@ -407,7 +457,7 @@ const Signup = () => {
                 {/* First row: Name, Birthday, Gender */}
                 <Grid item container justifyContent="center" alignItems="center" className={classes.inputField}>
                     <InputField
-                        label={nameFieldError ? nameFieldError : "Name (2-20)"}
+                        label={nameFieldError ? nameFieldError + "" : "Name (2-20)"}
                         type={"text"}
                         value={nameField}
                         onChange={handleNameFieldChange}
@@ -418,7 +468,7 @@ const Signup = () => {
                         disabled={false}
                     />
                     <InputField
-                        label={dobFieldError ? dobFieldError : "Birthday (MM/DD/YYYY)"}
+                        label={dobFieldError ? dobFieldError + "" : "Birthday (MM/DD/YYYY)"}
                         type={"text"}
                         value={dobField}
                         onChange={handleDobFieldChange}
@@ -457,7 +507,7 @@ const Signup = () => {
                         }}
                     >
                         <InputField
-                            label={usernameFieldError ? usernameFieldError : "Username (4-20)"}
+                            label={usernameFieldError ? usernameFieldError + "" : "Username (4-20)"}
                             type={"text"}
                             value={usernameField}
                             onChange={handleUsernameFieldChange}
@@ -515,7 +565,7 @@ const Signup = () => {
                         }}
                     >
                         <InputField
-                            label={emailFieldError ? emailFieldError : "Email (optional)"}
+                            label={emailFieldError ? emailFieldError + "" : "Email (optional)"}
                             type={"text"}
                             value={emailField}
                             onChange={handleEmailFieldChange}
@@ -565,7 +615,7 @@ const Signup = () => {
                 {/* Third Row: Height, Weight */}
                 <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
                     <InputField
-                        label={heightFieldError ? heightFieldError : "Height"}
+                        label={heightFieldError ? heightFieldError + "" : "Height"}
                         type={"number"}
                         value={heightField}
                         onChange={handleHeightFieldChange}
@@ -588,7 +638,7 @@ const Signup = () => {
                         error={false}
                     />
                     <InputField
-                        label={bodyweightFieldError ? bodyweightFieldError : "Bodyweight"}
+                        label={bodyweightFieldError ? bodyweightFieldError + "" : "Bodyweight"}
                         type={"number"}
                         value={bodyweightField}
                         onChange={handleBodyweightFieldChange}
@@ -674,7 +724,7 @@ const Signup = () => {
 
                 {/* Fifth Row: Description */}
                 <InputField
-                    label={descriptionFieldError ? descriptionFieldError : "Description (1-100) (optional)"}
+                    label={descriptionFieldError ? descriptionFieldError + "" : "Description (1-100) (optional)"}
                     type={"text"}
                     value={descriptionField}
                     onChange={handleDescriptionFieldChange}
@@ -688,7 +738,7 @@ const Signup = () => {
                 {/* Sixth Row: Password */}
                 <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
                     <InputField
-                        label={passwordFieldError ? passwordFieldError : "Password (8-256)"}
+                        label={passwordFieldError ? passwordFieldError + "" : "Password (8-256)"}
                         type={"password"}
                         value={passwordField}
                         onChange={handlePasswordFieldChange}
@@ -699,7 +749,7 @@ const Signup = () => {
                         disabled={false}
                     />
                     <InputField
-                        label={confirmPasswordFieldError ? confirmPasswordFieldError : "Confirm Password"}
+                        label={confirmPasswordFieldError ? confirmPasswordFieldError + "" : "Confirm Password"}
                         type={"password"}
                         value={confirmPasswordField}
                         onChange={handleConfirmPasswordFieldChange}

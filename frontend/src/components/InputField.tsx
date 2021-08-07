@@ -1,11 +1,29 @@
-import Grid from "@material-ui/core/Grid";
+import { Grid, GridSize } from "@material-ui/core";
 import TextField from "@material-ui/core/TextField";
+import { Dispatch, SetStateAction } from "react";
 
-const InputField = ({ label, value, onChange, error, autoComplete, size, type, position, disabled }) => {
+interface Props {
+    label: string;
+    value: string | number;
+    onChange: Dispatch<SetStateAction<string>> | ((val: string) => string | boolean);
+    error: boolean;
+    autoComplete: string;
+    size: boolean | GridSize | undefined;
+    type: string;
+    position: number;
+    disabled: boolean;
+}
+
+interface GridStyle {
+    width: string;
+    padding?: string;
+}
+
+const InputField: React.FC<Props> = ({ label, value, onChange, error, autoComplete, size, type, position, disabled }) => {
     // position key -> -1: full row, 0: middle, 1: left, 2: right
     const pStr = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${position === 0 || position === 2 ? "10px" : "0"}`;
 
-    let gridStyle = {
+    let gridStyle: GridStyle = {
         width: "100%",
     };
 
