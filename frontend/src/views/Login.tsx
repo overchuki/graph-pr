@@ -33,6 +33,13 @@ interface Props {
     title: string | null;
 }
 
+interface LocationState {
+    from: {
+        pathname: string;
+    };
+    title?: string;
+}
+
 interface Response {
     data: {
         success: string;
@@ -79,7 +86,7 @@ const Login: React.FC<Props> = ({ title }) => {
 
     let classes = useStyles();
     let history = useHistory();
-    let location: any = useLocation();
+    let location = useLocation<LocationState>();
 
     const login = async (): Promise<void> => {
         setUserError(false);
