@@ -56,6 +56,7 @@ const App: React.FC = () => {
 
             updateUser(user.data);
             updateTheme(user.data.theme);
+            document.body.style.background = theme.palette.background.default;
         } catch (err) {
             updateUser(false);
             updateTheme(0);
@@ -64,6 +65,8 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
+        document.body.style.background = theme.palette.background.default;
+
         if (document.cookie.includes("user=jwtexists")) {
             login();
         }
@@ -71,45 +74,32 @@ const App: React.FC = () => {
 
     return (
         <ThemeProvider theme={theme}>
-            <div
-                style={{
-                    backgroundColor: theme.palette.background.default,
-                }}
-            >
-                <Router>
-                    <div
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                        }}
-                    >
-                        <Navbar />
-                        <Switch>
-                            <Route path="/" exact>
-                                <Home />
-                            </Route>
-                            <PrivateRoute path="/nutrition">
-                                <Nutrition />
-                            </PrivateRoute>
-                            <PrivateRoute path="/lifting">
-                                <Lifting />
-                            </PrivateRoute>
-                            <PrivateRoute path="/bodyweight">
-                                <Bodyweight />
-                            </PrivateRoute>
-                            <PrivateRoute path="/profile">
-                                <Profile />
-                            </PrivateRoute>
-                            <PublicRoute path="/signup">
-                                <Signup />
-                            </PublicRoute>
-                            <PublicRoute path="/login">
-                                <Login title={"Log in here."} />
-                            </PublicRoute>
-                        </Switch>
-                    </div>
-                </Router>
-            </div>
+            <Router>
+                <Navbar />
+                <Switch>
+                    <Route path="/" exact>
+                        <Home />
+                    </Route>
+                    <PrivateRoute path="/nutrition">
+                        <Nutrition />
+                    </PrivateRoute>
+                    <PrivateRoute path="/lifting">
+                        <Lifting />
+                    </PrivateRoute>
+                    <PrivateRoute path="/bodyweight">
+                        <Bodyweight />
+                    </PrivateRoute>
+                    <PrivateRoute path="/profile">
+                        <Profile />
+                    </PrivateRoute>
+                    <PublicRoute path="/signup">
+                        <Signup />
+                    </PublicRoute>
+                    <PublicRoute path="/login">
+                        <Login title={"Log in here."} />
+                    </PublicRoute>
+                </Switch>
+            </Router>
         </ThemeProvider>
     );
 };

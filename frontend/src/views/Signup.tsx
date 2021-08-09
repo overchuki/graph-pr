@@ -27,7 +27,8 @@ const useStyles = makeStyles((theme: Theme) =>
             color: theme.palette.error.main,
         },
         wrapper: {
-            height: "90%",
+            minHeight: "650px",
+            overflow: "auto",
         },
         btn: {
             margin: "0 10px",

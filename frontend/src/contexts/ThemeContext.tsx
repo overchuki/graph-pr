@@ -49,6 +49,7 @@ export const ThemeCtxProvider: React.FC = ({ children }) => {
     const setThemeFunc: SetThemeFuncType = (n: number): void => {
         if (n < themes.length) {
             setTheme(themes[n]);
+            document.body.style.background = themes[n].palette.background.default;
         }
     };
 

@@ -159,6 +159,9 @@ const Login: React.FC<Props> = ({ title }) => {
             alignItems="center"
             justifyContent="center"
             className={classes.wrapper}
+            style={{
+                marginTop: "20px",
+            }}
             onKeyPress={(e) => {
                 if (e.key === "Enter") {
                     login();
