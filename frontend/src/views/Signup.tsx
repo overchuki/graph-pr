@@ -4,15 +4,13 @@ import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles, Theme, createStyles } from "@material-ui/core/styles/";
 import CircularProgress from "@material-ui/core/CircularProgress";
-import InputField from "../components/InputField";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import { Link, useHistory } from "react-router-dom";
-import CheckIcon from "@material-ui/icons/Check";
-import ClearIcon from "@material-ui/icons/Clear";
 import DropdownField from "../components/DropdownField";
 import { useUpdateTheme, useDefaultTheme } from "../contexts/ThemeContext";
 import axios from "axios";
-import validator from "validator";
+import InputField from "../components/InputField";
+import InputFieldCheck from "../components/InputFieldCheck";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -46,16 +44,11 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 type ErrorType = string | boolean;
-type SetErrorFunc = (err: ErrorType) => void;
-
-interface ExistsFuncRes {
-    available?: boolean;
-    error?: string;
-}
-
-interface ExistsHttpResponse {
-    data: ExistsFuncRes;
-}
+type ChangeFunc = (
+    confirmVal: string,
+    passVal?: string,
+    err?: boolean
+) => { returnError: boolean; error: ErrorType; overwrite: boolean };
 
 interface SignupHttpResponse {
     data: {
@@ -84,7 +77,6 @@ interface userDataSend {
 }
 
 const Signup: React.FC = () => {
-    // Availability Codes -->  -1: invalid, 0: blank, 1: loading, 2: available, 3: taken
     // Form Codes -->  0: default, 1: in progress
     const classes = useStyles();
     const history = useHistory();
@@ -94,32 +86,20 @@ const Signup: React.FC = () => {
     const [generalError, setGeneralError] = useState<ErrorType>(false);
     const [formSubmission, setFormSubmission] = useState<number>(0);
 
-    const [nameField, setNameField] = useState<string>("");
-    const [nameFieldError, setNameFieldError] = useState<ErrorType>(false);
+    const [nameField, setNameField] = useState<ErrorType>("");
 
-    const [usernameField, setUsernameField] = useState<string>("");
-    const [usernameFieldError, setUsernameFieldError] = useState<ErrorType>(false);
-    const [checkedUsernames, setCheckedUsernames] = useState<[Array<string>, Array<string>]>([[], []]);
-    const [usernameFieldAvailability, setUsernameFieldAvailability] = useState<number>(-1);
+    const [usernameField, setUsernameField] = useState<ErrorType>("");
 
-    const [emailField, setEmailField] = useState<string>("");
-    const [emailFieldError, setEmailFieldError] = useState<ErrorType>(false);
-    const [checkedEmails, setCheckedEmails] = useState<[Array<string>, Array<string>]>([[], []]);
-    const [emailFieldAvailability, setEmailFieldAvailability] = useState<number>(-1);
+    const [emailField, setEmailField] = useState<ErrorType>("");
 
-    const [dobField, setDobField] = useState<string>("");
-    const [dobFieldFormatted, setDobFieldFormatted] = useState<string>("");
-    const [dobFieldError, setDobFieldError] = useState<ErrorType>(false);
+    const [dobField, setDobField] = useState<ErrorType>("");
 
     const [genderField, setGenderField] = useState<number>(0);
-    const [genderFieldError, setGenderFieldError] = useState<ErrorType>(false);
 
-    const [heightField, setHeightField] = useState<number>(0);
-    const [heightFieldError, setHeightFieldError] = useState<ErrorType>(false);
+    const [heightField, setHeightField] = useState<ErrorType>("");
     const [heightUnitField, setHeightUnitField] = useState<number>(6);
 
-    const [bodyweightField, setBodyweightField] = useState<number>(0);
-    const [bodyweightFieldError, setBodyweightFieldError] = useState<ErrorType>(false);
+    const [bodyweightField, setBodyweightField] = useState<ErrorType>("");
     const [bodyweightUnitField, setBodyweightUnitField] = useState<number>(2);
 
     const [activityLevelField, setActivityLevelField] = useState<number>(3);
@@ -130,13 +110,11 @@ const Signup: React.FC = () => {
 
     const [themeField, setThemeField] = useState<number>(defaultTheme);
 
-    const [descriptionField, setDescriptionField] = useState<string>("");
-    const [descriptionFieldError, setDescriptionFieldError] = useState<ErrorType>(false);
+    const [descriptionField, setDescriptionField] = useState<ErrorType>("");
 
-    const [passwordField, setPasswordField] = useState<string>("");
-    const [passwordFieldError, setPasswordFieldError] = useState<ErrorType>(false);
-    const [confirmPasswordField, setConfirmPasswordField] = useState<string>("");
-    const [confirmPasswordFieldError, setConfirmPasswordFieldError] = useState<ErrorType>(false);
+    const [passwordField, setPasswordField] = useState<ErrorType>("");
+    const [confirmPasswordField, setConfirmPasswordField] = useState<ErrorType>("");
+    const [passwordMatchError, setPasswordMatchError] = useState<ErrorType>(false);
 
     useEffect(() => {
         return () => {
@@ -144,241 +122,52 @@ const Signup: React.FC = () => {
         };
     }, []);
 
-    const checkAvailable = async (value: string, type: string): Promise<ExistsFuncRes> => {
-        let response: ExistsHttpResponse = await axios.get(Config.apiUrl + `/auth/exists/?type=${type}&str=${value}`);
-        setGeneralError(false);
-        if (response.data.error) {
-            setGeneralError("Server error: " + response.data.error);
-            return response.data;
+    const handleConfirmPasswordFieldChange: ChangeFunc = (confirmVal, passVal, err) => {
+        let returnErr = err ? true : false;
+        const compare = passVal || passwordField;
+
+        if (confirmVal === compare) {
+            setPasswordMatchError(false);
+            return { returnError: returnErr, error: false, overwrite: returnErr };
+        } else {
+            setPasswordMatchError("Passwords do not match.");
+            return { returnError: returnErr, error: "Passwords do not match.", overwrite: returnErr };
         }
-        return response.data;
     };
 
-    const basicVerify = (
-        name: string,
-        int: boolean,
-        value: string,
-        required: boolean,
-        range: [number, number],
-        email: boolean,
-        ascii: boolean,
-        setError: SetErrorFunc
-    ): ErrorType => {
-        let error: ErrorType = false;
-
-        if (!value) {
-            if (required) error = `Please enter ${name}.`;
-            else error = "skip";
-        }
-
-        name = name.split(" ")[1];
-        name = name.charAt(0).toUpperCase() + name.slice(1);
-
-        if (!error && email && !validator.isEmail(value + "")) error = `${name} is invalid.`;
-        if (!error && ascii && !validator.isAscii(value + "")) error = `${name} is invalid.`;
-
-        if (!error && value.length < range[0]) error = `${name} is too short.`;
-        if (!error && value.length > range[1]) error = `${name} is too long.`;
-
-        if (int) {
-            let valueInt: number = parseInt(value);
-            if (!error && valueInt < range[0]) error = `${name} is too small.`;
-            if (!error && valueInt > range[1]) error = `${name} is too large.`;
-        }
-
-        if (error === "skip") return false;
-
-        setError(error);
-
-        return error;
-    };
-
-    const handleThemeChange = (value: number): void => {
-        setThemeField(value);
+    const handleThemeChange = (value: number): { returnError: boolean; error: ErrorType } => {
         updateTheme(value);
+        return { returnError: false, error: false };
     };
 
-    const handleUsernameFieldChange = (value: string): boolean => {
-        setUsernameField(value);
-        let err: ErrorType = basicVerify("a username", false, value, true, [4, 20], false, true, setUsernameFieldError);
-        if (err) {
-            setUsernameFieldAvailability(-1);
+    const isFieldError = (field: ErrorType, setField: Dispatch<SetStateAction<ErrorType>>, required: boolean): boolean => {
+        if (!field && required) {
+            setField(false);
             return true;
         }
-
-        if (checkedUsernames[0].includes(value)) {
-            setUsernameFieldAvailability(2);
-            setUsernameFieldError(false);
-            return false;
-        } else if (checkedUsernames[1].includes(value)) {
-            setUsernameFieldAvailability(3);
-            setUsernameFieldError("Username in use.");
-            return true;
-        } else {
-            setUsernameFieldAvailability(0);
-            setUsernameFieldError("Please check availability.");
-            return true;
-        }
-    };
-
-    const handleUsernameCheck = async (): Promise<void> => {
-        setUsernameFieldAvailability(1);
-        let available: ExistsFuncRes = await checkAvailable(usernameField, "username");
-
-        if (available.error) {
-            setUsernameFieldAvailability(0);
-            return;
-        }
-
-        if (available.available) {
-            setCheckedUsernames([[...checkedUsernames[0], usernameField], checkedUsernames[1]]);
-            setUsernameFieldAvailability(2);
-            setUsernameFieldError(false);
-        } else {
-            setCheckedUsernames([checkedUsernames[0], [...checkedUsernames[1], usernameField]]);
-            setUsernameFieldAvailability(3);
-            setUsernameFieldError("Username in use.");
-        }
-    };
-
-    const handleEmailFieldChange = (value: string): boolean => {
-        setEmailField(value);
-        let err: ErrorType = basicVerify("an email", false, value, false, [1, 256], true, true, setEmailFieldError);
-        if (err) {
-            setEmailFieldAvailability(-1);
-            return true;
-        }
-        if (!value) {
-            setEmailFieldAvailability(-1);
-            setEmailFieldError(false);
-            return false;
-        }
-
-        if (checkedEmails[0].includes(value)) {
-            setEmailFieldAvailability(2);
-            setEmailFieldError(false);
-            return false;
-        } else if (checkedEmails[1].includes(value)) {
-            setEmailFieldAvailability(3);
-            setEmailFieldError("Email in use.");
-            return true;
-        } else {
-            setEmailFieldAvailability(0);
-            setEmailFieldError("Please check availability.");
-            return true;
-        }
-    };
-
-    const handleEmailCheck = async (): Promise<void> => {
-        setEmailFieldAvailability(1);
-        let available: ExistsFuncRes = await checkAvailable(emailField, "email");
-
-        if (available.error) {
-            setEmailFieldAvailability(0);
-            return;
-        }
-
-        if (available.available) {
-            setCheckedEmails([[...checkedEmails[0], emailField], checkedEmails[1]]);
-            setEmailFieldAvailability(2);
-            setEmailFieldError(false);
-        } else {
-            setCheckedEmails([checkedEmails[0], [...checkedEmails[1], emailField]]);
-            setEmailFieldAvailability(3);
-            setEmailFieldError("Email in use.");
-        }
-    };
-
-    const handleConfirmPasswordFieldChange = (value: string, regular?: string): boolean => {
-        setConfirmPasswordField(value);
-        const compare = regular || passwordField;
-        if (value === compare) {
-            setConfirmPasswordFieldError(false);
-            return false;
-        } else {
-            setConfirmPasswordFieldError("Passwords do not match.");
-            return true;
-        }
-    };
-
-    const handleDobFieldChange = (value: string): ErrorType => {
-        setDobField(value);
-        const ageRange: [number, number] = [13, 150];
-        let curDate: Date = new Date();
-        let dateMax: Date = new Date(curDate.setFullYear(curDate.getFullYear() - ageRange[0]));
-        let dateMin: Date = new Date(curDate.setFullYear(curDate.getFullYear() - ageRange[1] + ageRange[0]));
-
-        let valArr: Array<string> = value.split("/");
-        if (value.length !== 10 || valArr.length !== 3) return setAndReturnDobError("Invalid (MM/DD/YYYY)");
-
-        let month: number = parseInt(valArr[0]);
-        if (!month || month < 1 || month > 12) return setAndReturnDobError("Invalid Month (1-12)");
-        month--;
-        let day: number = parseInt(valArr[1]);
-        if (!day || day < 1 || day > 31) return setAndReturnDobError("Invalid Day (1-31)");
-        let year: number = parseInt(valArr[2]);
-        if (!year) return setAndReturnDobError("Invalid Year (YYYY)");
-
-        let dob: Date = new Date();
-        dob.setFullYear(year, month, day);
-        dob.setHours(0, 0, 0);
-        if (dob > dateMax) return setAndReturnDobError("Must be at least 13.");
-        if (dob < dateMin) return setAndReturnDobError("That's not possible.");
-
-        month++;
-        setDobFieldFormatted(`${year}${month < 10 ? "0" + month : month}${day < 10 ? "0" + day : day}`);
-        setDobFieldError(false);
         return false;
     };
 
-    const setAndReturnDobError = (err: string): ErrorType => {
-        setDobFieldError(err);
-        return err;
-    };
-
-    const handleNameFieldChange = (value: string): ErrorType => {
-        setNameField(value);
-        return basicVerify("your name", false, value, true, [2, 20], false, true, setNameFieldError);
-    };
-
-    const handleGenderFieldChange = (value: number): ErrorType => {
-        setGenderField(value);
-        return basicVerify("your gender", true, value + "", true, [1, 2], false, false, setGenderFieldError);
-    };
-
-    const handleHeightFieldChange = (value: string): ErrorType => {
-        setHeightField(+value);
-        return basicVerify("your height", true, value, true, [1, 300], false, false, setHeightFieldError);
-    };
-
-    const handleBodyweightFieldChange = (value: string): ErrorType => {
-        setBodyweightField(+value);
-        return basicVerify("your bodyweight", true, value, true, [1, 2000], false, false, setBodyweightFieldError);
-    };
-
-    const handleDescriptionFieldChange = (value: string): ErrorType => {
-        setDescriptionField(value);
-        return basicVerify("your description", false, value, false, [1, 100], false, true, setDescriptionFieldError);
-    };
-
-    const handlePasswordFieldChange = (value: string): ErrorType => {
-        setPasswordField(value);
-        handleConfirmPasswordFieldChange(confirmPasswordField, value);
-        return basicVerify("your password", false, value, true, [8, 256], false, true, setPasswordFieldError);
+    const isFieldErrorNum = (field: number, setField: Dispatch<SetStateAction<number>>, required: boolean): boolean => {
+        if (field === 0 && required) {
+            setField(-1);
+            return true;
+        }
+        return false;
     };
 
     const runFullCheck = (): boolean => {
         let errors: Array<ErrorType> = [];
-        errors.push(handleNameFieldChange(nameField));
-        errors.push(handleDobFieldChange(dobField));
-        errors.push(handleGenderFieldChange(genderField));
-        errors.push(handleUsernameFieldChange(usernameField));
-        errors.push(handleEmailFieldChange(emailField));
-        errors.push(handleHeightFieldChange(heightField + ""));
-        errors.push(handleBodyweightFieldChange(bodyweightField + ""));
-        errors.push(handleDescriptionFieldChange(descriptionField));
-        errors.push(handlePasswordFieldChange(passwordField));
-        errors.push(handleConfirmPasswordFieldChange(confirmPasswordField));
+        errors.push(isFieldError(nameField, setNameField, true));
+        errors.push(isFieldError(dobField, setDobField, true));
+        errors.push(isFieldErrorNum(genderField, setGenderField, true));
+        errors.push(isFieldError(usernameField, setUsernameField, true));
+        errors.push(isFieldError(emailField, setEmailField, false));
+        errors.push(isFieldError(heightField, setHeightField, true));
+        errors.push(isFieldError(bodyweightField, setBodyweightField, true));
+        errors.push(isFieldError(descriptionField, setDescriptionField, false));
+        errors.push(isFieldError(passwordField, setPasswordField, true));
+        errors.push(isFieldError(confirmPasswordField, setConfirmPasswordField, true));
         for (let err of errors) if (err) return true;
         return false;
     };
@@ -389,23 +178,24 @@ const Signup: React.FC = () => {
         let errors: boolean = runFullCheck();
         if (errors) {
             setGeneralError("Please address all errors on screen.");
+            setFormSubmission(0);
             return;
         }
 
         let userData: userDataSend = {
-            name: nameField,
-            username: usernameField,
-            email: emailField || null,
-            description: descriptionField || null,
-            dob: dobFieldFormatted,
-            height: heightField,
+            name: (nameField + "").trim(),
+            username: (usernameField + "").trim(),
+            email: (emailField + "").trim() || null,
+            description: (descriptionField + "").trim() || null,
+            dob: (dobField + "").trim(),
+            height: parseInt(heightField + ""),
             height_unit_fk: heightUnitField,
             gender_fk: genderField,
-            bodyweight: bodyweightField,
+            bodyweight: parseInt(bodyweightField + ""),
             bw_unit_fk: bodyweightUnitField,
             activity_level_fk: activityLevelField,
             weight_goal_fk: weightGoalField,
-            password: passwordField,
+            password: (passwordField + "").trim(),
             icon_fk: iconField,
             theme: themeField,
             tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -457,31 +247,53 @@ const Signup: React.FC = () => {
                 {/* First row: Name, Birthday, Gender */}
                 <Grid item container justifyContent="center" alignItems="center" className={classes.inputField}>
                     <InputField
-                        label={nameFieldError ? nameFieldError + "" : "Name (2-20)"}
+                        label={"Name (2-20)"}
                         type={"text"}
-                        value={nameField}
-                        onChange={handleNameFieldChange}
-                        error={nameFieldError ? true : false}
+                        defaultValue={""}
+                        setValue={setNameField}
+                        errorOverwrite={nameField === false ? "Please enter your name." : false}
                         autoComplete={"name"}
                         size={6}
                         position={1}
                         disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your name",
+                            required: true,
+                            range: [2, 20],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: false,
+                        }}
                     />
                     <InputField
-                        label={dobFieldError ? dobFieldError + "" : "Birthday (MM/DD/YYYY)"}
+                        label={"Birthday (MM/DD/YYYY)"}
                         type={"text"}
-                        value={dobField}
-                        onChange={handleDobFieldChange}
-                        error={dobFieldError ? true : false}
+                        defaultValue={""}
+                        setValue={setDobField}
+                        errorOverwrite={dobField === false ? "Invalid (MM/DD/YYYY)" : false}
                         autoComplete={"bdate"}
                         size={4}
                         position={0}
                         disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your dob",
+                            required: true,
+                            range: [10, 10],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: true,
+                            alphaNum: false,
+                        }}
                     />
                     <DropdownField
                         label={"Gender"}
-                        value={genderField}
-                        onChange={handleGenderFieldChange}
+                        defaultValue={0}
+                        setValue={setGenderField}
                         valuesArr={[
                             [0, "-Select-"],
                             [1, "Male"],
@@ -489,184 +301,171 @@ const Signup: React.FC = () => {
                         ]}
                         size={2}
                         position={2}
-                        error={genderFieldError ? true : false}
+                        errorOverwrite={genderField === -1 ? true : false}
+                        disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your gender",
+                            required: true,
+                            range: [1, 2],
+                            int: true,
+                            email: false,
+                            ascii: false,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                 </Grid>
 
                 {/* Second row: Username, Email */}
                 <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
-                    <Grid
-                        item
-                        container
-                        xs={6}
-                        justifyContent="center"
-                        alignItems="center"
-                        className={classes.inputField}
-                        style={{
-                            padding: "0 10px 0 0",
+                    <InputFieldCheck
+                        label={"Username (1-20)"}
+                        autoComplete={"username"}
+                        type={"text"}
+                        defaultValue={""}
+                        setValue={setUsernameField}
+                        size={6}
+                        position={1}
+                        disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your username",
+                            required: true,
+                            range: [4, 20],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
                         }}
-                    >
-                        <InputField
-                            label={usernameFieldError ? usernameFieldError + "" : "Username (4-20)"}
-                            type={"text"}
-                            value={usernameField}
-                            onChange={handleUsernameFieldChange}
-                            error={usernameFieldError ? true : false}
-                            autoComplete={"username"}
-                            size={9}
-                            position={1}
-                            disabled={usernameFieldAvailability === 1}
-                        />
-                        <Grid
-                            item
-                            container
-                            xs={3}
-                            direction="column"
-                            justifyContent="center"
-                            alignItems="center"
-                            className={classes.inputField}
-                            style={{ padding: "0 20px 0 0" }}
-                        >
-                            {usernameFieldAvailability === 0 || usernameFieldAvailability === -1 ? (
-                                <Button
-                                    onClick={handleUsernameCheck}
-                                    variant="contained"
-                                    className={classes.btnWarning}
-                                    disabled={usernameFieldAvailability === -1}
-                                >
-                                    Check
-                                </Button>
-                            ) : (
-                                ""
-                            )}
-                            {usernameFieldAvailability === 1 ? <CircularProgress color="secondary" /> : ""}
-                            {usernameFieldAvailability === 2 ? <CheckIcon className={classes.textSuccess} /> : ""}
-                            {usernameFieldAvailability === 3 ? <ClearIcon className={classes.textError} /> : ""}
-                            <Typography
-                                display="inline"
-                                variant="body1"
-                                className={usernameFieldAvailability === 3 ? classes.textError : classes.textSuccess}
-                            >
-                                {usernameFieldAvailability === 2 ? "Available" : ""}
-                                {usernameFieldAvailability === 3 ? "Taken" : ""}
-                            </Typography>
-                        </Grid>
-                    </Grid>
-
-                    <Grid
-                        item
-                        container
-                        xs={6}
-                        justifyContent="center"
-                        alignItems="center"
-                        className={classes.inputField}
-                        style={{
-                            padding: "0 0 0 10px",
+                        checkType={"username"}
+                    />
+                    <InputFieldCheck
+                        label={"Email (optional)"}
+                        autoComplete={"email"}
+                        type={"text"}
+                        defaultValue={""}
+                        setValue={setEmailField}
+                        size={6}
+                        position={2}
+                        disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your email",
+                            required: false,
+                            range: [1, 256],
+                            int: false,
+                            email: true,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: false,
                         }}
-                    >
-                        <InputField
-                            label={emailFieldError ? emailFieldError + "" : "Email (optional)"}
-                            type={"text"}
-                            value={emailField}
-                            onChange={handleEmailFieldChange}
-                            error={emailFieldError ? true : false}
-                            autoComplete={"email"}
-                            size={9}
-                            position={1}
-                            disabled={emailFieldAvailability === 1}
-                        />
-                        <Grid
-                            item
-                            container
-                            xs={3}
-                            direction="column"
-                            justifyContent="center"
-                            alignItems="center"
-                            className={classes.inputField}
-                            style={{ padding: "0 20px 0 0" }}
-                        >
-                            {emailFieldAvailability === 0 || emailFieldAvailability === -1 ? (
-                                <Button
-                                    onClick={handleEmailCheck}
-                                    variant="contained"
-                                    className={classes.btnWarning}
-                                    disabled={emailFieldAvailability === -1}
-                                >
-                                    Check
-                                </Button>
-                            ) : (
-                                ""
-                            )}
-                            {emailFieldAvailability === 1 ? <CircularProgress color="secondary" /> : ""}
-                            {emailFieldAvailability === 2 ? <CheckIcon className={classes.textSuccess} /> : ""}
-                            {emailFieldAvailability === 3 ? <ClearIcon className={classes.textError} /> : ""}
-                            <Typography
-                                display="inline"
-                                variant="body1"
-                                className={emailFieldAvailability === 3 ? classes.textError : classes.textSuccess}
-                            >
-                                {emailFieldAvailability === 2 ? "Available" : ""}
-                                {emailFieldAvailability === 3 ? "Taken" : ""}
-                            </Typography>
-                        </Grid>
-                    </Grid>
+                        checkType={"email"}
+                    />
                 </Grid>
 
                 {/* Third Row: Height, Weight */}
                 <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
                     <InputField
-                        label={heightFieldError ? heightFieldError + "" : "Height"}
+                        label={"Height"}
                         type={"number"}
-                        value={heightField}
-                        onChange={handleHeightFieldChange}
-                        error={heightFieldError ? true : false}
+                        defaultValue={""}
+                        setValue={setHeightField}
+                        errorOverwrite={heightField === false ? "Please enter your height." : false}
                         autoComplete={""}
                         size={4}
                         position={1}
                         disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your height",
+                            required: true,
+                            range: [1, 300],
+                            int: true,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                     <DropdownField
                         label={"Height Unit"}
-                        value={heightUnitField}
-                        onChange={setHeightUnitField}
+                        defaultValue={6}
+                        setValue={setHeightUnitField}
                         valuesArr={[
                             [6, "In"],
                             [5, "Cm"],
                         ]}
                         size={2}
                         position={0}
-                        error={false}
+                        errorOverwrite={false}
+                        disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your height unit",
+                            required: true,
+                            range: [5, 6],
+                            int: true,
+                            email: false,
+                            ascii: false,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                     <InputField
-                        label={bodyweightFieldError ? bodyweightFieldError + "" : "Bodyweight"}
+                        label={"Bodyweight"}
                         type={"number"}
-                        value={bodyweightField}
-                        onChange={handleBodyweightFieldChange}
-                        error={bodyweightFieldError ? true : false}
+                        defaultValue={""}
+                        setValue={setBodyweightField}
+                        errorOverwrite={bodyweightField === false ? "Please enter your weight." : false}
                         autoComplete={""}
                         size={4}
                         position={0}
                         disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your bodyweight",
+                            required: true,
+                            range: [1, 2000],
+                            int: true,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                     <DropdownField
                         label={"Weight Unit"}
-                        value={bodyweightUnitField}
-                        onChange={setBodyweightUnitField}
+                        defaultValue={2}
+                        setValue={setBodyweightUnitField}
                         valuesArr={[
                             [2, "Lb"],
                             [1, "Kg"],
                         ]}
                         size={2}
                         position={2}
-                        error={false}
+                        errorOverwrite={false}
+                        disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your weight unit",
+                            required: true,
+                            range: [1, 2],
+                            int: true,
+                            email: false,
+                            ascii: false,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                 </Grid>
 
                 {/* Fourth Row: Activity Level */}
                 <DropdownField
                     label={"Activity Level"}
-                    value={activityLevelField}
-                    onChange={setActivityLevelField}
+                    defaultValue={3}
+                    setValue={setActivityLevelField}
                     valuesArr={[
                         [1, "Sedetary: Little to no exercise."],
                         [2, "Lightly Active: Light exercise / sports 1-3 days a week."],
@@ -676,15 +475,27 @@ const Signup: React.FC = () => {
                     ]}
                     size={false}
                     position={-1}
-                    error={false}
+                    errorOverwrite={false}
+                    disabled={false}
+                    verify={false}
+                    verifyObj={{
+                        name: "your activity level",
+                        required: true,
+                        range: [1, 5],
+                        int: true,
+                        email: false,
+                        ascii: false,
+                        dob: false,
+                        alphaNum: true,
+                    }}
                 />
 
                 {/* Fourth Row: Weight Goal Level, Theme, Icon */}
                 <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
                     <DropdownField
                         label={"Weight Goal"}
-                        value={weightGoalField}
-                        onChange={setWeightGoalField}
+                        defaultValue={4}
+                        setValue={setWeightGoalField}
                         valuesArr={[
                             [1, "Extreme Loss (2lb / .9kg a week)"],
                             [2, "Regular Loss (1lb / .45kg a week)"],
@@ -696,68 +507,144 @@ const Signup: React.FC = () => {
                         ]}
                         size={6}
                         position={1}
-                        error={false}
+                        errorOverwrite={false}
+                        disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your weight goal",
+                            required: true,
+                            range: [1, 7],
+                            int: true,
+                            email: false,
+                            ascii: false,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                     <DropdownField
                         label={"Theme"}
-                        value={themeField}
+                        defaultValue={1}
+                        setValue={setThemeField}
                         onChange={handleThemeChange}
                         valuesArr={[
-                            [0, "Light"],
                             [1, "Dark"],
+                            [0, "Light"],
                             [2, "Red"],
                         ]}
                         size={3}
                         position={0}
-                        error={false}
+                        errorOverwrite={false}
+                        disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your theme",
+                            required: true,
+                            range: [0, 2],
+                            int: true,
+                            email: false,
+                            ascii: false,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                     <DropdownField
                         label={"Icon"}
-                        value={iconField}
-                        onChange={setIconField}
+                        defaultValue={1}
+                        setValue={setIconField}
                         valuesArr={[[1, "Default"]]}
                         size={3}
                         position={2}
-                        error={false}
+                        errorOverwrite={false}
+                        disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your icon",
+                            required: true,
+                            range: [1, 1],
+                            int: true,
+                            email: false,
+                            ascii: false,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                 </Grid>
 
                 {/* Fifth Row: Description */}
                 <InputField
-                    label={descriptionFieldError ? descriptionFieldError + "" : "Description (1-100) (optional)"}
+                    label={"Description (1-100) (optional)"}
                     type={"text"}
-                    value={descriptionField}
-                    onChange={handleDescriptionFieldChange}
-                    error={descriptionFieldError ? true : false}
+                    defaultValue={""}
+                    setValue={setDescriptionField}
+                    errorOverwrite={false}
                     autoComplete={""}
                     size={false}
                     position={-1}
                     disabled={false}
+                    verify={true}
+                    verifyObj={{
+                        name: "your description",
+                        required: false,
+                        range: [1, 100],
+                        int: false,
+                        email: false,
+                        ascii: true,
+                        dob: false,
+                        alphaNum: false,
+                    }}
                 />
 
                 {/* Sixth Row: Password */}
                 <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
                     <InputField
-                        label={passwordFieldError ? passwordFieldError + "" : "Password (8-256)"}
+                        label={"Password (8-256)"}
                         type={"password"}
-                        value={passwordField}
-                        onChange={handlePasswordFieldChange}
-                        error={passwordFieldError ? true : false}
+                        defaultValue={""}
+                        setValue={setPasswordField}
+                        onChange={(val) => {
+                            return handleConfirmPasswordFieldChange(confirmPasswordField + "", val, false);
+                        }}
+                        errorOverwrite={passwordField === false ? "Please enter your password." : false}
                         autoComplete={""}
                         size={6}
                         position={1}
                         disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your password",
+                            required: true,
+                            range: [8, 256],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                     <InputField
-                        label={confirmPasswordFieldError ? confirmPasswordFieldError + "" : "Confirm Password"}
+                        label={"Confirm Password"}
                         type={"password"}
-                        value={confirmPasswordField}
-                        onChange={handleConfirmPasswordFieldChange}
-                        error={confirmPasswordFieldError ? true : false}
+                        defaultValue={""}
+                        setValue={setConfirmPasswordField}
+                        onChange={(val) => {
+                            return handleConfirmPasswordFieldChange(val, undefined, true);
+                        }}
+                        errorOverwrite={passwordMatchError ? passwordMatchError : false}
                         autoComplete={""}
                         size={6}
                         position={2}
                         disabled={false}
+                        verify={false}
+                        verifyObj={{
+                            name: "your confirmation password",
+                            required: true,
+                            range: [8, 256],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
+                        }}
                     />
                 </Grid>
 

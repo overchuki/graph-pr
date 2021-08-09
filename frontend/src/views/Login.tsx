@@ -3,13 +3,13 @@ import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import { Link, useHistory, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { useUpdateUser } from "../contexts/UserContext";
 import { useUpdateTheme } from "../contexts/ThemeContext";
-import isAscii from "validator/lib/isAscii";
 import Config from "../Config";
 import axios from "axios";
 import InputField from "../components/InputField";
+import CircularProgress from "@material-ui/core/CircularProgress";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -28,6 +28,8 @@ const useStyles = makeStyles((theme: Theme) =>
         },
     })
 );
+
+type ErrorType = string | boolean;
 
 interface Props {
     title: string | null;
@@ -70,33 +72,40 @@ interface UserData {
         icon_location: string;
         created_at: string;
 
-        error: string;
+        error?: string;
     };
 }
 
 const Login: React.FC<Props> = ({ title }) => {
-    const updateTheme = useUpdateTheme();
-    const updateUser = useUpdateUser();
-
-    const [userError, setUserError] = useState<string | boolean>(false);
-    const [passError, setPassError] = useState<string | boolean>(false);
-
-    const [userField, setUserField] = useState<string>("");
-    const [passField, setPassField] = useState<string>("");
-
     let classes = useStyles();
     let history = useHistory();
     let location = useLocation<LocationState>();
 
+    const updateTheme = useUpdateTheme();
+    const updateUser = useUpdateUser();
+
+    // Form Codes --> 0: initial, 1: loading
+    const [formState, setFormState] = useState<number>(0);
+    const [userField, setUserField] = useState<ErrorType>("");
+    const [passField, setPassField] = useState<ErrorType>("");
+
+    const checkField = (field: ErrorType, setField: Dispatch<SetStateAction<ErrorType>>): boolean => {
+        if (!field) {
+            setField(false);
+            return true;
+        }
+        return false;
+    };
+
     const login = async (): Promise<void> => {
-        setUserError(false);
-        setPassError(false);
+        setFormState(1);
+        let err = checkField(userField, setUserField);
+        err = checkField(passField, setPassField);
 
-        let validUser: boolean = isAscii(userField);
-        let validPass: boolean = isAscii(passField);
-
-        if (!validUser) setUserError("Invalid username");
-        if (!validPass) setPassError("Invalid password");
+        if (err) {
+            setFormState(0);
+            return;
+        }
 
         let curTZ: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -120,12 +129,13 @@ const Login: React.FC<Props> = ({ title }) => {
             if (response.data.error) {
                 let err: string = response.data.error;
                 if (err.toLowerCase().includes("user")) {
-                    setUserError(err);
+                    setUserField(false);
                 } else if (err.toLowerCase().includes("pass")) {
-                    setPassError(err);
+                    setPassField(false);
                 } else {
                     console.log("Unknown Server Error: " + err);
                 }
+                setFormState(0);
             } else {
                 let user: UserData = await axios.get(Config.apiUrl + "/auth/", {
                     withCredentials: true,
@@ -171,40 +181,68 @@ const Login: React.FC<Props> = ({ title }) => {
                     </Typography>
                 </Grid>
                 <InputField
-                    label={userError ? userError + "" : "Username or Email"}
+                    label={"Username or Email"}
                     type={"text"}
-                    value={userField}
-                    onChange={setUserField}
-                    error={userError ? true : false}
+                    defaultValue={""}
+                    setValue={setUserField}
+                    errorOverwrite={userField === false ? "Invalid username" : false}
                     autoComplete={"username email"}
                     size={false}
                     position={-1}
                     disabled={false}
+                    verify={true}
+                    verifyObj={{
+                        name: "your username",
+                        required: true,
+                        range: [0, 256],
+                        int: false,
+                        email: false,
+                        ascii: true,
+                        dob: false,
+                        alphaNum: true,
+                    }}
                 />
                 <InputField
-                    label={passError ? passError + "" : "Password"}
+                    label={"Password"}
                     type={"password"}
-                    value={passField}
-                    onChange={setPassField}
-                    error={passError ? true : false}
+                    defaultValue={""}
+                    setValue={setPassField}
+                    errorOverwrite={passField === false ? "Invalid password" : false}
                     autoComplete={""}
                     size={false}
                     position={-1}
                     disabled={false}
+                    verify={true}
+                    verifyObj={{
+                        name: "your password",
+                        required: true,
+                        range: [0, 256],
+                        int: false,
+                        email: false,
+                        ascii: true,
+                        dob: false,
+                        alphaNum: true,
+                    }}
                 />
                 <Grid item container alignItems="center" justifyContent="center">
-                    <Grid item className={classes.btn}>
-                        <Link to="/" style={{ textDecoration: "none" }}>
-                            <Button variant="outlined" color="secondary">
-                                Cancel
-                            </Button>
-                        </Link>
-                    </Grid>
-                    <Grid item className={classes.btn}>
-                        <Button onClick={login} variant="contained" color="primary">
-                            Log In
-                        </Button>
-                    </Grid>
+                    {formState === 0 ? (
+                        <>
+                            <Grid item className={classes.btn}>
+                                <Link to="/" style={{ textDecoration: "none" }}>
+                                    <Button variant="outlined" color="secondary">
+                                        Cancel
+                                    </Button>
+                                </Link>
+                            </Grid>
+                            <Grid item className={classes.btn}>
+                                <Button onClick={login} variant="contained" color="primary">
+                                    Log In
+                                </Button>
+                            </Grid>
+                        </>
+                    ) : (
+                        <CircularProgress color="secondary" />
+                    )}
                 </Grid>
 
                 <Grid item container alignItems="center" justifyContent="center" spacing={1}>

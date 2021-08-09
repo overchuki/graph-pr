@@ -6,8 +6,8 @@ const nameLenRange = [4, 20];
 const descLenRange = [1, 100];
 
 const validateMealInputs = (body, initial) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false);
-    serviceFunc.checkValidStr("Description", body.description, false, descLenRange, true, false);
+    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
+    serviceFunc.checkValidStr("Description", body.description, false, descLenRange, true, false, false);
 };
 
 const verifyUser = async (req, id) => {

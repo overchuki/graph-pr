@@ -21,7 +21,7 @@ interface Props {
     name: string;
     contrast: boolean;
     logoutBtn: boolean;
-    onLogout: () => Promise<void>;
+    onLogout: () => void;
 }
 
 const NavBarLinkBtn: React.FC<Props> = ({ path, name, contrast, logoutBtn, onLogout }) => {

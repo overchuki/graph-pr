@@ -127,7 +127,7 @@ const getDeleteStr = async (req, db, userId, key) => {
     return entriesStr;
 };
 
-const checkValidStr = (key, value, required, range, isAscii, isEmail) => {
+const checkValidStr = (key, value, required, range, isAscii, isEmail, isAlpha) => {
     if (value == null) {
         if (required) throw Error("Please fill out all required fields (" + key + ").");
         else return;
@@ -135,6 +135,7 @@ const checkValidStr = (key, value, required, range, isAscii, isEmail) => {
     if (value.length < range[0]) throw Error(key + " is too short.");
     if (value.length > range[1]) throw Error(key + " is too long.");
     if (isAscii && !validator.isAscii(value)) throw Error("Please use valid characters only (ASCII).");
+    if (isAlpha && !validator.isAlphanumeric(value)) throw Error("Please only use characters and numbers.");
     if (isEmail && !validator.isEmail(value)) throw Error("Invalid email address.");
 };
 

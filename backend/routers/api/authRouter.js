@@ -9,7 +9,7 @@ const saltRounds = 10;
 const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
 
 const nameLenRange = [2, 20];
-const usernameLenRange = [4, 20];
+const usernameLenRange = [2, 20];
 const emailLenRange = [1, 256];
 const descriptionLenRange = [1, 100];
 const passwordLenRange = [8, 256];
@@ -31,12 +31,12 @@ const createJWTToken = (payload) => {
 };
 
 const validateUserInfo = (body, initial, tz) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false);
-    serviceFunc.checkValidStr("Username", body.username, initial, usernameLenRange, true, false);
-    serviceFunc.checkValidStr("Email", body.email, false, emailLenRange, false, true);
-    serviceFunc.checkValidStr("Description", body.description, false, descriptionLenRange, true, false);
-    serviceFunc.checkValidStr("Password", body.password, initial, passwordLenRange, true, false);
-    serviceFunc.checkValidStr("Timezone", body.tz, initial, [1, 100], true, false);
+    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
+    serviceFunc.checkValidStr("Username", body.username, initial, usernameLenRange, true, false, true);
+    serviceFunc.checkValidStr("Email", body.email, false, emailLenRange, false, true, false);
+    serviceFunc.checkValidStr("Description", body.description, false, descriptionLenRange, true, false, false);
+    serviceFunc.checkValidStr("Password", body.password, initial, passwordLenRange, true, false, true);
+    serviceFunc.checkValidStr("Timezone", body.tz, initial, [1, 100], true, false, false);
 
     serviceFunc.checkValidInt("Height value", body.height, initial, heightNumRange);
     serviceFunc.checkValidInt("Height unit index", body.height_unit_fk, initial, heightUnitNumRange);

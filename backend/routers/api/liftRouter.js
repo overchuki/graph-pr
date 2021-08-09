@@ -13,7 +13,7 @@ const verifyUser = async (req, id) => {
 };
 
 const validateLiftInputs = (body, initial) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false);
+    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
     serviceFunc.checkValidInt("Unit index", body.unit_fk, initial, unitNumRange);
 };
 
@@ -145,7 +145,7 @@ router.post("/:id/set/", async (req, res) => {
 
     try {
         await verifyUser(req, params.id);
-        serviceFunc.checkValidStr("Set array", body.sets, true, [1, 10], false, false);
+        serviceFunc.checkValidStr("Set array", body.sets, true, [1, 10], false, false, false);
         let newDateSet = await serviceFunc.checkExistingLiftSet(req, params.id, body.date);
         if (newDateSet.length > 0) throw Error("A set already exists at this date.");
 

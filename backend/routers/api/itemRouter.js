@@ -12,7 +12,7 @@ const iconNumRange = [2, 2];
 const categoryNumRange = [1, 12];
 
 const validateItemInputs = (body, initial) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false);
+    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
 
     serviceFunc.checkValidInt("Calories", body.calories, initial, caloriesRange);
     serviceFunc.checkValidInt("Protein", body.protein, initial, macroRange);
