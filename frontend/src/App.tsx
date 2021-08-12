@@ -1,103 +1,82 @@
+import { useEffect } from "react";
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import ThemeProvider from "@material-ui/styles/ThemeProvider";
-import Navbar from "./components/Navbar";
+import { themes } from "./global/themes";
+import axios from "axios";
+import Config from "./Config";
 import Home from "./views/Home";
 import Signup from "./views/Signup";
 import Login from "./views/Login";
-import PrivateRoute from "./components/PrivateRoute";
 import Nutrition from "./views/Nutrition";
 import Lifting from "./views/Lifting";
 import Bodyweight from "./views/Bodyweight";
 import Profile from "./views/Profile";
-import { useTheme } from "./contexts/ThemeContext";
-import axios from "axios";
-import Config from "./Config";
-import { useUpdateUser } from "./contexts/UserContext";
-import { useUpdateTheme } from "./contexts/ThemeContext";
-import { useEffect } from "react";
-import PublicRoute from "./components/PublicRoute";
-
-interface UserData {
-    data: {
-        name: string;
-        username: string;
-        email: string;
-        description: string;
-        dob: string;
-        height: number;
-        height_unit: string;
-        height_unit_fk: number;
-        theme: number;
-        gender: string;
-        gender_fk: number;
-        weight_unit: string;
-        weight_unit_fk: number;
-        activity_level: string;
-        activity_level_description: string;
-        activity_level_fk: number;
-        weight_goal: string;
-        weight_goal_fk: number;
-        icon_location: string;
-        created_at: string;
-    };
-}
+import Navbar from "./components/Navbar";
+import CustomRoute from "./components/CustomRoute";
+import store, { RootState } from "./global/store";
+import { useAppDispatch, useAppSelector } from "./global/hooks";
+import { getUserDataResponse } from "./global/globalTypes";
+import { loginUser, logoutUser, setTheme, setDefaultTheme } from "./global/actions";
 
 const App: React.FC = () => {
-    const theme = useTheme();
-
-    const updateUser = useUpdateUser();
-    const updateTheme = useUpdateTheme();
+    const themeIdx = useAppSelector((state: RootState) => state.theme);
+    const dispatch = useAppDispatch();
 
     const login = async (): Promise<void> => {
         try {
-            let user: UserData = await axios.get(Config.apiUrl + "/auth/", {
+            if (store.getState().user) return;
+
+            let user: getUserDataResponse = await axios.get(Config.apiUrl + "/auth/", {
                 withCredentials: true,
             });
 
-            updateUser(user.data);
-            updateTheme(user.data.theme);
-            document.body.style.background = theme.palette.background.default;
+            if (user.data.error) {
+                throw Error(user.data.error);
+            } else if (user.data.user) {
+                dispatch(loginUser(user.data.user));
+                dispatch(setTheme(user.data.user.theme));
+            } else {
+                throw Error("Unknown Error");
+            }
         } catch (err) {
-            updateUser(false);
-            updateTheme(0);
+            dispatch(logoutUser());
+            dispatch(setDefaultTheme());
             document.cookie = "";
         }
     };
 
     useEffect(() => {
-        document.body.style.background = theme.palette.background.default;
-
-        if (document.cookie.includes("user=jwtexists")) {
-            login();
-        }
+        if (document.cookie.includes("user=jwtexists")) login();
     }, []);
 
+    document.body.style.background = themes[themeIdx].palette.background.default;
+
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={themes[themeIdx]}>
             <Router>
                 <Navbar />
                 <Switch>
                     <Route path="/" exact>
                         <Home />
                     </Route>
-                    <PrivateRoute path="/nutrition">
+                    <CustomRoute path="/nutrition" privateRoute={true}>
                         <Nutrition />
-                    </PrivateRoute>
-                    <PrivateRoute path="/lifting">
+                    </CustomRoute>
+                    <CustomRoute path="/lifting" privateRoute={true}>
                         <Lifting />
-                    </PrivateRoute>
-                    <PrivateRoute path="/bodyweight">
+                    </CustomRoute>
+                    <CustomRoute path="/bodyweight" privateRoute={true}>
                         <Bodyweight />
-                    </PrivateRoute>
-                    <PrivateRoute path="/profile">
+                    </CustomRoute>
+                    <CustomRoute path="/profile" privateRoute={true}>
                         <Profile />
-                    </PrivateRoute>
-                    <PublicRoute path="/signup">
+                    </CustomRoute>
+                    <CustomRoute path="/signup" privateRoute={false}>
                         <Signup />
-                    </PublicRoute>
-                    <PublicRoute path="/login">
+                    </CustomRoute>
+                    <CustomRoute path="/login" privateRoute={false}>
                         <Login title={"Log in here."} />
-                    </PublicRoute>
+                    </CustomRoute>
                 </Switch>
             </Router>
         </ThemeProvider>

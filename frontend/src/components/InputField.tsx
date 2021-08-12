@@ -2,25 +2,13 @@ import { Grid, GridSize } from "@material-ui/core";
 import TextField from "@material-ui/core/TextField";
 import { Dispatch, SetStateAction, useState } from "react";
 import { basicVerify, dobVerify } from "./ServiceFunctions";
-
-type ErrorType = string | boolean;
-type ChangeFunc = (val: string) => { returnError: boolean; error: ErrorType; overwrite: boolean };
-
-interface VerificationObj {
-    name: string;
-    required: boolean;
-    range: [number, number];
-    int: boolean;
-    email: boolean;
-    ascii: boolean;
-    dob: boolean;
-    alphaNum: boolean;
-}
+import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle, keyChangeFunc } from "../global/globalTypes";
 
 interface Props {
     label: string;
     defaultValue: string;
-    onChange?: ChangeFunc;
+    onChange?: onChangeFuncStr;
+    keyChange?: keyChangeFunc;
     setValue: Dispatch<SetStateAction<ErrorType>>;
     errorOverwrite: ErrorType;
     autoComplete: string;
@@ -32,15 +20,11 @@ interface Props {
     verifyObj: VerificationObj;
 }
 
-interface GridStyle {
-    width: string;
-    padding?: string;
-}
-
 const InputField: React.FC<Props> = ({
     label,
     defaultValue,
     onChange,
+    keyChange,
     setValue,
     errorOverwrite,
     autoComplete,
@@ -112,6 +96,9 @@ const InputField: React.FC<Props> = ({
                 disabled={disabled}
                 style={{
                     width: "100%",
+                }}
+                onKeyDown={(e) => {
+                    if (keyChange) keyChange(e.key);
                 }}
             />
         </Grid>

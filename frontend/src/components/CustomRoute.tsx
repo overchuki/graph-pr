@@ -1,20 +1,28 @@
+import React from "react";
 import { Route, Redirect } from "react-router-dom";
-import { useUser } from "../contexts/UserContext";
+import { RootState } from "../global/store";
+import { useAppSelector } from "../global/hooks";
 
 interface Props {
     path: string;
+    privateRoute: boolean;
 }
 
-const PrivateRoute: React.FC<Props> = ({ children, path, ...rest }) => {
-    let user = useUser();
+const CustomRoute: React.FC<Props> = ({ path, privateRoute, children, ...rest }) => {
+    const user = useAppSelector((state: RootState) => state.user);
+
     return (
         <Route
             path={path}
             {...rest}
             render={(props) =>
                 user ? (
-                    children
-                ) : (
+                    privateRoute ? (
+                        children
+                    ) : (
+                        <Redirect to="/" />
+                    )
+                ) : privateRoute ? (
                     <Redirect
                         to={{
                             pathname: "/login",
@@ -24,10 +32,12 @@ const PrivateRoute: React.FC<Props> = ({ children, path, ...rest }) => {
                             },
                         }}
                     />
+                ) : (
+                    children
                 )
             }
         />
     );
 };
 
-export default PrivateRoute;
+export default CustomRoute;

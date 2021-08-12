@@ -5,38 +5,20 @@ import MenuItem from "@material-ui/core/MenuItem";
 import Select from "@material-ui/core/Select";
 import { Dispatch, SetStateAction, useState } from "react";
 import { basicVerify } from "./ServiceFunctions";
-
-type ErrorType = string | boolean;
-type ChangeFunc = (val: number) => { returnError: boolean; error: ErrorType };
-
-interface VerificationObj {
-    name: string;
-    required: boolean;
-    range: [number, number];
-    int: boolean;
-    email: boolean;
-    ascii: boolean;
-    dob: boolean;
-    alphaNum: boolean;
-}
+import { ErrorType, VerificationObj, onChangeFuncNum, GridStyle } from "../global/globalTypes";
 
 interface Props {
     label: string;
     defaultValue: number;
-    onChange?: ChangeFunc;
+    onChange?: onChangeFuncNum;
     setValue: Dispatch<SetStateAction<number>>;
     valuesArr: Array<[number, string]>;
     size: boolean | GridSize | undefined;
     position: number;
-    errorOverwrite: boolean;
+    errorOverwrite: ErrorType;
     disabled: boolean;
     verify: boolean;
     verifyObj: VerificationObj;
-}
-
-interface GridStyle {
-    width: string;
-    padding?: string;
 }
 
 const DropdownField: React.FC<Props> = ({
@@ -78,7 +60,10 @@ const DropdownField: React.FC<Props> = ({
 
         if (onChange) {
             let cngObj = onChange(value);
-            if (cngObj.returnError) err = cngObj.error;
+            if (cngObj.returnError && (!err || cngObj.overwrite)) {
+                err = false;
+                errorOverwrite = cngObj.error;
+            }
         }
 
         if (err) {

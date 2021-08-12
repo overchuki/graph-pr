@@ -11,6 +11,7 @@ import InputField from "./InputField";
 import { basicVerify } from "./ServiceFunctions";
 import CheckIcon from "@material-ui/icons/Check";
 import ClearIcon from "@material-ui/icons/Clear";
+import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle } from "../global/globalTypes";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -34,27 +35,8 @@ const useStyles = makeStyles((theme: Theme) =>
     })
 );
 
-type ErrorType = string | boolean;
-type ChangeFunc = (val: string) => { returnError: boolean; error: ErrorType; overwrite: boolean };
-
-interface VerificationObj {
-    name: string;
-    required: boolean;
-    range: [number, number];
-    int: boolean;
-    email: boolean;
-    ascii: boolean;
-    dob: boolean;
-    alphaNum: boolean;
-}
-
-interface ExistsFuncRes {
-    available?: boolean;
-    error?: string;
-}
-
 interface ExistsHttpResponse {
-    data: ExistsFuncRes;
+    data: { success?: { available: boolean }; error?: string };
 }
 
 interface Props {
@@ -69,11 +51,6 @@ interface Props {
     verify: boolean;
     verifyObj: VerificationObj;
     checkType: string;
-}
-
-interface GridStyle {
-    width: string;
-    padding?: string;
 }
 
 const InputFieldCheck: React.FC<Props> = ({
@@ -103,7 +80,7 @@ const InputFieldCheck: React.FC<Props> = ({
     const [checked, setChecked] = useState<[Array<string>, Array<string>]>([[], []]);
     const [availability, setAvailability] = useState<number>(-1);
 
-    const handleFieldChange: ChangeFunc = (value) => {
+    const handleFieldChange: onChangeFuncStr = (value) => {
         setLocalValue(value);
         let err: ErrorType = false;
 
@@ -157,36 +134,36 @@ const InputFieldCheck: React.FC<Props> = ({
             return;
         }
 
-        let available: ExistsFuncRes = await checkAvailable(localValue + "", checkType);
+        let res: ExistsHttpResponse = await checkAvailable(localValue + "", checkType);
 
-        if (available.error) {
+        if (res.data.error) {
             setAvailability(-1);
             return;
         }
 
-        if (available.available) {
-            setChecked([[...checked[0], localValue + ""], checked[1]]);
-            setAvailability(2);
-            setError(false);
-            setValue(localValue);
+        if (res.data.success) {
+            if (res.data.success.available) {
+                setChecked([[...checked[0], localValue + ""], checked[1]]);
+                setAvailability(2);
+                setError(false);
+                setValue(localValue);
+            } else {
+                setChecked([checked[0], [...checked[1], localValue + ""]]);
+                setAvailability(3);
+                setValue(false);
+                setError("Username in use.");
+            }
         } else {
-            setChecked([checked[0], [...checked[1], localValue + ""]]);
-            setAvailability(3);
-            setValue(false);
-            setError("Username in use.");
+            setError("Unknown server error");
         }
     };
 
-    const checkAvailable = async (value: string, type: string): Promise<ExistsFuncRes> => {
+    const checkAvailable = async (value: string, type: string): Promise<ExistsHttpResponse> => {
         try {
             let response: ExistsHttpResponse = await axios.get(Config.apiUrl + `/auth/exists/?type=${type}&str=${value}`);
-            if (response.data.error) {
-                console.log(response.data.error);
-                return response.data;
-            }
-            return response.data;
+            return response;
         } catch (err) {
-            return { error: err };
+            return { data: { error: err } };
         }
     };
 
@@ -197,6 +174,9 @@ const InputFieldCheck: React.FC<Props> = ({
                 type={type}
                 defaultValue={defaultValue}
                 setValue={setValue}
+                keyChange={(keyString) => {
+                    if (keyString === "Enter" && availability === 0) handleCheck();
+                }}
                 onChange={handleFieldChange}
                 errorOverwrite={error ? error : false}
                 autoComplete={autoComplete}

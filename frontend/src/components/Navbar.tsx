@@ -1,25 +1,22 @@
+import React, { useState } from "react";
+import axios from "axios";
+import Config from "../Config";
+import Button from "@material-ui/core/Button";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogTitle from "@material-ui/core/DialogTitle";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import NavBarLink from "./NavBarLink";
-import { useUpdateUser, useUser } from "../contexts/UserContext";
-import { useUpdateTheme } from "../contexts/ThemeContext";
 import NavBarLinkBtn from "./NavBarLinkBtn";
-import React, { useState } from "react";
-import Config from "../Config";
-import axios from "axios";
-import { Button, Dialog, DialogActions, DialogTitle } from "@material-ui/core";
-
-interface LogoutHttpResponse {
-    data: {
-        success?: string;
-        error?: string;
-    };
-}
+import { RootState } from "../global/store";
+import { useAppDispatch, useAppSelector } from "../global/hooks";
+import { logoutUser, setDefaultTheme } from "../global/actions";
+import { HTTPBasicResponse } from "../global/globalTypes";
 
 const Navbar: React.FC = () => {
-    const user = useUser();
-    const updateUser = useUpdateUser();
-    const updateTheme = useUpdateTheme();
+    const user = useAppSelector((state: RootState) => state.user);
+    const dispatch = useAppDispatch();
 
     const [logoutDialogState, setLogoutDialogState] = useState<boolean>(false);
 
@@ -32,7 +29,7 @@ const Navbar: React.FC = () => {
     };
 
     const logout = async (): Promise<void> => {
-        let response: LogoutHttpResponse = await axios.post(
+        let response: { data: HTTPBasicResponse } = await axios.post(
             Config.apiUrl + "/auth/logout/",
             {},
             {
@@ -41,8 +38,8 @@ const Navbar: React.FC = () => {
         );
 
         if (response.data.success) {
-            updateUser(false);
-            updateTheme(1);
+            dispatch(logoutUser());
+            dispatch(setDefaultTheme());
         } else {
             console.log(response);
         }

@@ -1,15 +1,12 @@
-import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import AppTS from "./App";
-import { ThemeCtxProvider } from "./contexts/ThemeContext";
-import { UserCtxProvider } from "./contexts/UserContext";
+import { Provider } from "react-redux";
+import store from "./global/store";
 
 ReactDOM.render(
-    <ThemeCtxProvider>
-        <UserCtxProvider>
-            <AppTS />
-        </UserCtxProvider>
-    </ThemeCtxProvider>,
+    <Provider store={store}>
+        <AppTS />
+    </Provider>,
     document.getElementById("root")
 );

@@ -1,16 +1,19 @@
-import Grid from "@material-ui/core/Grid";
-import Config from "../Config";
-import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
-import { makeStyles, Theme, createStyles } from "@material-ui/core/styles/";
-import CircularProgress from "@material-ui/core/CircularProgress";
 import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import { Link, useHistory } from "react-router-dom";
-import DropdownField from "../components/DropdownField";
-import { useUpdateTheme, useDefaultTheme } from "../contexts/ThemeContext";
+import Config from "../Config";
 import axios from "axios";
+import Grid from "@material-ui/core/Grid";
+import Button from "@material-ui/core/Button";
+import Typography from "@material-ui/core/Typography";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import DropdownField from "../components/DropdownField";
+import { makeStyles, Theme, createStyles } from "@material-ui/core/styles/";
 import InputField from "../components/InputField";
 import InputFieldCheck from "../components/InputFieldCheck";
+import { useAppDispatch } from "../global/hooks";
+import { defaultThemeIdx } from "../global/reducer";
+import { setDefaultTheme, setTheme } from "../global/actions";
+import { ErrorType, HTTPBasicResponse, onChangeFuncNum } from "../global/globalTypes";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -44,19 +47,11 @@ const useStyles = makeStyles((theme: Theme) =>
     })
 );
 
-type ErrorType = string | boolean;
-type ChangeFunc = (
+type ChangeFuncCustom = (
     confirmVal: string,
     passVal?: string,
     err?: boolean
 ) => { returnError: boolean; error: ErrorType; overwrite: boolean };
-
-interface SignupHttpResponse {
-    data: {
-        success?: string;
-        error?: string;
-    };
-}
 
 interface userDataSend {
     name: string;
@@ -81,8 +76,8 @@ const Signup: React.FC = () => {
     // Form Codes -->  0: default, 1: in progress
     const classes = useStyles();
     const history = useHistory();
-    const defaultTheme = useDefaultTheme();
-    const updateTheme = useUpdateTheme();
+
+    const dispatch = useAppDispatch();
 
     const [generalError, setGeneralError] = useState<ErrorType>(false);
     const [formSubmission, setFormSubmission] = useState<number>(0);
@@ -109,7 +104,7 @@ const Signup: React.FC = () => {
 
     const [iconField, setIconField] = useState<number>(1);
 
-    const [themeField, setThemeField] = useState<number>(defaultTheme);
+    const [themeField, setThemeField] = useState<number>(defaultThemeIdx);
 
     const [descriptionField, setDescriptionField] = useState<ErrorType>("");
 
@@ -119,11 +114,11 @@ const Signup: React.FC = () => {
 
     useEffect(() => {
         return () => {
-            updateTheme(defaultTheme);
+            dispatch(setDefaultTheme());
         };
     }, []);
 
-    const handleConfirmPasswordFieldChange: ChangeFunc = (confirmVal, passVal, err) => {
+    const handleConfirmPasswordFieldChange: ChangeFuncCustom = (confirmVal, passVal, err) => {
         let returnErr = err ? true : false;
         const compare = passVal || passwordField;
 
@@ -136,9 +131,9 @@ const Signup: React.FC = () => {
         }
     };
 
-    const handleThemeChange = (value: number): { returnError: boolean; error: ErrorType } => {
-        updateTheme(value);
-        return { returnError: false, error: false };
+    const handleThemeChange: onChangeFuncNum = (value) => {
+        dispatch(setTheme(value));
+        return { returnError: false, error: false, overwrite: false };
     };
 
     const isFieldError = (field: ErrorType, setField: Dispatch<SetStateAction<ErrorType>>, required: boolean): boolean => {
@@ -203,7 +198,7 @@ const Signup: React.FC = () => {
         };
 
         try {
-            let response: SignupHttpResponse = await axios.post(Config.apiUrl + "/auth/signup/", userData, {
+            let response: { data: HTTPBasicResponse } = await axios.post(Config.apiUrl + "/auth/signup/", userData, {
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -627,6 +622,9 @@ const Signup: React.FC = () => {
                         type={"password"}
                         defaultValue={""}
                         setValue={setConfirmPasswordField}
+                        keyChange={(keyString) => {
+                            if (keyString === "Enter") signup();
+                        }}
                         onChange={(val) => {
                             return handleConfirmPasswordFieldChange(val, undefined, true);
                         }}

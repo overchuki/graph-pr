@@ -78,9 +78,9 @@ router.get("/exists/", async (req, res) => {
         const user = await req.conn.queryAsync(sql, [query.str]);
 
         if (user.length > 0) {
-            res.send({ available: false });
+            res.send({ success: { available: false } });
         } else {
-            res.send({ available: true });
+            res.send({ success: { available: true } });
         }
     } catch (err) {
         const errors = serviceFunc.handleError(err);
@@ -132,7 +132,7 @@ router.get("/", requireAuth, async (req, res) => {
         else bw = null;
         user.weight = bw.weight;
 
-        res.send(user);
+        res.send({ user });
     } catch (err) {
         const errors = serviceFunc.handleError(err);
         res.send({ error: errors });
