@@ -1,4 +1,3 @@
-import React from "react";
 import { Route, Redirect } from "react-router-dom";
 import { RootState } from "../global/store";
 import { useAppSelector } from "../global/hooks";

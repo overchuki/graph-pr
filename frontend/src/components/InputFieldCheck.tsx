@@ -1,39 +1,35 @@
-import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Grid from "@material-ui/core/Grid";
-import { GridSize } from "@material-ui/core";
-import Typography from "@material-ui/core/Typography";
-import { createStyles, makeStyles, Theme } from "@material-ui/core/styles";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Grid from "@mui/material/Grid";
+import { GridSize } from "@mui/material";
+import Typography from "@mui/material/Typography";
+import { styled } from "@mui/material/styles";
 import axios from "axios";
 import { Dispatch, SetStateAction, useState } from "react";
 import Config from "../Config";
 import InputField from "./InputField";
 import { basicVerify } from "./ServiceFunctions";
-import CheckIcon from "@material-ui/icons/Check";
-import ClearIcon from "@material-ui/icons/Clear";
+import CheckIcon from "@mui/icons-material/Check";
+import ClearIcon from "@mui/icons-material/Clear";
 import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle } from "../global/globalTypes";
 
-const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-        textMain: {
-            color: theme.palette.text.primary,
-        },
-        textSuccess: {
-            color: theme.palette.success.main,
-        },
-        textError: {
-            color: theme.palette.error.main,
-        },
-        btnWarning: {
-            backgroundColor: theme.palette.warning.main,
-            color: theme.palette.warning.contrastText,
-
-            "&:hover": {
-                backgroundColor: theme.palette.warning.light,
-            },
-        },
-    })
-);
+const PREFIX = "InFieldCheck";
+const classes = {
+    root: `${PREFIX}-root`,
+    textSuccess: `${PREFIX}-textSuccess`,
+    textError: `${PREFIX}-textError`,
+};
+const Root = styled("div")(({ theme }) => ({
+    [`&.${classes.root}`]: {
+        textAlign: "center",
+    },
+    [`& .${classes.textSuccess}`]: {
+        color: theme.palette.success.main,
+    },
+    [`& .${classes.textError}`]: {
+        color: theme.palette.error.main,
+    },
+}));
 
 interface ExistsHttpResponse {
     data: { success?: { available: boolean }; error?: string };
@@ -66,7 +62,6 @@ const InputFieldCheck: React.FC<Props> = ({
     verifyObj,
     checkType,
 }) => {
-    const classes = useStyles();
     // position key -> -1: full row, 0: middle, 1: left, 2: right
     const pStr: string = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${
         position === 0 || position === 2 ? "10px" : "0"
@@ -80,7 +75,7 @@ const InputFieldCheck: React.FC<Props> = ({
     const [checked, setChecked] = useState<[Array<string>, Array<string>]>([[], []]);
     const [availability, setAvailability] = useState<number>(-1);
 
-    const handleFieldChange: onChangeFuncStr = (value) => {
+    const handleFieldChange: onChangeFuncStr = (value: any) => {
         setLocalValue(value);
         let err: ErrorType = false;
 
@@ -162,8 +157,8 @@ const InputFieldCheck: React.FC<Props> = ({
         try {
             let response: ExistsHttpResponse = await axios.get(Config.apiUrl + `/auth/exists/?type=${type}&str=${value}`);
             return response;
-        } catch (err) {
-            return { data: { error: err } };
+        } catch (err: any) {
+            return { data: { error: err.message } };
         }
     };
 
@@ -174,7 +169,7 @@ const InputFieldCheck: React.FC<Props> = ({
                 type={type}
                 defaultValue={defaultValue}
                 setValue={setValue}
-                keyChange={(keyString) => {
+                keyChange={(keyString: any) => {
                     if (keyString === "Enter" && availability === 0) handleCheck();
                 }}
                 onChange={handleFieldChange}
@@ -186,6 +181,7 @@ const InputFieldCheck: React.FC<Props> = ({
                 verify={verify}
                 verifyObj={verifyObj}
             />
+
             <Grid
                 item
                 container
@@ -195,29 +191,31 @@ const InputFieldCheck: React.FC<Props> = ({
                 alignItems="center"
                 style={{ width: "100%", padding: "0 20px 0 0" }}
             >
-                {availability === 0 || availability === -1 ? (
-                    <Button
-                        onClick={handleCheck}
-                        variant="contained"
-                        className={classes.btnWarning}
-                        disabled={disabled || availability === -1}
+                <Root className={classes.root}>
+                    {availability === 0 || availability === -1 ? (
+                        <Button
+                            onClick={handleCheck}
+                            variant="contained"
+                            color="warning"
+                            disabled={disabled || availability === -1}
+                        >
+                            Check
+                        </Button>
+                    ) : (
+                        ""
+                    )}
+                    {availability === 1 ? <CircularProgress color="secondary" /> : ""}
+                    {availability === 2 ? <CheckIcon className={classes.textSuccess} /> : ""}
+                    {availability === 3 ? <ClearIcon className={classes.textError} /> : ""}
+                    <Typography
+                        display="inline"
+                        variant="body1"
+                        className={availability === 3 ? classes.textError : classes.textSuccess}
                     >
-                        Check
-                    </Button>
-                ) : (
-                    ""
-                )}
-                {availability === 1 ? <CircularProgress color="secondary" /> : ""}
-                {availability === 2 ? <CheckIcon className={classes.textSuccess} /> : ""}
-                {availability === 3 ? <ClearIcon className={classes.textError} /> : ""}
-                <Typography
-                    display="inline"
-                    variant="body1"
-                    className={availability === 3 ? classes.textError : classes.textSuccess}
-                >
-                    {availability === 2 ? "Available" : ""}
-                    {availability === 3 ? "Taken" : ""}
-                </Typography>
+                        {availability === 2 ? "Available" : ""}
+                        {availability === 3 ? "Taken" : ""}
+                    </Typography>
+                </Root>
             </Grid>
         </Grid>
     );

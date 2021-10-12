@@ -1,5 +1,5 @@
-import { Grid, GridSize } from "@material-ui/core";
-import TextField from "@material-ui/core/TextField";
+import { Grid, GridSize } from "@mui/material";
+import TextField from "@mui/material/TextField";
 import { Dispatch, SetStateAction, useState } from "react";
 import { basicVerify, dobVerify } from "./ServiceFunctions";
 import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle, keyChangeFunc } from "../global/globalTypes";

@@ -2,33 +2,38 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { Link, useHistory, useLocation } from "react-router-dom";
 import Config from "../Config";
 import axios from "axios";
-import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
-import CircularProgress from "@material-ui/core/CircularProgress";
+import { styled } from "@mui/material/styles";
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress";
 import InputField from "../components/InputField";
 import { useAppDispatch } from "../global/hooks";
 import { loginUser, setTheme } from "../global/actions";
 import { ErrorType, HTTPBasicResponse, getUserDataResponse } from "../global/globalTypes";
 
-const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-        inputField: {
-            width: "100%",
-        },
-        wrapper: {
-            height: "80%",
-        },
-        btn: {
-            margin: "0 10px",
-        },
-        linkStyle: {
-            textDecoration: "none",
-            color: theme.palette.secondary.main,
-        },
-    })
-);
+const PREFIX = "Login";
+const classes = {
+    inputField: `${PREFIX}-inputField`,
+    wrapper: `${PREFIX}-wrapper`,
+    btn: `${PREFIX}-btn`,
+    linkStyle: `${PREFIX}-linkStyle`,
+};
+const Root = styled("div")(({ theme }) => ({
+    [`& .${classes.inputField}`]: {
+        width: "100%",
+    },
+    [`& .${classes.wrapper}`]: {
+        height: "80%",
+    },
+    [`& .${classes.btn}`]: {
+        margin: "0 10px",
+    },
+    [`& .${classes.linkStyle}`]: {
+        textDecoration: "none",
+        color: theme.palette.secondary.main,
+    },
+}));
 
 type Props = {
     title: string | null;
@@ -42,7 +47,6 @@ type LocationState = {
 };
 
 const Login: React.FC<Props> = ({ title }) => {
-    let classes = useStyles();
     let history = useHistory();
     let location = useLocation<LocationState>();
 
@@ -124,117 +128,119 @@ const Login: React.FC<Props> = ({ title }) => {
     };
 
     return (
-        <Grid
-            container
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            className={classes.wrapper}
-            style={{
-                marginTop: "20px",
-            }}
-            onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                    login();
-                }
-            }}
-        >
+        <Root>
             <Grid
                 container
-                item
-                xs={3}
+                direction="row"
                 alignItems="center"
-                direction="column"
                 justifyContent="center"
-                spacing={3}
-                style={{ height: "100%" }}
+                className={classes.wrapper}
+                style={{
+                    marginTop: "20px",
+                }}
+                onKeyPress={(e: any) => {
+                    if (e.key === "Enter") {
+                        login();
+                    }
+                }}
             >
-                <Grid item>
-                    <Typography display="inline" variant="body1" color="textPrimary">
-                        {location.state ? location.state.title : title}
-                    </Typography>
-                </Grid>
-                <InputField
-                    label={"Username or Email"}
-                    type={"text"}
-                    defaultValue={""}
-                    setValue={setUserField}
-                    errorOverwrite={userField === false ? "Invalid username" : false}
-                    autoComplete={"username email"}
-                    size={false}
-                    position={-1}
-                    disabled={false}
-                    verify={true}
-                    verifyObj={{
-                        name: "your username",
-                        required: true,
-                        range: [0, 256],
-                        int: false,
-                        email: false,
-                        ascii: true,
-                        dob: false,
-                        alphaNum: true,
-                    }}
-                />
-                <InputField
-                    label={"Password"}
-                    type={"password"}
-                    defaultValue={""}
-                    setValue={setPassField}
-                    errorOverwrite={passField === false ? "Invalid password" : false}
-                    autoComplete={""}
-                    size={false}
-                    position={-1}
-                    disabled={false}
-                    verify={true}
-                    verifyObj={{
-                        name: "your password",
-                        required: true,
-                        range: [0, 256],
-                        int: false,
-                        email: false,
-                        ascii: true,
-                        dob: false,
-                        alphaNum: true,
-                    }}
-                />
-                <Grid item container alignItems="center" justifyContent="center">
-                    {formState === 0 ? (
-                        <>
-                            <Grid item className={classes.btn}>
-                                <Link to="/" style={{ textDecoration: "none" }}>
-                                    <Button variant="outlined" color="secondary">
-                                        Cancel
-                                    </Button>
-                                </Link>
-                            </Grid>
-                            <Grid item className={classes.btn}>
-                                <Button onClick={login} variant="contained" color="primary">
-                                    Log In
-                                </Button>
-                            </Grid>
-                        </>
-                    ) : (
-                        <CircularProgress color="secondary" />
-                    )}
-                </Grid>
-
-                <Grid item container alignItems="center" justifyContent="center" spacing={1}>
+                <Grid
+                    container
+                    item
+                    xs={3}
+                    alignItems="center"
+                    direction="column"
+                    justifyContent="center"
+                    spacing={3}
+                    style={{ height: "100%" }}
+                >
                     <Grid item>
-                        <Typography display="inline" variant="subtitle1" color="textSecondary">
-                            Don't have an account?
+                        <Typography display="inline" variant="body1" color="textPrimary">
+                            {location.state ? location.state.title : title}
                         </Typography>
                     </Grid>
-                    <Grid item>
-                        <Link to="/signup" className={classes.linkStyle}>
-                            <Typography display="inline" variant="subtitle1" color="secondary">
-                                Create one
+                    <InputField
+                        label={"Username or Email"}
+                        type={"text"}
+                        defaultValue={""}
+                        setValue={setUserField}
+                        errorOverwrite={userField === false ? "Invalid username" : false}
+                        autoComplete={"username email"}
+                        size={false}
+                        position={-1}
+                        disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your username",
+                            required: true,
+                            range: [0, 256],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
+                        }}
+                    />
+                    <InputField
+                        label={"Password"}
+                        type={"password"}
+                        defaultValue={""}
+                        setValue={setPassField}
+                        errorOverwrite={passField === false ? "Invalid password" : false}
+                        autoComplete={""}
+                        size={false}
+                        position={-1}
+                        disabled={false}
+                        verify={true}
+                        verifyObj={{
+                            name: "your password",
+                            required: true,
+                            range: [0, 256],
+                            int: false,
+                            email: false,
+                            ascii: true,
+                            dob: false,
+                            alphaNum: true,
+                        }}
+                    />
+                    <Grid item container alignItems="center" justifyContent="center">
+                        {formState === 0 ? (
+                            <>
+                                <Grid item className={classes.btn}>
+                                    <Link to="/" style={{ textDecoration: "none" }}>
+                                        <Button variant="outlined" color="secondary">
+                                            Cancel
+                                        </Button>
+                                    </Link>
+                                </Grid>
+                                <Grid item className={classes.btn}>
+                                    <Button onClick={login} variant="contained" color="primary">
+                                        Log In
+                                    </Button>
+                                </Grid>
+                            </>
+                        ) : (
+                            <CircularProgress color="secondary" />
+                        )}
+                    </Grid>
+
+                    <Grid item container alignItems="center" justifyContent="center" spacing={1}>
+                        <Grid item>
+                            <Typography display="inline" variant="subtitle1" color="textSecondary">
+                                Don't have an account?
                             </Typography>
-                        </Link>
+                        </Grid>
+                        <Grid item>
+                            <Link to="/signup" className={classes.linkStyle}>
+                                <Typography display="inline" variant="subtitle1" color="secondary">
+                                    Create one
+                                </Typography>
+                            </Link>
+                        </Grid>
                     </Grid>
                 </Grid>
             </Grid>
-        </Grid>
+        </Root>
     );
 };
 

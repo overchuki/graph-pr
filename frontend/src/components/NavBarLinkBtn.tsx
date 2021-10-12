@@ -1,20 +1,23 @@
 import { Link } from "react-router-dom";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import { styled } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-        btn: {
-            color: theme.palette.primary.contrastText,
-            margin: "0 5px",
-        },
-        btnContrast: {
-            color: theme.palette.secondary.contrastText,
-            margin: "0 5px",
-        },
-    })
-);
+const PREFIX = "NavBarLinkBtn";
+const classes = {
+    btn: `${PREFIX}-btn`,
+    btnContrast: `${PREFIX}-btnContrast`,
+};
+const Root = styled("div")(({ theme }) => ({
+    [`& .${classes.btn}`]: {
+        color: theme.palette.primary.main,
+        margin: "0 5px",
+    },
+    [`& .${classes.btnContrast}`]: {
+        color: theme.palette.secondary.main,
+        margin: "0 5px",
+    },
+}));
 
 interface Props {
     path: string;
@@ -25,20 +28,20 @@ interface Props {
 }
 
 const NavBarLinkBtn: React.FC<Props> = ({ path, name, contrast, logoutBtn, onLogout }) => {
-    const classes = useStyles();
-
     return (
-        <Link to={path} style={{ textDecoration: "none" }}>
-            <Button
-                onClick={logoutBtn ? onLogout : () => {}}
-                variant={contrast ? "contained" : "text"}
-                color={contrast ? "secondary" : "primary"}
-                disableElevation={contrast}
-                className={contrast ? classes.btnContrast : classes.btn}
-            >
-                <Typography variant="subtitle1">{name}</Typography>
-            </Button>
-        </Link>
+        <Root>
+            <Link to={path} style={{ textDecoration: "none" }}>
+                <Button
+                    onClick={logoutBtn ? onLogout : () => {}}
+                    variant={contrast ? "outlined" : "outlined"}
+                    color={contrast ? "secondary" : "primary"}
+                    disableElevation={contrast}
+                    className={contrast ? classes.btnContrast : classes.btn}
+                >
+                    <Typography variant="subtitle1">{name}</Typography>
+                </Button>
+            </Link>
+        </Root>
     );
 };
 

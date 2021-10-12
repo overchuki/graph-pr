@@ -1,21 +1,21 @@
-import { green } from "@material-ui/core/colors";
-import { createTheme, Theme } from "@material-ui/core/styles";
+import { green } from "@mui/material/colors";
+import { createTheme, Theme } from "@mui/material/styles";
 
 const lightTheme = createTheme({
     palette: {
-        type: "light",
+        mode: "light",
     },
 });
 
 const darkTheme = createTheme({
     palette: {
-        type: "dark",
+        mode: "dark",
     },
 });
 
 const testTheme = createTheme({
     palette: {
-        type: "light",
+        mode: "light",
         primary: green,
         background: {
             default: "#f00",

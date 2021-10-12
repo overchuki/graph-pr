@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import axios from "axios";
 import Config from "../Config";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogTitle from "@mui/material/DialogTitle";
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
 import NavBarLink from "./NavBarLink";
 import NavBarLinkBtn from "./NavBarLinkBtn";
 import { RootState } from "../global/store";
@@ -71,16 +71,16 @@ const Navbar: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <AppBar position="static">
+            <AppBar position="static" color="primary">
                 <Toolbar
                     style={{
                         margin: "0 10% 0 10%",
                     }}
                 >
-                    <NavBarLink path="/" name="Home" contrast={false} />
-                    <NavBarLink path="/nutrition" name="Nutrition" contrast={false} />
-                    <NavBarLink path="/lifting" name="Lifting" contrast={false} />
-                    <NavBarLink path="/bodyweight" name="Bodyweight" contrast={false} />
+                    <NavBarLink path="/" name="Home" />
+                    <NavBarLink path="/nutrition" name="Nutrition" />
+                    <NavBarLink path="/lifting" name="Lifting" />
+                    <NavBarLink path="/bodyweight" name="Bodyweight" />
                     <div style={{ flexGrow: 1 }} />
                     {user ? (
                         <React.Fragment>

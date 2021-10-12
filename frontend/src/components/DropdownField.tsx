@@ -1,8 +1,8 @@
-import { Grid, GridSize } from "@material-ui/core";
-import FormControl from "@material-ui/core/FormControl";
-import InputLabel from "@material-ui/core/InputLabel";
-import MenuItem from "@material-ui/core/MenuItem";
-import Select from "@material-ui/core/Select";
+import { Grid, GridSize } from "@mui/material";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import { Dispatch, SetStateAction, useState } from "react";
 import { basicVerify } from "./ServiceFunctions";
 import { ErrorType, VerificationObj, onChangeFuncNum, GridStyle } from "../global/globalTypes";
