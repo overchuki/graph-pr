@@ -2,20 +2,28 @@ require("dotenv").config();
 const fs = require("fs");
 const mysql = require("mysql2");
 
-let connection = null;
+let pool = null;
 
 module.exports = {
     connectToDB: async () => {
         return new Promise((res, rej) => {
-            if (connection === null) {
-                connection = mysql.createConnection({
+            if (pool === null) {
+                const devDBParams = {
+                    connectionLimit: 10,
                     host: process.env.DB_HOST,
+                    port: process.env.DB_PORT,
                     user: process.env.DB_USER,
                     password: process.env.DB_PASS,
                     database: process.env.DB_NAME,
-                });
+                };
 
-                connection.connect(async (err) => {
+                // Determine if production build, if it is set db params to clearDB url
+                const isProd = process.env.NODE_ENV === "production";
+                const connectionParams = isProd ? process.env.CLEARDB_DATABASE_URL : devDBParams;
+
+                pool = mysql.createPool(connectionParams);
+
+                pool.getConnection(async (err, connection) => {
                     if (err) rej(err);
                     else {
                         connection.queryAsync = (sql, args) => {
@@ -42,13 +50,31 @@ module.exports = {
                     }
                 });
             } else {
-                res(connection);
+                pool.getConnection((err, connection) => {
+                    if (err) rej(err);
+                    else {
+                        connection.queryAsync = (sql, args) => {
+                            return new Promise((resolve, reject) => {
+                                connection.query(sql, args, (err, result) => {
+                                    if (err) reject(err);
+                                    else resolve(result);
+                                });
+                            });
+                        };
+
+                        res(connection);
+                    }
+                });
             }
         });
     },
 };
 
 module.exports.db = async (req, res, next) => {
-    req.conn = await module.exports.connectToDB();
+    try {
+        req.conn = await module.exports.connectToDB();
+    } catch (err) {
+        console.error("Error with DB connection:", err);
+    }
     next();
 };

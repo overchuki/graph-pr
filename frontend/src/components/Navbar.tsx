@@ -79,6 +79,7 @@ const Navbar: React.FC = () => {
                 >
                     <NavBarLink path="/" name="Home" />
                     <NavBarLink path="/nutrition" name="Nutrition" />
+                    <NavBarLink path="/meals" name="Meals" />
                     <NavBarLink path="/lifting" name="Lifting" />
                     <NavBarLink path="/bodyweight" name="Bodyweight" />
                     <div style={{ flexGrow: 1 }} />

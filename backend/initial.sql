@@ -180,6 +180,14 @@ CREATE TABLE IF NOT EXISTS MET (
     PRIMARY KEY (id),
     FOREIGN KEY (exercise_type_fk) REFERENCES EXERCISE_TYPE (id)
 );
+CREATE TABLE IF NOT EXISTS WORKOUT (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(25) NOT NULL,
+    description VARCHAR(255),
+    days VARCHAR(7),
+
+    PRIMARY KEY (id)
+);
 CREATE TABLE IF NOT EXISTS LIFT (
     id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(25) NOT NULL,
@@ -187,12 +195,29 @@ CREATE TABLE IF NOT EXISTS LIFT (
     theomax_set INT,
     unit_fk INT NOT NULL,
     user_fk INT NOT NULL,
+    workout_fk INT NOT NULL,
     starred INT NOT NULL DEFAULT -1,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (id),
     FOREIGN KEY (unit_fk) REFERENCES UNIT (id),
-    FOREIGN KEY (user_fk) REFERENCES USER (id)
+    FOREIGN KEY (user_fk) REFERENCES USER (id),
+    FOREIGN KEY (workout_fk) REFERENCES WORKOUT (id)
+);
+CREATE TABLE IF NOT EXISTS LIFT_SET_PARENT (
+    id INT NOT NULL AUTO_INCREMENT,
+    set_quantity INT NOT NULL,
+    first_set INT,
+    top_set INT,
+    date DATE NOT NULL,
+    lift_fk INT NOT NULL,
+
+    PRIMARY KEY (id),
+    FOREIGN KEY (lift_fk) REFERENCES LIFT (id),
+    
+    UNIQUE KEY date_set (lift_fk, date),
+
+    INDEX date_idx (date ASC) INVISIBLE
 );
 CREATE TABLE IF NOT EXISTS LIFT_SET (
     id INT NOT NULL AUTO_INCREMENT,
@@ -200,16 +225,16 @@ CREATE TABLE IF NOT EXISTS LIFT_SET (
     weight INT NOT NULL,
     reps INT NOT NULL,
     theomax DECIMAL(10, 2) NOT NULL,
-    date DATE NOT NULL,
+    lift_set_parent_fk INT NOT NULL,
     lift_fk INT NOT NULL,
 
     PRIMARY KEY (id),
+    FOREIGN KEY (lift_set_parent_fk) REFERENCES LIFT_SET_PARENT (id),
     FOREIGN KEY (lift_fk) REFERENCES LIFT (id),
     
-    UNIQUE KEY date_set (lift_fk, set_num, date),
+    UNIQUE KEY parent_set_num (lift_set_parent_fk, set_num),
 
-    INDEX theomax_idx (theomax ASC) INVISIBLE,
-    INDEX date_idx (date ASC) INVISIBLE
+    INDEX theomax_idx (theomax ASC) INVISIBLE
 );
 CREATE TABLE IF NOT EXISTS BODYWEIGHT (
     id INT NOT NULL AUTO_INCREMENT,

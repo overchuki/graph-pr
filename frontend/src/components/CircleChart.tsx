@@ -61,7 +61,7 @@ const CircleChart: React.FC<Props> = ({ sizing, pieData, fontSize, unitStr, scal
         let data = [
             { value: over, color: chartData.overColor },
             { value: consumed, color: chartData.primaryColor },
-            { value: under, color: theme.palette.background.paper },
+            { value: under, color: theme.palette.divider },
         ];
 
         return {

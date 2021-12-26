@@ -10,6 +10,7 @@ import Login from "./views/Login";
 import Nutrition from "./views/Nutrition";
 import Lifting from "./views/Lifting";
 import Bodyweight from "./views/Bodyweight";
+import Meals from "./views/Meals";
 import Profile from "./views/Profile";
 import Navbar from "./components/Navbar";
 import CustomRoute from "./components/CustomRoute";
@@ -61,6 +62,9 @@ const App: React.FC = () => {
                     </Route>
                     <CustomRoute path="/nutrition" privateRoute={true}>
                         <Nutrition />
+                    </CustomRoute>
+                    <CustomRoute path="/meals" privateRoute={true}>
+                        <Meals />
                     </CustomRoute>
                     <CustomRoute path="/lifting" privateRoute={true}>
                         <Lifting />

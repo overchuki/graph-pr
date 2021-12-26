@@ -31,7 +31,7 @@ const NavBarLink: React.FC<Props> = ({ path, name }) => {
         <Root>
             <NavLink to={path} className={className} activeClassName={activeClassName} exact>
                 <Typography display="inline" variant="subtitle1">
-                    {name.toUpperCase()}
+                    {name}
                 </Typography>
             </NavLink>
         </Root>
