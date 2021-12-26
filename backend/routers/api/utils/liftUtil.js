@@ -14,8 +14,10 @@ const getLiftInfo = async (req, liftId) => {
             ltheo.theomax,
             ltheo.weight AS theomax_weight,
             ltheo.reps AS theomax_reps,
+            w.name,
             l.created_at
         FROM lift AS l
+        LEFT JOIN workout AS w ON l.workout_fk = w.id
         LEFT JOIN lift_set AS lmax ON l.max_set = lmax.id
         LEFT JOIN lift_set AS ltheo ON l.theomax_set = ltheo.id
         LEFT JOIN unit AS u ON l.unit_fk = u.id
@@ -27,6 +29,25 @@ const getLiftInfo = async (req, liftId) => {
 
     let duration = await getLiftDuration(req, liftId);
     info[0].duration = duration;
+
+    return info[0];
+};
+
+const getWorkoutInfo = async (req, wId) => {
+    let sql = `
+        SELECT
+            w.id,
+            w.name,
+            w.description,
+            w.days,
+            w.liftCnt,
+            w.created_at
+        FROM workout AS w
+        WHERE w.id = ${liftId}
+    `;
+
+    let info = await req.conn.queryAsync(sql);
+    if (info.length === 0) throw Error("Requested workout does not exist.");
 
     return info[0];
 };

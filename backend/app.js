@@ -51,11 +51,6 @@ app.use(verifyUser);
 
 app.options(cors(corsOptions));
 
-app.get("/", (req, res, next) => {
-    cleanup(req.conn);
-    res.json({ welcome: "Welcome to calorie tracker." });
-});
-
 // Use main router for every request
 app.use(mainRouter);
 

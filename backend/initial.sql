@@ -185,8 +185,12 @@ CREATE TABLE IF NOT EXISTS WORKOUT (
     name VARCHAR(25) NOT NULL,
     description VARCHAR(255),
     days VARCHAR(7),
+    liftCnt INT NOT NULL DEFAULT 0,
+    user_fk INT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT NOW(),
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_fk) REFERENCES USER (id)
 );
 CREATE TABLE IF NOT EXISTS LIFT (
     id INT NOT NULL AUTO_INCREMENT,
@@ -195,7 +199,7 @@ CREATE TABLE IF NOT EXISTS LIFT (
     theomax_set INT,
     unit_fk INT NOT NULL,
     user_fk INT NOT NULL,
-    workout_fk INT NOT NULL,
+    workout_fk INT DEFAULT NULL,
     starred INT NOT NULL DEFAULT -1,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 

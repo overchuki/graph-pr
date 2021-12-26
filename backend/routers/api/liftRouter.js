@@ -4,14 +4,48 @@ const util = require("./utils/util");
 const liftUtil = require("./utils/liftUtil");
 const validUtil = require("./utils/validUtil");
 
+// Days of week:
+// M: Monday
+// T: Tuesday
+// W: Wednesday
+// R: Thursday
+// F: Friday
+// S: Saturday
+// U: Sunday
+const daysArr = ["M", "T", "W", "R", "F", "S", "U"];
+
 const nameLenRange = [1, 20];
+const workoutNameRange = [1, 20];
+const descRange = [1, 200];
+const daysRange = [1, 7];
 const unitNumRange = [1, 2];
 
-const verifyUser = async (req, id) => {
+const verifyUserLift = async (req, id) => {
     let sql = `SELECT * FROM lift WHERE id = ${id}`;
 
     let lift = await req.conn.queryAsync(sql);
-    if (lift[0].user_fk != req.user.id) throw Error("You can only modify your own lifts.");
+    if (lift[0].user_fk !== req.user.id) throw Error("You can only modify your own lifts.");
+};
+
+const verifyUserWorkout = async (req, id) => {
+    let sql = `SELECT * FROM workout WHERE id = ${id}`;
+
+    let workout = await req.conn.queryAsync(sql);
+    if (workout[0].user_fk !== req.user.id) throw Error("You can only modify your own workouts.");
+};
+
+const validateWorkoutInputs = (body, initial) => {
+    let name = validUtil.validateString("Name", body.name, initial, workoutNameRange, true, false, false, false, false);
+    if (name.valid === -1) throw Error(name.msg);
+
+    let desc = validUtil.validateString("Description", body.desc, false, descRange, true, false, false, false, false);
+    if (desc.valid === -1) throw Error(desc.msg);
+
+    let days = validUtil.validateString("Days String", body.days, false, daysRange, true, false, false, false, false);
+    if (days.valid === -1) throw Error(days.msg);
+    for (let i = 0; i < days.length; i++) {
+        if (!daysArr.includes(days.charAt(i))) throw Error("Invalid day character.");
+    }
 };
 
 const validateLiftInputs = (body, initial) => {
@@ -27,6 +61,65 @@ const validateLiftInputs = (body, initial) => {
 //   GET
 //
 //---------
+
+// TODO:
+// Get all workouts
+router.get("/workout/", async (req, res) => {
+    const query = req.query;
+    const limit = query.limit || 10;
+    const offset = query.offset || 0;
+
+    let sql = `
+        SELECT id
+        FROM workout
+        WHERE user_fk = ${req.user.id}
+        LIMIT ${limit}
+        OFFSET ${offset}
+    `;
+
+    try {
+        let workouts = await req.conn.queryAsync(sql);
+
+        let workoutArray = [];
+
+        for (let i = 0; i < workouts.length; i++) {
+            workoutArray.push(await liftUtil.getLiftInfo(req, workouts[i].id));
+        }
+
+        util.cleanup(req.conn);
+        res.json({ workoutArray });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
+});
+
+// TODO:
+// Get a workout and all of its lifts
+router.get("/workout/:id/", async (req, res) => {
+    const params = req.params;
+    let whereClause = `= ${params.id}`;
+    if (params.id === -1) whereClause = `IS NULL`;
+
+    try {
+        if (params.id !== -1) await verifyUserWorkout(req, params.id);
+        let lifts = await req.conn.queryAsync(sql);
+
+        let liftArray = [];
+
+        for (let i = 0; i < lifts.length; i++) {
+            liftArray.push(await liftUtil.getLiftInfo(req, lifts[i].id));
+        }
+
+        util.cleanup(req.conn);
+        res.json({ liftArray });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
+});
 
 // Get all user's lifts
 router.get("/", async (req, res) => {
@@ -65,7 +158,7 @@ router.get("/:id/single/", async (req, res) => {
     const params = req.params;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
 
         let liftInfo = await liftUtil.getLiftInfo(req, params.id);
 
@@ -93,7 +186,7 @@ router.get("/:id/set/", async (req, res) => {
     `;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
 
         let set = await req.conn.queryAsync(sql);
 
@@ -112,6 +205,36 @@ router.get("/:id/set/", async (req, res) => {
 //
 //----------
 
+// TODO:
+// Create a workout
+router.post("/workout/", async (req, res) => {
+    const body = req.body;
+
+    let sql = `
+        INSERT
+        INTO workout (
+            name,
+            description,
+            days,
+            user_fk)
+        VALUES (?, ?, ?, ?)
+    `;
+
+    try {
+        validateWorkoutInputs(body, true);
+
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id]);
+
+        util.cleanup(req.conn);
+        res.json({ success: "lift has been created", id: okPacket.insertId });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
+});
+
+// TODO: create an option to add lift to workout right away or null
 // Create a lift
 router.post("/", async (req, res) => {
     const body = req.body;
@@ -157,7 +280,7 @@ router.post("/:id/set/", async (req, res) => {
     `;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
         if (body.sets.length < 1) throw Error("Set array cannot be empty.");
         else if (body.sets.length > 10) throw Error("Set array max length is 10.");
 
@@ -209,7 +332,7 @@ router.put("/:id/", async (req, res) => {
     const params = req.params;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
         validateLiftInputs(body, false);
 
         let updateStr = util.getUpdateStr(body, []);
@@ -237,7 +360,7 @@ router.put("/:id/set/", async (req, res) => {
     const params = req.params;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
 
         let oldDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.oldDate);
         if (oldDateSet.length === 0) throw Error("No set exists at old date");
@@ -247,7 +370,7 @@ router.put("/:id/set/", async (req, res) => {
             if (newDateSet.length > 0) throw Error("A set already exists at this date.");
         }
 
-        if (body.sets.length != oldDateSet.length) throw Error("Number of sets do not match.");
+        if (body.sets.length !== oldDateSet.length) throw Error("Number of sets do not match.");
 
         let sets = body.sets;
         let okPackets = [];
@@ -288,11 +411,35 @@ router.put("/:id/set/", async (req, res) => {
     }
 });
 
+// TODO:
+// Modify a workout
+router.put("/workout/:id/", async (req, res) => {
+    const params = req.params;
+});
+
+// TODO:
+// Move lift from one workout to another
+router.put("/workout/:id/", async (req, res) => {
+    const params = req.params;
+});
+
 //------------
 //
 //   DELETE
 //
 //------------
+
+// TODO:
+// Remove lift from a workout
+router.delete("/workout/lift/:id/", async (req, res) => {
+    const params = req.params;
+});
+
+// TODO:
+// Delete a workout
+router.delete("/workout/:id/", async (req, res) => {
+    const params = req.params;
+});
 
 // Delete lift
 router.delete("/:id/", async (req, res) => {
@@ -304,7 +451,7 @@ router.delete("/:id/", async (req, res) => {
     `;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
 
         let sqlArr = delete_sql.split(";");
 
@@ -329,7 +476,7 @@ router.delete("/:id/set/", async (req, res) => {
     `;
 
     try {
-        await verifyUser(req, params.id);
+        await verifyUserLift(req, params.id);
 
         let sqlArr = delete_sql.split(";");
 

@@ -3,7 +3,7 @@ interface ConfigType {
 }
 
 const Config: ConfigType = {
-    apiUrl: "http://localhost:3001/api",
+    apiUrl: "http://localhost:3000/api",
 };
 
 export default Config;
