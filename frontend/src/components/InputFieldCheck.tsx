@@ -8,7 +8,7 @@ import axios from "axios";
 import { Dispatch, SetStateAction, useState } from "react";
 import Config from "../Config";
 import InputField from "./InputField";
-import { basicVerify } from "./ServiceFunctions";
+import { basicVerify } from "./util";
 import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
 import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle } from "../global/globalTypes";
@@ -63,9 +63,7 @@ const InputFieldCheck: React.FC<Props> = ({
     checkType,
 }) => {
     // position key -> -1: full row, 0: middle, 1: left, 2: right
-    const pStr: string = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${
-        position === 0 || position === 2 ? "10px" : "0"
-    }`;
+    const pStr: string = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${position === 0 || position === 2 ? "10px" : "0"}`;
     let gridStyle: GridStyle = { width: "100%" };
     if (position !== -1) gridStyle.padding = pStr;
 
@@ -193,12 +191,7 @@ const InputFieldCheck: React.FC<Props> = ({
             >
                 <Root className={classes.root}>
                     {availability === 0 || availability === -1 ? (
-                        <Button
-                            onClick={handleCheck}
-                            variant="contained"
-                            color="warning"
-                            disabled={disabled || availability === -1}
-                        >
+                        <Button onClick={handleCheck} variant="contained" color="warning" disabled={disabled || availability === -1}>
                             Check
                         </Button>
                     ) : (
@@ -207,11 +200,7 @@ const InputFieldCheck: React.FC<Props> = ({
                     {availability === 1 ? <CircularProgress color="secondary" /> : ""}
                     {availability === 2 ? <CheckIcon className={classes.textSuccess} /> : ""}
                     {availability === 3 ? <ClearIcon className={classes.textError} /> : ""}
-                    <Typography
-                        display="inline"
-                        variant="body1"
-                        className={availability === 3 ? classes.textError : classes.textSuccess}
-                    >
+                    <Typography display="inline" variant="body1" className={availability === 3 ? classes.textError : classes.textSuccess}>
                         {availability === 2 ? "Available" : ""}
                         {availability === 3 ? "Taken" : ""}
                     </Typography>

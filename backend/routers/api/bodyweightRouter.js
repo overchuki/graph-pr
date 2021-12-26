@@ -1,15 +1,20 @@
 const express = require("express");
 const router = express.Router();
-const serviceFunc = require("./serviceFunc");
+const util = require("./utils/util");
+const bwUtil = require("./utils/bwUtil");
+const dateUtil = require("./utils/dateUtil");
+const validUtil = require("./utils/validUtil");
 
 const weightIntRange = [1, 1000];
 
 const validateBWInputs = (body, initial, tz) => {
-    serviceFunc.checkValidInt("Weight", body.weight, initial, weightIntRange);
-    serviceFunc.checkValidInt("Date", serviceFunc.getDateFromStr(body.date), initial, [
-        serviceFunc.getDateFromStr("18500101"),
-        serviceFunc.getDateByTZ(new Date(), tz),
+    let weight = validUtil.validateNum("Weight", body.weight, initial, weightIntRange);
+    if (weight.valid === -1) throw Error(weight.msg);
+    let date = validUtil.validateDate("Date", dateUtil.getDateFromStr(body.date), initial, [
+        dateUtil.getDateFromStr("18500101"),
+        dateUtil.getDateByTZ(new Date(), tz),
     ]);
+    if (date.valid === -1) throw Error(date.msg);
 };
 
 const verifyUser = async (req, id) => {
@@ -51,22 +56,26 @@ router.get("/", async (req, res) => {
     try {
         let bw = await req.conn.queryAsync(sql);
 
-        res.send(bw);
+        util.cleanup(req.conn);
+        res.json({ bw });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
 // Get user's last bodyweight
 router.get("/last/", async (req, res) => {
     try {
-        let bw = await serviceFunc.getLastBodyweight(req, req.user.id, serviceFunc.getDateStrByTZ(new Date(), "", req.user.tz));
+        let bw = await bwUtil.getLastBodyweight(req, req.user.id, dateUtil.getDateStrByTZ(new Date(), "", req.user.tz));
 
-        res.send(bw);
+        util.cleanup(req.conn);
+        res.json({ bw });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -96,12 +105,14 @@ router.post("/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, [body.weight, body.date, req.user.id]);
 
-        let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, body.date, req.user.tz);
+        let okPacket2 = await bwUtil.updateMaintenanceCal(req, req.user.id, body.date, req.user.tz);
 
-        res.send({ success: "BW entry has been added", id: okPacket.insertId });
+        util.cleanup(req.conn);
+        res.json({ success: "BW entry has been added", id: okPacket.insertId });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -124,7 +135,7 @@ router.put("/:id/", async (req, res) => {
             if (bwDate.length > 0) throw Error("Bodyweight already set on this date.");
         }
 
-        let updateStr = serviceFunc.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, []);
 
         let sql = `
             UPDATE bodyweight
@@ -136,12 +147,14 @@ router.put("/:id/", async (req, res) => {
 
         let updatedBW = await req.conn.queryAsync(`SELECT date FROM bodyweight WHERE id = ${params.id}`);
 
-        let okPacket2 = await serviceFunc.updateMaintenanceCal(req, req.user.id, serviceFunc.getDateStr(updatedBW[0].date, ""), req.user.tz);
+        let okPacket2 = await bwUtil.updateMaintenanceCal(req, req.user.id, dateUtil.getDateStr(updatedBW[0].date, ""), req.user.tz);
 
-        res.send({ success: "BW entry has been updated" });
+        util.cleanup(req.conn);
+        res.json({ success: "BW entry has been updated" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -167,18 +180,20 @@ router.delete("/:id/", async (req, res) => {
         let bw = await req.conn.queryAsync(sql);
 
         let delete_sql = `
-            DELETE FROM maintenance_calories WHERE user_fk = ${req.user.id} AND date = '${serviceFunc.getDateStr(bw[0].date, "")}';
+            DELETE FROM maintenance_calories WHERE user_fk = ${req.user.id} AND date = '${dateUtil.getDateStr(bw[0].date, "")}';
             DELETE FROM bodyweight WHERE id = ${params.id}
         `;
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error with deleting bw entry.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error with deleting bw entry.");
 
-        res.send({ success: "BW entry has been deleted." });
+        util.cleanup(req.conn);
+        res.json({ success: "BW entry has been deleted." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -189,7 +204,8 @@ router.delete("/:id/", async (req, res) => {
 //---------
 
 router.use((req, res) => {
-    res.status(404).send({ error: "Requested bodyweight endpoint does not exist." });
+    util.cleanup(req.conn);
+    res.status(404).json({ error: "Requested bodyweight endpoint does not exist." });
 });
 
 module.exports = router;

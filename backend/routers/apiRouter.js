@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { requireAuth } = require("../auth/authMiddleware");
+const { cleanup } = require("./api/utils/util");
 
 const authRouter = require("./api/authRouter");
 const itemRouter = require("./api/itemRouter");
@@ -17,7 +18,8 @@ router.use("/lift", requireAuth, liftRouter);
 router.use("/bw", requireAuth, bwRouter);
 
 router.use((req, res) => {
-    res.send({ error: "Requested api endpoint does not exist." });
+    cleanup(req.conn);
+    res.json({ error: "Requested api endpoint does not exist." });
 });
 
 module.exports = router;

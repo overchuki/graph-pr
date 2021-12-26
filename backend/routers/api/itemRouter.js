@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const serviceFunc = require("./serviceFunc");
+const util = require("./utils/util");
+const validUtil = require("./utils/validUtil");
 
 const nameLenRange = [4, 20];
 const caloriesRange = [0, 10000];
@@ -12,17 +13,27 @@ const iconNumRange = [2, 2];
 const categoryNumRange = [1, 12];
 
 const validateItemInputs = (body, initial) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
+    let name = validUtil.validateString("Name", body.name, initial, nameLenRange, true, false, false, false, false);
+    if (name.valid === -1) throw Error(name.msg);
 
-    serviceFunc.checkValidInt("Calories", body.calories, initial, caloriesRange);
-    serviceFunc.checkValidInt("Protein", body.protein, initial, macroRange);
-    serviceFunc.checkValidInt("Carbs", body.carbs, initial, macroRange);
-    serviceFunc.checkValidInt("Fat", body.fat, initial, macroRange);
-    serviceFunc.checkValidInt("Cost", body.cost, initial, costRange);
-    serviceFunc.checkValidInt("Serving Size", body.serving_size, initial, servSizeRange);
-    serviceFunc.checkValidInt("Serving Size Unit Index", body.serving_size_unit_fk, initial, servSizeUnitRange);
-    serviceFunc.checkValidInt("Icon Index", body.icon_fk, initial, iconNumRange);
-    serviceFunc.checkValidInt("Category Index", body.category_fk, initial, categoryNumRange);
+    let calories = validUtil.validateNum("Calories", body.calories, initial, caloriesRange);
+    if (calories.valid === -1) throw Error(calories.msg);
+    let protein = validUtil.validateNum("Protein", body.protein, initial, macroRange);
+    if (protein.valid === -1) throw Error(protein.msg);
+    let carbs = validUtil.validateNum("Carbs", body.carbs, initial, macroRange);
+    if (carbs.valid === -1) throw Error(carbs.msg);
+    let fat = validUtil.validateNum("Fat", body.fat, initial, macroRange);
+    if (fat.valid === -1) throw Error(fat.msg);
+    let cost = validUtil.validateNum("Cost", body.cost, initial, costRange);
+    if (cost.valid === -1) throw Error(cost.msg);
+    let servSize = validUtil.validateNum("Serving Size", body.serving_size, initial, servSizeRange);
+    if (servSize.valid === -1) throw Error(servSize.msg);
+    let servSizeIdx = validUtil.validateNum("Serving Size Unit Index", body.serving_size_unit_fk, initial, servSizeUnitRange);
+    if (servSizeIdx.valid === -1) throw Error(servSizeIdx.msg);
+    let iconIdx = validUtil.validateNum("Icon Index", body.icon_fk, initial, iconNumRange);
+    if (iconIdx.valid === -1) throw Error(iconIdx.msg);
+    let catIdx = validUtil.validateNum("Category Index", body.category_fk, initial, categoryNumRange);
+    if (catIdx.valid === -1) throw Error(catIdx.msg);
 };
 
 const verifyUser = async (req, id) => {
@@ -55,10 +66,12 @@ router.get("/", async (req, res) => {
     try {
         let items = await req.conn.queryAsync(sql);
 
-        res.send(items);
+        util.cleanup(req.conn);
+        res.json({ items });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -76,10 +89,12 @@ router.get("/:id/single/", async (req, res) => {
         let item = await req.conn.queryAsync(sql);
         item = item[0];
 
-        res.send(item);
+        util.cleanup(req.conn);
+        res.json({ item });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -100,10 +115,12 @@ router.get("/search/", async (req, res) => {
     try {
         let results = await req.conn.queryAsync(sql);
 
-        res.send(results);
+        util.cleanup(req.conn);
+        res.json({ results });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -125,10 +142,12 @@ router.get("/search/category/:catId/", async (req, res) => {
     try {
         let results = await req.conn.queryAsync(sql);
 
-        res.send(results);
+        util.cleanup(req.conn);
+        res.json({ results });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -150,10 +169,12 @@ router.get("/category/:catId/", async (req, res) => {
     try {
         let results = await req.conn.queryAsync(sql);
 
-        res.send(results);
+        util.cleanup(req.conn);
+        res.json({ results });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -189,7 +210,8 @@ router.post("/", async (req, res) => {
 
         let existingItem = await req.conn.queryAsync(`SELECT * FROM item WHERE name = '${body.name}'`);
         if (existingItem.length > 0) {
-            res.send({ alreadyExists: existingItem[0] });
+            util.cleanup(req.conn);
+            res.json({ alreadyExists: existingItem[0] });
             return;
         }
 
@@ -207,10 +229,12 @@ router.post("/", async (req, res) => {
             req.user.id,
         ]);
 
-        res.send({ success: "item has been created", id: okPacket.insertId });
+        util.cleanup(req.conn);
+        res.json({ success: "item has been created", id: okPacket.insertId });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -229,7 +253,7 @@ router.put("/:id/", async (req, res) => {
         await verifyUser(req, params.id);
         validateItemInputs(body, false);
 
-        let updateStr = serviceFunc.getUpdateStr(body, ["serving_size", "serving_size_unit_fk", "category_fk"]);
+        let updateStr = util.getUpdateStr(body, ["serving_size", "serving_size_unit_fk", "category_fk"]);
         if (updateStr.affected) throw Error("Cannot modify these attributes.");
 
         let sql = `
@@ -240,10 +264,12 @@ router.put("/:id/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        res.send({ success: "item has been updated" });
+        util.cleanup(req.conn);
+        res.json({ success: "item has been updated" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -266,12 +292,14 @@ router.delete("/:id/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error with deleting item.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error with deleting item.");
 
-        res.send({ success: "Item has been deleted." });
+        util.cleanup(req.conn);
+        res.json({ success: "Item has been deleted." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -282,7 +310,8 @@ router.delete("/:id/", async (req, res) => {
 //---------
 
 router.use((req, res) => {
-    res.status(404).send({ error: "Requested item endpoint does not exist." });
+    util.cleanup(req.conn);
+    res.status(404).json({ error: "Requested item endpoint does not exist." });
 });
 
 module.exports = router;

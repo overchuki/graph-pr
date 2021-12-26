@@ -1,5 +1,6 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const { cleanup } = require("../routers/api/utils/util");
 
 const verifyUser = async (req, res, next) => {
     const token = req.cookies.jwt;
@@ -31,7 +32,8 @@ const verifyUser = async (req, res, next) => {
 
 const requireAuth = async (req, res, next) => {
     if (!req.user) {
-        res.status(400).send({ error: "This endpoint requires authenticated jwt token." });
+        cleanup(req.conn);
+        res.status(400).json({ error: "This endpoint requires authenticated jwt token." });
     } else {
         next();
     }

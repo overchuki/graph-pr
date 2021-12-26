@@ -2,7 +2,10 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { requireAuth } = require("../../auth/authMiddleware");
-const serviceFunc = require("./serviceFunc");
+const util = require("./utils/util");
+const bwUtil = require("./utils/bwUtil");
+const dateUtil = require("./utils/dateUtil");
+const validUtil = require("./utils/validUtil");
 const router = express.Router();
 
 const saltRounds = 10;
@@ -31,27 +34,42 @@ const createJWTToken = (payload) => {
 };
 
 const validateUserInfo = (body, initial, tz) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
-    serviceFunc.checkValidStr("Username", body.username, initial, usernameLenRange, true, false, true);
-    serviceFunc.checkValidStr("Email", body.email, false, emailLenRange, false, true, false);
-    serviceFunc.checkValidStr("Description", body.description, false, descriptionLenRange, true, false, false);
-    serviceFunc.checkValidStr("Password", body.password, initial, passwordLenRange, true, false, true);
-    serviceFunc.checkValidStr("Timezone", body.tz, initial, [1, 100], true, false, false);
+    let name = validUtil.validateString("Name", body.name, initial, nameLenRange, true, false, false, false, false);
+    if (name.valid === -1) throw Error(name.msg);
+    let username = validUtil.validateString("Username", body.username, initial, usernameLenRange, true, false, false, false, false);
+    if (username.valid === -1) throw Error(username.msg);
+    let email = validUtil.validateString("Email", body.email, false, emailLenRange, false, true, false, false, false);
+    if (email.valid === -1) throw Error(email.msg);
+    let desc = validUtil.validateString("Description", body.description, false, descriptionLenRange, true, false, false, false, false);
+    if (desc.valid === -1) throw Error(desc.msg);
+    let pass = validUtil.validateString("Password", body.password, initial, passwordLenRange, true, false, false, false, false);
+    if (pass.valid === -1) throw Error(pass.msg);
+    let timezone = validUtil.validateString("Timezone", body.tz, initial, [1, 100], true, false, false, false, false);
+    if (timezone.valid === -1) throw Error(timezone.msg);
 
-    serviceFunc.checkValidInt("Height value", body.height, initial, heightNumRange);
-    serviceFunc.checkValidInt("Height unit index", body.height_unit_fk, initial, heightUnitNumRange);
-    serviceFunc.checkValidInt("Gender index", body.gender_fk, initial, genderNumRange);
-    serviceFunc.checkValidInt("Activity index", body.activity_level_fk, initial, activityLevelNumRange);
-    serviceFunc.checkValidInt("Weight goal index", body.weight_goal_fk, initial, weightGoalNumRange);
-    serviceFunc.checkValidInt("Icon index", body.icon_fk, initial, iconNumRange);
-    serviceFunc.checkValidInt("Bw value", body.bodyweight, initial, bwNumRange);
-    serviceFunc.checkValidInt("Bw unit index", body.bw_unit_fk, initial, bwUnitNumRange);
+    let heightVal = validUtil.validateNum("Height value", body.height, initial, heightNumRange);
+    if (heightVal.valid === -1) throw Error(heightVal.msg);
+    let heightIdx = validUtil.validateNum("Height unit index", body.height_unit_fk, initial, heightUnitNumRange);
+    if (heightIdx.valid === -1) throw Error(heightIdx.msg);
+    let genderIdx = validUtil.validateNum("Gender index", body.gender_fk, initial, genderNumRange);
+    if (genderIdx.valid === -1) throw Error(genderIdx.msg);
+    let activityIdx = validUtil.validateNum("Activity index", body.activity_level_fk, initial, activityLevelNumRange);
+    if (activityIdx.valid === -1) throw Error(activityIdx.msg);
+    let weightIdx = validUtil.validateNum("Weight goal index", body.weight_goal_fk, initial, weightGoalNumRange);
+    if (weightIdx.valid === -1) throw Error(weightIdx.msg);
+    let iconIdx = validUtil.validateNum("Icon index", body.icon_fk, initial, iconNumRange);
+    if (iconIdx.valid === -1) throw Error(iconIdx.msg);
+    let bwVal = validUtil.validateNum("Bw value", body.bodyweight, initial, bwNumRange);
+    if (bwVal.valid === -1) throw Error(bwVal.msg);
+    let bwIdx = validUtil.validateNum("Bw unit index", body.bw_unit_fk, initial, bwUnitNumRange);
+    if (bwIdx.valid === -1) throw Error(bwIdx.msg);
 
-    let curDate = serviceFunc.getDateByTZ(new Date(), tz);
-    let dob = serviceFunc.getDateFromStr(body.dob);
+    let curDate = dateUtil.getDateByTZ(new Date(), tz);
+    let dob = dateUtil.getDateFromStr(body.dob);
     let dateMax = curDate.setFullYear(curDate.getFullYear() - ageNumRange[0]);
     let dateMin = curDate.setFullYear(curDate.getFullYear() - ageNumRange[1] + ageNumRange[0]);
-    serviceFunc.checkValidInt("Date of Birth", dob, initial, [dateMin, dateMax]);
+    if (dob > dateMax) throw Error("Min age is 13");
+    if (dob < dateMin) throw Error("Nobody is that old.");
 };
 
 //---------
@@ -77,14 +95,16 @@ router.get("/exists/", async (req, res) => {
 
         const user = await req.conn.queryAsync(sql, [query.str]);
 
+        util.cleanup(req.conn);
         if (user.length > 0) {
-            res.send({ success: { available: false } });
+            res.json({ success: { available: false } });
         } else {
-            res.send({ success: { available: true } });
+            res.json({ success: { available: true } });
         }
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -126,16 +146,18 @@ router.get("/", requireAuth, async (req, res) => {
         let user = await req.conn.queryAsync(sql);
         user = user[0];
 
-        let curDate = serviceFunc.getDateByTZ(new Date(), req.user.tz);
-        let bw = await serviceFunc.getLastBodyweight(req, req.user.id, serviceFunc.getDateStr(curDate, ""));
+        let curDate = dateUtil.getDateByTZ(new Date(), req.user.tz);
+        let bw = await bwUtil.getLastBodyweight(req, req.user.id, dateUtil.getDateStr(curDate, ""));
         if (bw.length > 0) bw = bw[0];
         else bw = null;
         user.weight = bw.weight;
 
-        res.send({ user });
+        util.cleanup(req.conn);
+        res.json({ user });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -163,12 +185,11 @@ router.post("/login/", async (req, res) => {
 
             if (auth) {
                 const token = createJWTToken({ id: user[0].id, tz: body.tz });
-                res.cookie("jwt", token, {
-                    httpOnly: true,
-                    maxAge: maxTokenAgeSeconds * 1000,
-                });
+
+                util.cleanup(req.conn);
+                res.cookie("jwt", token, { httpOnly: true, maxAge: maxTokenAgeSeconds * 1000 });
                 res.cookie("user", "jwtexists", { maxAge: maxTokenAgeSeconds * 1000 });
-                res.send({ success: "Login successful." });
+                res.json({ success: "Login successful." });
             } else {
                 throw Error("Wrong password.");
             }
@@ -176,16 +197,18 @@ router.post("/login/", async (req, res) => {
             throw Error("Wrong email or username.");
         }
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
 // Log a user out
 router.post("/logout/", requireAuth, async (req, res) => {
+    util.cleanup(req.conn);
     res.cookie("jwt", "", { maxAge: 1 });
     res.cookie("user", "", { maxAge: 1 });
-    res.send({ success: "User has been logged out." });
+    res.json({ success: "User has been logged out." });
 });
 
 // Sign a user up
@@ -222,8 +245,8 @@ router.post("/signup/", async (req, res) => {
             });
         });
 
-        let dob = serviceFunc.getDateFromStr(body.dob);
-        let curDate = serviceFunc.getDateByTZ(new Date(), body.tz);
+        let dob = dateUtil.getDateFromStr(body.dob);
+        let curDate = dateUtil.getDateByTZ(new Date(), body.tz);
 
         let okPacket = await req.conn.queryAsync(sql, [
             body.name,
@@ -252,17 +275,14 @@ router.post("/signup/", async (req, res) => {
         `;
         let okPacket2 = await req.conn.queryAsync(sql2, [body.bodyweight, curDate, okPacket.insertId]);
 
-        let okPacket3 = await serviceFunc.updateMaintenanceCal(
-            req,
-            okPacket.insertId,
-            serviceFunc.getDateStr(curDate, ""),
-            body.tz
-        );
+        let okPacket3 = await bwUtil.updateMaintenanceCal(req, okPacket.insertId, dateUtil.getDateStr(curDate, ""), body.tz);
 
-        res.send({ success: "User has been created." });
+        util.cleanup(req.conn);
+        res.json({ success: "User has been created." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -279,16 +299,8 @@ router.put("/account/", requireAuth, async (req, res) => {
     try {
         validateUserInfo(body, false, req.user.tz);
 
-        let maintenanceFactors = [
-            "dob",
-            "height",
-            "height_unit_fk",
-            "gender_fk",
-            "bw_unit_fk",
-            "activity_level_fk",
-            "weight_goal_fk",
-        ];
-        let updateStr = serviceFunc.getUpdateStr(body, maintenanceFactors);
+        let maintenanceFactors = ["dob", "height", "height_unit_fk", "gender_fk", "bw_unit_fk", "activity_level_fk", "weight_goal_fk"];
+        let updateStr = util.getUpdateStr(body, maintenanceFactors);
 
         let sql = `
             UPDATE user
@@ -298,21 +310,18 @@ router.put("/account/", requireAuth, async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        let curDate = serviceFunc.getDateByTZ(new Date(), req.user.tz);
+        let curDate = dateUtil.getDateByTZ(new Date(), req.user.tz);
 
         if (updateStr.affected) {
-            let okPacket2 = await serviceFunc.updateMaintenanceCal(
-                req,
-                req.user.id,
-                serviceFunc.getDateStr(curDate, ""),
-                req.user.tz
-            );
+            let okPacket2 = await bwUtil.updateMaintenanceCal(req, req.user.id, dateUtil.getDateStr(curDate, ""), req.user.tz);
         }
 
-        res.send({ success: "Account has been modified." });
+        util.cleanup(req.conn);
+        res.json({ success: "Account has been modified." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -341,13 +350,16 @@ router.put("/password/", requireAuth, async (req, res) => {
             });
 
             let okPacket = await req.conn.queryAsync(sql, [hashedPW]);
-            res.send({ success: "Password has been updated." });
+
+            util.cleanup(req.conn);
+            res.json({ success: "Password has been updated." });
         } else {
             throw Error("Old password is wrong.");
         }
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -372,9 +384,9 @@ router.delete("/", requireAuth, async (req, res) => {
                 UPDATE meal SET user_fk = 1 WHERE user_fk = ${id};
             `;
 
-            let exerciseStr = await serviceFunc.getDeleteStr(req, "exercise", id, "exercise_fk");
-            let liftStr = await serviceFunc.getDeleteStr(req, "lift", id, "lift_fk");
-            let mealStr = await serviceFunc.getDeleteStr(req, "meal_date", id, "meal_fk");
+            let exerciseStr = await util.getDeleteStr(req, "exercise", id, "exercise_fk");
+            let liftStr = await util.getDeleteStr(req, "lift", id, "lift_fk");
+            let mealStr = await util.getDeleteStr(req, "meal_date", id, "meal_fk");
 
             if (exerciseStr.length > 0) delete_sql += `DELETE FROM exercise_set WHERE ${exerciseStr};`;
             if (liftStr.length > 0) delete_sql += `DELETE FROM lift_set WHERE ${liftStr};`;
@@ -390,17 +402,20 @@ router.delete("/", requireAuth, async (req, res) => {
 
             let sqlArr = delete_sql.split(";");
 
-            await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error with deleting account.");
+            await util.runMultipleLinesOfSql(req, sqlArr, "Error with deleting account.");
 
+            util.cleanup(req.conn);
             res.cookie("jwt", "", { maxAge: 1 });
-            res.send({ success: "Account has been deleted." });
+            res.cookie("user", "", { maxAge: 1 });
+            res.json({ success: "Account has been deleted." });
         } else {
             throw Error("Password is wrong.");
         }
     } catch (err) {
         console.log(err);
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -411,7 +426,8 @@ router.delete("/", requireAuth, async (req, res) => {
 //---------
 
 router.use((req, res) => {
-    res.status(404).send({ error: "Requested auth endpoint does not exist." });
+    util.cleanup(req.conn);
+    res.status(404).json({ error: "Requested auth endpoint does not exist." });
 });
 
 module.exports = router;

@@ -8,6 +8,7 @@ const { connectToDB, db } = require("./db");
 const { verifyUser } = require("./auth/authMiddleware");
 const mainRouter = require("./routers/mainRouter");
 const cors = require("cors");
+const { cleanup } = require("./routers/api/utils/util");
 
 require("dotenv").config({
     path: `${__dirname}/.env`,
@@ -51,7 +52,8 @@ app.use(verifyUser);
 app.options(cors(corsOptions));
 
 app.get("/", (req, res, next) => {
-    res.send("Welcome to calorie tracker.");
+    cleanup(req.conn);
+    res.json({ welcome: "Welcome to calorie tracker." });
 });
 
 // Use main router for every request
@@ -59,5 +61,6 @@ app.use(mainRouter);
 
 // Catch unknown requests
 app.use((req, res) => {
-    res.status(404).send({ error: "the requested endpoint does not exist" });
+    cleanup(req.conn);
+    res.status(404).json({ error: "the requested endpoint does not exist" });
 });

@@ -1,13 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const serviceFunc = require("./serviceFunc");
+const util = require("./utils/util");
+const mealUtil = require("./utils/mealUtil");
+const dateUtil = require("./utils/dateUtil");
+const validUtil = require("./utils/validUtil");
 
 const nameLenRange = [4, 20];
 const descLenRange = [1, 100];
 
 const validateMealInputs = (body, initial) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
-    serviceFunc.checkValidStr("Description", body.description, false, descLenRange, true, false, false);
+    let name = validUtil.validateString("Name", body.name, initial, nameLenRange, true, false, false, false, false);
+    if (name.valid === -1) throw Error(name.msg);
+    let desc = validUtil.validateString("Description", body.description, false, descLenRange, true, false, false, false, false);
+    if (desc.valid === -1) throw Error(desc.msg);
 };
 
 const verifyUser = async (req, id) => {
@@ -40,10 +45,12 @@ router.get("/", async (req, res) => {
     try {
         let meals = await req.conn.queryAsync(sql);
 
-        res.send(meals);
+        util.cleanup(req.conn);
+        res.json({ meals });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -66,14 +73,16 @@ router.get("/:id/single/", async (req, res) => {
         if (meal.length === 0) throw Error("Requested meal does not exist.");
         meal = meal[0];
 
-        let mealItems = await serviceFunc.getMealItems(req, meal.id);
+        let mealItems = await mealUtil.getMealItems(req, meal.id);
 
-        let mealTotals = await serviceFunc.getMealTotals(req, meal.id);
+        let mealTotals = await mealUtil.getMealTotals(req, meal.id);
 
-        res.send({ meal, mealTotals, mealItems });
+        util.cleanup(req.conn);
+        res.json({ meal, mealTotals, mealItems });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -94,10 +103,12 @@ router.get("/search/", async (req, res) => {
     try {
         let results = await req.conn.queryAsync(sql);
 
-        res.send(results);
+        util.cleanup(req.conn);
+        res.json({ results });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -135,24 +146,26 @@ router.get("/date/", async (req, res) => {
         let meals = await req.conn.queryAsync(sqlMeals);
 
         for (let i = 0; i < meals.length; i++) {
-            let mealTotal = await serviceFunc.getMealTotals(req, meals[i].meal_fk);
+            let mealTotal = await mealUtil.getMealTotals(req, meals[i].meal_fk);
             meals[i] = {
                 ...meals[i],
                 ...mealTotal,
             };
         }
 
-        let dayTotals = await serviceFunc.getDateTotals(meals);
+        let dayTotals = await mealUtil.getDateTotals(meals);
 
         let nutritionDetails = await req.conn.queryAsync(sqlNutrition + sqlNutritionLatest);
         if (nutritionDetails.length === 0) {
             nutritionDetails = await req.conn.queryAsync(sqlNutrition + sqlNutritionClosest);
         }
 
-        res.send({ nutritionDetails: nutritionDetails[0], meals, dayTotals });
+        util.cleanup(req.conn);
+        res.json({ nutritionDetails: nutritionDetails[0], meals, dayTotals });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -182,10 +195,12 @@ router.post("/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, [body.name, body.description, req.user.id]);
 
-        res.send({ success: "meal has been created", id: okPacket.insertId });
+        util.cleanup(req.conn);
+        res.json({ success: "meal has been created", id: okPacket.insertId });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -206,19 +221,20 @@ router.post("/:id/item/:itemId/", async (req, res) => {
     try {
         await verifyUser(req, params.id);
 
-        let itemInMeal = await req.conn.queryAsync(
-            `SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`
-        );
+        let itemInMeal = await req.conn.queryAsync(`SELECT id FROM meal_item WHERE item_fk = ${params.itemId} AND meal_fk = ${params.id}`);
         if (itemInMeal.length > 0) throw Error("Item is already in meal, edit the serving percentage to change its quantity.");
 
-        serviceFunc.checkValidInt("Item Percentage", body.item_percentage, true, [0, 100]);
+        let itemPerc = validUtil.validateNum("Item Percentage", body.item_percentage, true, [0, 100]);
+        if (itemPerc.valid === -1) throw Error(itemPerc.msg);
 
         let okPacket = await req.conn.queryAsync(sql, [params.itemId, body.item_percentage, params.id]);
 
-        res.send({ success: "item has been added to meal" });
+        util.cleanup(req.conn);
+        res.json({ success: "item has been added to meal" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -239,18 +255,21 @@ router.post("/:id/date/", async (req, res) => {
     try {
         await verifyUser(req, params.id);
 
-        let date = serviceFunc.getDateFromStr(body.date);
-        serviceFunc.checkValidInt("Meal Date", date, true, [
-            serviceFunc.getDateFromStr("1900-01-01"),
-            serviceFunc.getDateByTZ(new Date(), req.user.tz),
+        let date = dateUtil.getDateFromStr(body.date);
+        let valDate = validUtil.validateDate("Meal Date", date, true, [
+            dateUtil.getDateFromStr("1900-01-01"),
+            dateUtil.getDateByTZ(new Date(), req.user.tz),
         ]);
+        if (valDate.valid === -1) throw Error(valDate.msg);
 
         let okPacket = await req.conn.queryAsync(sql, [body.date, params.id, req.user.id]);
 
-        res.send({ success: "meal has been added to date" });
+        util.cleanup(req.conn);
+        res.json({ success: "meal has been added to date" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -269,7 +288,7 @@ router.put("/:id/", async (req, res) => {
         await verifyUser(req, params.id);
         validateMealInputs(body, false);
 
-        let updateStr = serviceFunc.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, []);
 
         let sql = `
             UPDATE meal
@@ -279,10 +298,12 @@ router.put("/:id/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        res.send({ success: "meal has been updated" });
+        util.cleanup(req.conn);
+        res.json({ success: "meal has been updated" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -299,14 +320,17 @@ router.put("/:id/item/:itemId/", async (req, res) => {
 
     try {
         await verifyUser(req, params.id);
-        serviceFunc.checkValidInt("Item Percentage", body.item_percentage, true, [0, 100]);
+        let itemPerc = validUtil.validateNum("Item Percentage", body.item_percentage, true, [0, 100]);
+        if (itemPerc.valid === -1) throw Error(itemPerc.msg);
 
         let okPacket = await req.conn.queryAsync(sql, [body.item_percentage]);
 
-        res.send({ success: "item has been modified" });
+        util.cleanup(req.conn);
+        res.json({ success: "item has been modified" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -331,12 +355,14 @@ router.delete("/:id/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error with deleting meal.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error with deleting meal.");
 
-        res.send({ success: "Meal has been deleted." });
+        util.cleanup(req.conn);
+        res.json({ success: "Meal has been deleted." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -353,12 +379,14 @@ router.delete("/:id/item/:itemId", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error deleting item from meal.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting item from meal.");
 
-        res.send({ success: "Item has been deleted from meal." });
+        util.cleanup(req.conn);
+        res.json({ success: "Item has been deleted from meal." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -375,12 +403,14 @@ router.delete("/:id/date/:dateId/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error deleting meal from date.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting meal from date.");
 
-        res.send({ success: "Meal has been deleted from date." });
+        util.cleanup(req.conn);
+        res.json({ success: "Meal has been deleted from date." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -391,7 +421,8 @@ router.delete("/:id/date/:dateId/", async (req, res) => {
 //---------
 
 router.use((req, res) => {
-    res.status(404).send({ error: "Requested meal endpoint does not exist." });
+    util.cleanup(req.conn);
+    res.status(404).json({ error: "Requested meal endpoint does not exist." });
 });
 
 module.exports = router;

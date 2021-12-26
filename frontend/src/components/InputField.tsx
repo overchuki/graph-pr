@@ -1,7 +1,7 @@
 import { Grid, GridSize } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import { Dispatch, SetStateAction, useState } from "react";
-import { basicVerify, dobVerify } from "./ServiceFunctions";
+import { basicVerify, dobVerify } from "./util";
 import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle, keyChangeFunc } from "../global/globalTypes";
 
 interface Props {
@@ -36,9 +36,7 @@ const InputField: React.FC<Props> = ({
     verifyObj,
 }) => {
     // position key -> -1: full row, 0: middle, 1: left, 2: right
-    const pStr: string = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${
-        position === 0 || position === 2 ? "10px" : "0"
-    }`;
+    const pStr: string = `0 ${position === 0 || position === 1 ? "10px" : "0"} 0 ${position === 0 || position === 2 ? "10px" : "0"}`;
     let gridStyle: GridStyle = { width: "100%" };
     if (position !== -1) gridStyle.padding = pStr;
 

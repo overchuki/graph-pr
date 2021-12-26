@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const serviceFunc = require("./serviceFunc");
+const util = require("./utils/util");
+const validUtil = require("./utils/validUtil");
 
 //---------
 //
@@ -33,7 +34,8 @@ const serviceFunc = require("./serviceFunc");
 //---------
 
 router.use((req, res) => {
-    res.send({ error: "Requested exercise endpoint does not exist." });
+    util.cleanup(req.conn);
+    res.json({ error: "Requested exercise endpoint does not exist." });
 });
 
 module.exports = router;

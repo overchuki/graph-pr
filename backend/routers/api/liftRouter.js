@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const serviceFunc = require("./serviceFunc");
+const util = require("./utils/util");
+const liftUtil = require("./utils/liftUtil");
+const validUtil = require("./utils/validUtil");
 
 const nameLenRange = [1, 20];
 const unitNumRange = [1, 2];
@@ -13,8 +15,11 @@ const verifyUser = async (req, id) => {
 };
 
 const validateLiftInputs = (body, initial) => {
-    serviceFunc.checkValidStr("Name", body.name, initial, nameLenRange, true, false, false);
-    serviceFunc.checkValidInt("Unit index", body.unit_fk, initial, unitNumRange);
+    let name = validUtil.validateString("Name", body.name, initial, nameLenRange, true, false, false, false, false);
+    if (name.valid === -1) throw Error(name.msg);
+
+    let unitIdx = validUtil.validateNum("Unit index", body.unit_fk, initial, unitNumRange);
+    if (unitIdx.valid === -1) throw Error(unitIdx.msg);
 };
 
 //---------
@@ -43,13 +48,15 @@ router.get("/", async (req, res) => {
         let liftArray = [];
 
         for (let i = 0; i < lifts.length; i++) {
-            liftArray.push(await serviceFunc.getLiftInfo(req, lifts[i].id));
+            liftArray.push(await liftUtil.getLiftInfo(req, lifts[i].id));
         }
 
-        res.send(liftArray);
+        util.cleanup(req.conn);
+        res.json({ liftArray });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -60,14 +67,16 @@ router.get("/:id/single/", async (req, res) => {
     try {
         await verifyUser(req, params.id);
 
-        let liftInfo = await serviceFunc.getLiftInfo(req, params.id);
+        let liftInfo = await liftUtil.getLiftInfo(req, params.id);
 
-        let liftSets = await serviceFunc.getLiftSets(req, liftInfo.id);
+        let liftSets = await liftUtil.getLiftSets(req, liftInfo.id);
 
-        res.send({ liftInfo, liftSets });
+        util.cleanup(req.conn);
+        res.json({ liftInfo, liftSets });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -88,10 +97,12 @@ router.get("/:id/set/", async (req, res) => {
 
         let set = await req.conn.queryAsync(sql);
 
-        res.send(set);
+        util.cleanup(req.conn);
+        res.json({ set });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -119,10 +130,12 @@ router.post("/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id]);
 
-        res.send({ success: "lift has been created", id: okPacket.insertId });
+        util.cleanup(req.conn);
+        res.json({ success: "lift has been created", id: okPacket.insertId });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -145,21 +158,23 @@ router.post("/:id/set/", async (req, res) => {
 
     try {
         await verifyUser(req, params.id);
-        serviceFunc.checkValidStr("Set array", body.sets, true, [1, 10], false, false, false);
-        let newDateSet = await serviceFunc.checkExistingLiftSet(req, params.id, body.date);
+        if (body.sets.length < 1) throw Error("Set array cannot be empty.");
+        else if (body.sets.length > 10) throw Error("Set array max length is 10.");
+
+        let newDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.date);
         if (newDateSet.length > 0) throw Error("A set already exists at this date.");
 
         let sets = body.sets;
         let okPackets = [];
         let updateNeccessary = false;
 
-        let liftInfo = await serviceFunc.getLiftInfo(req, params.id);
+        let liftInfo = await liftUtil.getLiftInfo(req, params.id);
 
         for (let i = 0; i < sets.length; i++) {
             let weight = sets[i][0];
             let reps = sets[i][1];
             let args = [i + 1, weight, reps];
-            args.push(serviceFunc.getTheoMax(weight, reps));
+            args.push(liftUtil.getTheoMax(weight, reps));
             args.push(body.date);
             args.push(params.id);
 
@@ -171,12 +186,14 @@ router.post("/:id/set/", async (req, res) => {
             okPackets.push(okPacket);
         }
 
-        if (updateNeccessary) await serviceFunc.updateLiftMax(req, params.id);
+        if (updateNeccessary) await liftUtil.updateLiftMax(req, params.id);
 
-        res.send({ success: "lift set has been added" });
+        util.cleanup(req.conn);
+        res.json({ success: "lift set has been added" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -195,7 +212,7 @@ router.put("/:id/", async (req, res) => {
         await verifyUser(req, params.id);
         validateLiftInputs(body, false);
 
-        let updateStr = serviceFunc.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, []);
 
         let sql = `
             UPDATE lift
@@ -205,10 +222,12 @@ router.put("/:id/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        res.send({ success: "lift has been updated" });
+        util.cleanup(req.conn);
+        res.json({ success: "lift has been updated" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -220,11 +239,11 @@ router.put("/:id/set/", async (req, res) => {
     try {
         await verifyUser(req, params.id);
 
-        let oldDateSet = await serviceFunc.checkExistingLiftSet(req, params.id, body.oldDate);
+        let oldDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.oldDate);
         if (oldDateSet.length === 0) throw Error("No set exists at old date");
 
         if (body.date) {
-            let newDateSet = await serviceFunc.checkExistingLiftSet(req, params.id, body.date);
+            let newDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.date);
             if (newDateSet.length > 0) throw Error("A set already exists at this date.");
         }
 
@@ -243,10 +262,10 @@ router.put("/:id/set/", async (req, res) => {
             } else {
                 setBody.weight = sets[i][0];
                 setBody.reps = sets[i][1];
-                setBody.theomax = serviceFunc.getTheoMax(setBody.weight, setBody.reps);
+                setBody.theomax = liftUtil.getTheoMax(setBody.weight, setBody.reps);
             }
 
-            let updateStr = serviceFunc.getUpdateStr(setBody, []);
+            let updateStr = util.getUpdateStr(setBody, []);
 
             let sql = `
                 UPDATE lift_set
@@ -258,12 +277,14 @@ router.put("/:id/set/", async (req, res) => {
             okPackets.push(okPacket);
         }
 
-        await serviceFunc.updateLiftMax(req, params.id);
+        await liftUtil.updateLiftMax(req, params.id);
 
-        res.send({ success: "lift set has been updated" });
+        util.cleanup(req.conn);
+        res.json({ success: "lift set has been updated" });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -287,12 +308,14 @@ router.delete("/:id/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift.");
 
-        res.send({ success: "Lift has been deleted." });
+        util.cleanup(req.conn);
+        res.json({ success: "Lift has been deleted." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -310,14 +333,16 @@ router.delete("/:id/set/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        await serviceFunc.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift set.");
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift set.");
 
-        await serviceFunc.updateLiftMax(req, params.id);
+        await liftUtil.updateLiftMax(req, params.id);
 
-        res.send({ success: "Lift set has been deleted." });
+        util.cleanup(req.conn);
+        res.json({ success: "Lift set has been deleted." });
     } catch (err) {
-        const errors = serviceFunc.handleError(err);
-        res.send({ error: errors });
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
     }
 });
 
@@ -328,7 +353,8 @@ router.delete("/:id/set/", async (req, res) => {
 //---------
 
 router.use((req, res) => {
-    res.status(404).send({ error: "Requested lift endpoint does not exist." });
+    util.cleanup(req.conn);
+    res.status(404).json({ error: "Requested lift endpoint does not exist." });
 });
 
 module.exports = router;
