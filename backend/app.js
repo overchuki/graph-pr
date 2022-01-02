@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 });
 
 var corsOptions = {
-    origin: "http://localhost:3000",
+    origin: "http://localhost:3001",
     optionsSuccessStatus: 200,
 };
 

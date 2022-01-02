@@ -133,6 +133,7 @@ const checkExistingLiftSet = async (req, liftId, date) => {
 module.exports = {
     getTheoMax,
     getLiftInfo,
+    getWorkoutInfo,
     updateLiftMax,
     getLiftDuration,
     getLiftSets,

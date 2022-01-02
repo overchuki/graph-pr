@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import axios from "axios";
 import Config from "../Config";
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogTitle from "@mui/material/DialogTitle";
+import { Link } from "react-router-dom";
+import Divider from "@mui/material/Divider";
 import AppBar from "@mui/material/AppBar";
+import IconButton from "@mui/material/IconButton";
+import Avatar from "@mui/material/Avatar";
 import Toolbar from "@mui/material/Toolbar";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import NavBarLink from "./NavBarLink";
 import NavBarLinkBtn from "./NavBarLinkBtn";
 import { RootState } from "../global/store";
@@ -18,14 +20,15 @@ const Navbar: React.FC = () => {
     const user = useAppSelector((state: RootState) => state.user);
     const dispatch = useAppDispatch();
 
-    const [logoutDialogState, setLogoutDialogState] = useState<boolean>(false);
-
-    const logoutDialogOpen = (): void => {
-        setLogoutDialogState(true);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [open, setOpen] = useState<boolean>(false);
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setAnchorEl(event.currentTarget);
+        setOpen(true);
     };
-
-    const logoutDialogClose = (): void => {
-        setLogoutDialogState(false);
+    const handleClose = () => {
+        setAnchorEl(null);
+        setOpen(false);
     };
 
     const logout = async (): Promise<void> => {
@@ -40,6 +43,7 @@ const Navbar: React.FC = () => {
         if (response.data.success) {
             dispatch(logoutUser());
             dispatch(setDefaultTheme());
+            handleClose();
         } else {
             console.log(response);
         }
@@ -47,30 +51,6 @@ const Navbar: React.FC = () => {
 
     return (
         <>
-            <Dialog
-                open={logoutDialogState}
-                onClose={logoutDialogClose}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle id="alert-dialog-title">Logout?</DialogTitle>
-                <DialogActions>
-                    <Button variant="contained" onClick={logoutDialogClose} color="secondary">
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={() => {
-                            logout();
-                            logoutDialogClose();
-                        }}
-                        color="primary"
-                        autoFocus
-                    >
-                        Logout
-                    </Button>
-                </DialogActions>
-            </Dialog>
             <AppBar position="static" color="primary">
                 <Toolbar
                     style={{
@@ -84,38 +64,46 @@ const Navbar: React.FC = () => {
                     <NavBarLink path="/bodyweight" name="Bodyweight" />
                     <div style={{ flexGrow: 1 }} />
                     {user ? (
-                        <React.Fragment>
-                            <NavBarLinkBtn
-                                path="/profile"
-                                name="PROFILE"
-                                contrast={true}
-                                logoutBtn={false}
-                                onLogout={async () => {}}
-                            />
-                            <NavBarLinkBtn
-                                path="/"
-                                name="LOG OUT"
-                                contrast={false}
-                                logoutBtn={true}
-                                onLogout={logoutDialogOpen}
-                            />
-                        </React.Fragment>
+                        <>
+                            <IconButton
+                                aria-controls={open ? "basic-menu" : undefined}
+                                aria-haspopup="true"
+                                aria-expanded={open ? "true" : undefined}
+                                onClick={handleClick}
+                            >
+                                <Avatar
+                                    src="../../public/icons/defaultUser.png"
+                                    style={{
+                                        margin: "0",
+                                        width: "30px",
+                                        height: "30px",
+                                    }}
+                                />
+                            </IconButton>
+                            <Menu
+                                id="basic-menu"
+                                anchorEl={anchorEl}
+                                open={open}
+                                onClose={handleClose}
+                                MenuListProps={{
+                                    "aria-labelledby": "basic-button",
+                                }}
+                            >
+                                <Link to="/profile" style={{ textDecoration: "none", color: "inherit" }}>
+                                    <MenuItem onClick={handleClose} style={{ textDecoration: "none" }}>
+                                        Profile
+                                    </MenuItem>
+                                </Link>
+                                <Divider />
+                                <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
+                                    <MenuItem onClick={logout}>Logout</MenuItem>
+                                </Link>
+                            </Menu>
+                        </>
                     ) : (
                         <React.Fragment>
-                            <NavBarLinkBtn
-                                path="/signup"
-                                name="SIGN UP"
-                                contrast={true}
-                                logoutBtn={false}
-                                onLogout={async () => {}}
-                            />
-                            <NavBarLinkBtn
-                                path="/login"
-                                name="LOG IN"
-                                contrast={false}
-                                logoutBtn={false}
-                                onLogout={async () => {}}
-                            />
+                            <NavBarLinkBtn path="/signup" name="Sign Up" contrast={true} logoutBtn={false} onLogout={async () => {}} />
+                            <NavBarLinkBtn path="/login" name="Log In" contrast={false} logoutBtn={false} onLogout={async () => {}} />
                         </React.Fragment>
                     )}
                 </Toolbar>

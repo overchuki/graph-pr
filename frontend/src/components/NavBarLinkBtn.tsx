@@ -12,10 +12,12 @@ const Root = styled("div")(({ theme }) => ({
     [`& .${classes.btn}`]: {
         color: theme.palette.primary.main,
         margin: "0 5px",
+        textTransform: "none",
     },
     [`& .${classes.btnContrast}`]: {
         color: theme.palette.secondary.main,
         margin: "0 5px",
+        textTransform: "none",
     },
 }));
 

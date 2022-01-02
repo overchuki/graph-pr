@@ -12,6 +12,7 @@ import Lifting from "./views/Lifting";
 import Bodyweight from "./views/Bodyweight";
 import Meals from "./views/Meals";
 import Profile from "./views/Profile";
+import Reset from "./views/Reset";
 import Navbar from "./components/Navbar";
 import CustomRoute from "./components/CustomRoute";
 import store, { RootState } from "./global/store";
@@ -80,6 +81,9 @@ const App: React.FC = () => {
                     </CustomRoute>
                     <CustomRoute path="/login" privateRoute={false}>
                         <Login title={"Log in here."} />
+                    </CustomRoute>
+                    <CustomRoute path="/reset" privateRoute={false}>
+                        <Reset />
                     </CustomRoute>
                 </Switch>
             </Router>

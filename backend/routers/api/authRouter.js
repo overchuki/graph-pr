@@ -185,10 +185,17 @@ router.post("/login/", async (req, res) => {
 
             if (auth) {
                 const token = createJWTToken({ id: user[0].id, tz: body.tz });
+                let optionsJwt = { httpOnly: true };
+                let optionsUser = {};
+
+                if (body.remember) {
+                    optionsJwt.maxAge = maxTokenAgeSeconds * 1000;
+                    optionsUser.maxAge = maxTokenAgeSeconds * 1000;
+                }
 
                 util.cleanup(req.conn);
-                res.cookie("jwt", token, { httpOnly: true, maxAge: maxTokenAgeSeconds * 1000 });
-                res.cookie("user", "jwtexists", { maxAge: maxTokenAgeSeconds * 1000 });
+                res.cookie("jwt", token, optionsJwt);
+                res.cookie("user", "jwtexists", optionsUser);
                 res.json({ success: "Login successful." });
             } else {
                 throw Error("Wrong password.");

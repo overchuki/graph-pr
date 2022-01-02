@@ -293,7 +293,7 @@ INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (5, 'centimeters
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (6, 'inches', 'in', 'in');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (7, 'litres', 'ltr', 'ltrs');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (8, 'millilitres', 'mL', 'mL');
-INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (9, 'quart', 'qt', 'qts');
+INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (9, 'quarts', 'qt', 'qts');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (10, 'ounces', 'oz', 'oz');
 INSERT IGNORE INTO unit (id, name, sing_abbr, plur_abbr) VALUES (11, 'grams', 'g', 'g');
 

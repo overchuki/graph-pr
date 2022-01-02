@@ -4,6 +4,8 @@ import Config from "../Config";
 import axios from "axios";
 import { styled } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -56,6 +58,7 @@ const Login: React.FC<Props> = ({ title }) => {
     const [formState, setFormState] = useState<number>(0);
     const [userField, setUserField] = useState<ErrorType>("");
     const [passField, setPassField] = useState<ErrorType>("");
+    const [remember, setRemember] = useState<boolean>(false);
 
     const checkField = (field: ErrorType, setField: Dispatch<SetStateAction<ErrorType>>): boolean => {
         if (!field) {
@@ -63,6 +66,10 @@ const Login: React.FC<Props> = ({ title }) => {
             return true;
         }
         return false;
+    };
+
+    const checkBoxChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+        setRemember(event.target.checked);
     };
 
     const login = async (): Promise<void> => {
@@ -84,6 +91,7 @@ const Login: React.FC<Props> = ({ title }) => {
                 {
                     user: userField,
                     pass: passField,
+                    remember: remember,
                     tz: curTZ,
                 },
                 {
@@ -144,16 +152,7 @@ const Login: React.FC<Props> = ({ title }) => {
                     }
                 }}
             >
-                <Grid
-                    container
-                    item
-                    xs={3}
-                    alignItems="center"
-                    direction="column"
-                    justifyContent="center"
-                    spacing={3}
-                    style={{ height: "100%" }}
-                >
+                <Grid container item xs={3} alignItems="center" direction="column" justifyContent="center" spacing={2} style={{ height: "100%" }}>
                     <Grid item>
                         <Typography display="inline" variant="body1" color="textPrimary">
                             {location.state ? location.state.title : title}
@@ -203,6 +202,30 @@ const Login: React.FC<Props> = ({ title }) => {
                             alphaNum: true,
                         }}
                     />
+                    <Grid item container direction="column" alignItems="flex-start" justifyContent="flex-start" spacing={0}>
+                        <FormControlLabel
+                            control={<Checkbox onChange={checkBoxChange} />}
+                            label={
+                                <Typography display="inline" variant="subtitle1" color="textSecondary">
+                                    Remember Me
+                                </Typography>
+                            }
+                        />
+                        <Grid item container spacing={1}>
+                            <Grid item>
+                                <Typography display="inline" variant="subtitle1" color="textSecondary">
+                                    Forgot Password?
+                                </Typography>
+                            </Grid>
+                            <Grid item>
+                                <Link to="/reset" className={classes.linkStyle}>
+                                    <Typography display="inline" variant="subtitle1" color="secondary">
+                                        Click Here.
+                                    </Typography>
+                                </Link>
+                            </Grid>
+                        </Grid>
+                    </Grid>
                     <Grid item container alignItems="center" justifyContent="center">
                         {formState === 0 ? (
                             <>

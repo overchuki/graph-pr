@@ -24,6 +24,7 @@ const verifyUserLift = async (req, id) => {
     let sql = `SELECT * FROM lift WHERE id = ${id}`;
 
     let lift = await req.conn.queryAsync(sql);
+    if (lift.length === 0) throw Error("This lift does not exist.");
     if (lift[0].user_fk !== req.user.id) throw Error("You can only modify your own lifts.");
 };
 
@@ -31,6 +32,7 @@ const verifyUserWorkout = async (req, id) => {
     let sql = `SELECT * FROM workout WHERE id = ${id}`;
 
     let workout = await req.conn.queryAsync(sql);
+    if (workout.length === 0) throw Error("This workout does not exist.");
     if (workout[0].user_fk !== req.user.id) throw Error("You can only modify your own workouts.");
 };
 
@@ -41,6 +43,7 @@ const validateWorkoutInputs = (body, initial) => {
     let desc = validUtil.validateString("Description", body.desc, false, descRange, true, false, false, false, false);
     if (desc.valid === -1) throw Error(desc.msg);
 
+    body.days = body.days.toUpperCase();
     let days = validUtil.validateString("Days String", body.days, false, daysRange, true, false, false, false, false);
     if (days.valid === -1) throw Error(days.msg);
     for (let i = 0; i < days.length; i++) {
@@ -70,7 +73,13 @@ router.get("/workout/", async (req, res) => {
     const offset = query.offset || 0;
 
     let sql = `
-        SELECT id
+        SELECT
+            id,
+            name,
+            description,
+            days,
+            liftCnt,
+            created_at
         FROM workout
         WHERE user_fk = ${req.user.id}
         LIMIT ${limit}
@@ -80,14 +89,14 @@ router.get("/workout/", async (req, res) => {
     try {
         let workouts = await req.conn.queryAsync(sql);
 
-        let workoutArray = [];
+        // let workoutArray = [];
 
-        for (let i = 0; i < workouts.length; i++) {
-            workoutArray.push(await liftUtil.getLiftInfo(req, workouts[i].id));
-        }
+        // for (let i = 0; i < workouts.length; i++) {
+        //     workoutArray.push(await liftUtil.getWorkoutInfo(req, workouts[i].id));
+        // }
 
         util.cleanup(req.conn);
-        res.json({ workoutArray });
+        res.json({ workouts });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
@@ -101,6 +110,12 @@ router.get("/workout/:id/", async (req, res) => {
     const params = req.params;
     let whereClause = `= ${params.id}`;
     if (params.id === -1) whereClause = `IS NULL`;
+
+    let sql = `
+        SELECT id
+        FROM lift
+        WHERE workout_fk ${whereClause}
+    `;
 
     try {
         if (params.id !== -1) await verifyUserWorkout(req, params.id);
