@@ -113,6 +113,7 @@ const getLiftSets = async (req, liftId) => {
     return sets;
 };
 
+// TODO: lift set parent functionality
 const checkExistingLiftSet = async (req, liftId, date) => {
     let dateSet = await req.conn.queryAsync(`SELECT * FROM lift_set WHERE date = '${date}' AND lift_fk = ${liftId}`);
     return dateSet;

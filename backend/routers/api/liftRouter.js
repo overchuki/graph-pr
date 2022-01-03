@@ -471,10 +471,11 @@ router.put("/workout/:id/", async (req, res) => {
 //
 //------------
 
-// TO-TEST:
+// TO-TEST (keepLift as well):
 // Delete a workout
 router.delete("/workout/:id/", async (req, res) => {
     const params = req.params;
+    const keepLift = req.query.keepLift;
 
     let delete_lift_sql = `
         DELETE FROM lift_set WHERE lift_fk = ?;
@@ -491,18 +492,25 @@ router.delete("/workout/:id/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        let liftIDs = await req.queryAsync(`SELECT id FROM lift WHERE workout_fk = ${params.id}`);
-        for (let i = 0; i < liftIDs.length; i++) {
-            let updatedDelete = delete_lift_sql.replace("?", liftIDs[i].id);
-            let liftSqlArr = updatedDelete.split(";");
+        if (keepLift) {
+            await req.queryAsync(`UPDATE lift SET workout_fk = -1 WHERE workout_fk = ${params.id}`);
 
-            await util.runMultipleLinesOfSql(req, liftSqlArr, "Error deleting lifts from workout.");
+            await req.queryAsync(sqlArr[1]);
+        } else {
+            let liftIDs = await req.queryAsync(`SELECT id FROM lift WHERE workout_fk = ${params.id}`);
+
+            for (let i = 0; i < liftIDs.length; i++) {
+                let updatedDelete = delete_lift_sql.replace("?", liftIDs[i].id);
+                let liftSqlArr = updatedDelete.split(";");
+
+                await util.runMultipleLinesOfSql(req, liftSqlArr, "Error deleting lifts from workout.");
+            }
+
+            await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting workout.");
         }
 
-        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting workout.");
-
         util.cleanup(req.conn);
-        res.json({ success: "Lift has been deleted." });
+        res.json({ success: "Workout has been deleted." });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
