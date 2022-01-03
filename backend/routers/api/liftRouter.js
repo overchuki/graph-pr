@@ -5,14 +5,14 @@ const liftUtil = require("./utils/liftUtil");
 const validUtil = require("./utils/validUtil");
 
 // Days of week:
+// U: Sunday
 // M: Monday
 // T: Tuesday
 // W: Wednesday
 // R: Thursday
 // F: Friday
 // S: Saturday
-// U: Sunday
-const daysArr = ["M", "T", "W", "R", "F", "S", "U"];
+const daysArr = ["U", "M", "T", "W", "R", "F", "S"];
 
 const nameLenRange = [1, 20];
 const workoutNameRange = [1, 20];
@@ -57,6 +57,12 @@ const validateLiftInputs = (body, initial) => {
 
     let unitIdx = validUtil.validateNum("Unit index", body.unit_fk, initial, unitNumRange);
     if (unitIdx.valid === -1) throw Error(unitIdx.msg);
+
+    let workout_fk = validUtil.validateNum("Unit index", body.workout_fk, false, unitNumRange);
+    if (workout_fk.valid === -1) throw Error(workout_fk.msg);
+
+    let starred = validUtil.validateNum("Unit index", body.starred, initial, unitNumRange);
+    if (starred.valid === -1) throw Error(starred.msg);
 };
 
 //---------
@@ -65,7 +71,7 @@ const validateLiftInputs = (body, initial) => {
 //
 //---------
 
-// TODO:
+// TO-TEST:
 // Get all workouts
 router.get("/workout/", async (req, res) => {
     const query = req.query;
@@ -89,12 +95,6 @@ router.get("/workout/", async (req, res) => {
     try {
         let workouts = await req.conn.queryAsync(sql);
 
-        // let workoutArray = [];
-
-        // for (let i = 0; i < workouts.length; i++) {
-        //     workoutArray.push(await liftUtil.getWorkoutInfo(req, workouts[i].id));
-        // }
-
         util.cleanup(req.conn);
         res.json({ workouts });
     } catch (err) {
@@ -104,8 +104,8 @@ router.get("/workout/", async (req, res) => {
     }
 });
 
-// TODO:
-// Get a workout and all of its lifts
+// TO-TEST:
+// Get a workout and all of its lifts (id -1 yields all lifts without workout)
 router.get("/workout/:id/", async (req, res) => {
     const params = req.params;
     let whereClause = `= ${params.id}`;
@@ -119,6 +119,8 @@ router.get("/workout/:id/", async (req, res) => {
 
     try {
         if (params.id !== -1) await verifyUserWorkout(req, params.id);
+        let workout = -1;
+        if (params.id !== -1) workout = await liftUtil.getWorkoutInfo(req, params.id);
         let lifts = await req.conn.queryAsync(sql);
 
         let liftArray = [];
@@ -128,7 +130,7 @@ router.get("/workout/:id/", async (req, res) => {
         }
 
         util.cleanup(req.conn);
-        res.json({ liftArray });
+        res.json({ workout, liftArray });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
@@ -168,6 +170,7 @@ router.get("/", async (req, res) => {
     }
 });
 
+// TODO: lift set parent functionality
 // Get lift by id
 router.get("/:id/single/", async (req, res) => {
     const params = req.params;
@@ -188,6 +191,7 @@ router.get("/:id/single/", async (req, res) => {
     }
 });
 
+// TODO: lift set parent functionality
 // Get a set
 router.get("/:id/set/", async (req, res) => {
     const query = req.query;
@@ -220,7 +224,7 @@ router.get("/:id/set/", async (req, res) => {
 //
 //----------
 
-// TODO:
+// TO-TEST:
 // Create a workout
 router.post("/workout/", async (req, res) => {
     const body = req.body;
@@ -238,7 +242,7 @@ router.post("/workout/", async (req, res) => {
     try {
         validateWorkoutInputs(body, true);
 
-        let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id]);
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.desc, body.days, req.user.id]);
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been created", id: okPacket.insertId });
@@ -249,7 +253,7 @@ router.post("/workout/", async (req, res) => {
     }
 });
 
-// TODO: create an option to add lift to workout right away or null
+// TO-TEST: create an option to add lift to workout right away or null
 // Create a lift
 router.post("/", async (req, res) => {
     const body = req.body;
@@ -259,14 +263,17 @@ router.post("/", async (req, res) => {
         INTO lift (
             name,
             unit_fk,
-            user_fk)
-        VALUES (?, ?, ?)
+            user_fk,
+            workout_fk,
+            starred)
+        VALUES (?, ?, ?, ?, ?)
     `;
 
     try {
         validateLiftInputs(body, true);
+        let wFK = body.workout_fk ? body.workout_fk : -1;
 
-        let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id]);
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id, wFK, body.starred]);
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been created", id: okPacket.insertId });
@@ -277,6 +284,7 @@ router.post("/", async (req, res) => {
     }
 });
 
+// TODO: lift set parent functionality
 // Create a lift set
 router.post("/:id/set/", async (req, res) => {
     const body = req.body;
@@ -341,6 +349,7 @@ router.post("/:id/set/", async (req, res) => {
 //
 //---------
 
+// TO-TEST: can change starred and workout_fk as well, remove from workout in general as well
 // Update a lift
 router.put("/:id/", async (req, res) => {
     const body = req.body;
@@ -369,6 +378,7 @@ router.put("/:id/", async (req, res) => {
     }
 });
 
+// TODO: lift set parent functionality
 // Edit a lift set
 router.put("/:id/set/", async (req, res) => {
     const body = req.body;
@@ -426,16 +436,33 @@ router.put("/:id/set/", async (req, res) => {
     }
 });
 
-// TODO:
+// TO-TEST:
 // Modify a workout
 router.put("/workout/:id/", async (req, res) => {
+    const body = req.body;
     const params = req.params;
-});
 
-// TODO:
-// Move lift from one workout to another
-router.put("/workout/:id/", async (req, res) => {
-    const params = req.params;
+    try {
+        await verifyUserWorkout(req, params.id);
+        validateWorkoutInputs(body, false);
+
+        let updateStr = util.getUpdateStr(body, []);
+
+        let sql = `
+            UPDATE workout
+            SET ${updateStr.valueStr}
+            WHERE id = ${params.id}
+        `;
+
+        let okPacket = await req.conn.queryAsync(sql, updateStr.values);
+
+        util.cleanup(req.conn);
+        res.json({ success: "workout has been updated" });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
 });
 
 //------------
@@ -444,18 +471,46 @@ router.put("/workout/:id/", async (req, res) => {
 //
 //------------
 
-// TODO:
-// Remove lift from a workout
-router.delete("/workout/lift/:id/", async (req, res) => {
-    const params = req.params;
-});
-
-// TODO:
+// TO-TEST:
 // Delete a workout
 router.delete("/workout/:id/", async (req, res) => {
     const params = req.params;
+
+    let delete_lift_sql = `
+        DELETE FROM lift_set WHERE lift_fk = ?;
+        DELETE FROM lift_set_parent WHERE lift_fk = ?
+    `;
+
+    let delete_sql = `
+        DELETE FROM lift WHERE workout_fk = ${params.id};
+        DELETE FROM workout WHERE id = ${params.id}
+    `;
+
+    try {
+        await verifyUserWorkout(req, params.id);
+
+        let sqlArr = delete_sql.split(";");
+
+        let liftIDs = await req.queryAsync(`SELECT id FROM lift WHERE workout_fk = ${params.id}`);
+        for (let i = 0; i < liftIDs.length; i++) {
+            let updatedDelete = delete_lift_sql.replace("?", liftIDs[i].id);
+            let liftSqlArr = updatedDelete.split(";");
+
+            await util.runMultipleLinesOfSql(req, liftSqlArr, "Error deleting lifts from workout.");
+        }
+
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting workout.");
+
+        util.cleanup(req.conn);
+        res.json({ success: "Lift has been deleted." });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
 });
 
+// TODO: lift set parent functionality
 // Delete lift
 router.delete("/:id/", async (req, res) => {
     const params = req.params;
@@ -481,6 +536,7 @@ router.delete("/:id/", async (req, res) => {
     }
 });
 
+// TODO: lift set parent functionality
 // Delete lift set
 router.delete("/:id/set/", async (req, res) => {
     const params = req.params;

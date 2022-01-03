@@ -43,7 +43,7 @@ const getWorkoutInfo = async (req, wId) => {
             w.liftCnt,
             w.created_at
         FROM workout AS w
-        WHERE w.id = ${liftId}
+        WHERE w.id = ${wId}
     `;
 
     let info = await req.conn.queryAsync(sql);
@@ -99,30 +99,18 @@ const getLiftDuration = async (req, liftId) => {
     return duration[0].duration;
 };
 
+// TODO: lift set parent functionality
 const getLiftSets = async (req, liftId) => {
-    let sqlMaxSet = `
-        SELECT MAX(set_num) AS max
-        FROM lift_set
-        WHERE lift_fk = ${liftId}
-    `;
-
-    let maxSetNum = await req.conn.queryAsync(sqlMaxSet);
-
     let sql = `
         SELECT *
         FROM lift_set
-        WHERE lift_fk = ${liftId} AND set_num = ?
-        ORDER BY date ASC
+        WHERE lift_fk = ${liftId}
+        ORDER BY date ASC, set_num ASC
     `;
 
-    let setArray = [];
+    let sets = await req.conn.queryAsync(sql, [i + 1]);
 
-    for (let i = 0; i < maxSetNum[0].max; i++) {
-        let sets = await req.conn.queryAsync(sql, [i + 1]);
-        setArray.push(sets);
-    }
-
-    return setArray;
+    return sets;
 };
 
 const checkExistingLiftSet = async (req, liftId, date) => {

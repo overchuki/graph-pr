@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS LIFT (
     unit_fk INT NOT NULL,
     user_fk INT NOT NULL,
     workout_fk INT DEFAULT NULL,
-    starred INT NOT NULL DEFAULT -1,
+    starred INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (id),
