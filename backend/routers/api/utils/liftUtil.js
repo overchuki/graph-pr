@@ -99,23 +99,52 @@ const getLiftDuration = async (req, liftId) => {
     return duration[0].duration;
 };
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 const getLiftSets = async (req, liftId) => {
-    let sql = `
-        SELECT *
-        FROM lift_set
-        WHERE lift_fk = ${liftId}
-        ORDER BY date ASC, set_num ASC
+    // let sql = `
+    //     SELECT *
+    //     FROM lift_set
+    //     WHERE lift_set_parent_fk = ${liftId}
+    //     ORDER BY set_num ASC
+    // `;
+
+    // let sets = await req.conn.queryAsync(sql, [i + 1]);
+
+    let setSql = `
+        SELECT
+            s.set_num,
+            s.weight,
+            s.reps,
+            s.theomax,
+            lp.top_set,
+            lp.date,
+            lp.set_quantity
+        FROM lift_set as s
+        LEFT JOIN lift_set_parent AS lp ON s.lift_set_parent_fk = lp.id
+        WHERE s.lift_fk = ${liftId}
+        ORDER BY lp.date ASC, s.set_num ASC
     `;
 
-    let sets = await req.conn.queryAsync(sql, [i + 1]);
+    let sql = `
+        SELECT
+            lsp.id,
+            lsp.set_quantity,
+            lsp.top_set,
+            lsp.date,
+            (SELECT * FROM lift_set WHERE lift_set_parent_fk = lsp.id) AS sets
+        FROM lift_set_parent AS lsp
+        WHERE lift_fk = ${liftId}
+        ORDER by date ASC
+    `;
+
+    let sets = await req.conn.queryAsync(setSql);
 
     return sets;
 };
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 const checkExistingLiftSet = async (req, liftId, date) => {
-    let dateSet = await req.conn.queryAsync(`SELECT * FROM lift_set WHERE date = '${date}' AND lift_fk = ${liftId}`);
+    let dateSet = await req.conn.queryAsync(`SELECT * FROM lift_set_parent WHERE date = '${date}' AND lift_fk = ${liftId}`);
     return dateSet;
 };
 

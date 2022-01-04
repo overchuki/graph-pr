@@ -211,8 +211,7 @@ CREATE TABLE IF NOT EXISTS LIFT (
 CREATE TABLE IF NOT EXISTS LIFT_SET_PARENT (
     id INT NOT NULL AUTO_INCREMENT,
     set_quantity INT NOT NULL,
-    first_set INT,
-    top_set INT,
+    top_set INT DEFAULT -1,
     date DATE NOT NULL,
     lift_fk INT NOT NULL,
 

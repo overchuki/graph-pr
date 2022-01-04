@@ -170,7 +170,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 // Get lift by id
 router.get("/:id/single/", async (req, res) => {
     const params = req.params;
@@ -191,26 +191,35 @@ router.get("/:id/single/", async (req, res) => {
     }
 });
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 // Get a set
 router.get("/:id/set/", async (req, res) => {
     const query = req.query;
     const params = req.params;
 
+    let parentSql = `
+        SELECT *
+        FROM lift_set_parent
+        WHERE lift_fk = ${params.id} AND date = '${query.date}'
+    `;
+
     let sql = `
         SELECT *
         FROM lift_set
-        WHERE lift_fk = ${params.id} AND date = '${query.date}'
+        WHERE lift_set_parent_fk = ?
         ORDER BY set_num
     `;
 
     try {
         await verifyUserLift(req, params.id);
 
-        let set = await req.conn.queryAsync(sql);
+        let parent = await req.conn.queryAsync(parentSql);
+        if (parent.length === 0) throw Error("Parent set does not exist at this date.");
+
+        let sets = await req.conn.queryAsync(sql, [parent[0].id]);
 
         util.cleanup(req.conn);
-        res.json({ set });
+        res.json({ setInfo: parent[0], sets });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
@@ -284,11 +293,21 @@ router.post("/", async (req, res) => {
     }
 });
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 // Create a lift set
 router.post("/:id/set/", async (req, res) => {
     const body = req.body;
     const params = req.params;
+
+    let parentSql = `
+        INSERT
+        INTO lift_set_parent (
+            set_quantity,
+            top_set,
+            date,
+            lift_fk)
+        VALUES (?, ?, ?, ?)
+    `;
 
     let sql = `
         INSERT
@@ -297,13 +316,14 @@ router.post("/:id/set/", async (req, res) => {
             weight,
             reps,
             theomax,
-            date,
+            lift_set_parent_fk,
             lift_fk)
         VALUES (?, ?, ?, ?, ?, ?)
     `;
 
     try {
         await verifyUserLift(req, params.id);
+
         if (body.sets.length < 1) throw Error("Set array cannot be empty.");
         else if (body.sets.length > 10) throw Error("Set array max length is 10.");
 
@@ -311,17 +331,24 @@ router.post("/:id/set/", async (req, res) => {
         if (newDateSet.length > 0) throw Error("A set already exists at this date.");
 
         let sets = body.sets;
+        let setLen = sets.length;
+
+        let topSet = validUtil.validateNum("Top set", body.top_set, false, [1, setLen]);
+        if (topSet.valid === -1) throw Error(topSet.msg);
+
         let okPackets = [];
         let updateNeccessary = false;
 
         let liftInfo = await liftUtil.getLiftInfo(req, params.id);
+
+        let parentOkPacket = await req.conn.queryAsync(parentSql, [setLen, body.top_set, body.date, params.id]);
 
         for (let i = 0; i < sets.length; i++) {
             let weight = sets[i][0];
             let reps = sets[i][1];
             let args = [i + 1, weight, reps];
             args.push(liftUtil.getTheoMax(weight, reps));
-            args.push(body.date);
+            args.push(parentOkPacket.insertId);
             args.push(params.id);
 
             if (args[1] >= liftInfo.max || args[3] >= liftInfo.theomax) {
@@ -378,7 +405,7 @@ router.put("/:id/", async (req, res) => {
     }
 });
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 // Edit a lift set
 router.put("/:id/set/", async (req, res) => {
     const body = req.body;
@@ -387,26 +414,41 @@ router.put("/:id/set/", async (req, res) => {
     try {
         await verifyUserLift(req, params.id);
 
+        let sets = body.sets;
+
         let oldDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.oldDate);
         if (oldDateSet.length === 0) throw Error("No set exists at old date");
+
+        if (sets.length !== oldDateSet.set_quantity) throw Error("Number of sets do not match.");
 
         if (body.date) {
             let newDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.date);
             if (newDateSet.length > 0) throw Error("A set already exists at this date.");
         }
 
-        if (body.sets.length !== oldDateSet.length) throw Error("Number of sets do not match.");
-
-        let sets = body.sets;
         let okPackets = [];
+
+        if (body.date || body.top_set) {
+            let updateObj = {};
+            if (body.date) updateObj.date = body.date;
+            if (body.top_set) updateObj.top_set = body.top_set;
+
+            let parentUpdateString = util.getUpdateStr(updateObj, []);
+
+            let parentSql = `
+                UPDATE lift_set_parent
+                SET ${parentUpdateString.valueStr}
+                WHERE lift_fk = ${params.id} AND date = '${body.oldDate}'
+            `;
+
+            let parentOkPacket = await req.conn.queryAsync(parentSql, parentUpdateString.values);
+        }
 
         for (let i = 0; i < sets.length; i++) {
             let setBody = {};
 
-            if (body.date) setBody.date = body.date;
-
             if (!sets[i]) {
-                if (Object.keys(setBody).length === 0) continue;
+                continue;
             } else {
                 setBody.weight = sets[i][0];
                 setBody.reps = sets[i][1];
@@ -418,7 +460,7 @@ router.put("/:id/set/", async (req, res) => {
             let sql = `
                 UPDATE lift_set
                 SET ${updateStr.valueStr}
-                WHERE lift_fk = ${params.id} AND set_num = ${i + 1} AND date = '${body.oldDate}'
+                WHERE lift_set_parent_fk = ${oldDateSet.id} AND set_num = ${i + 1}
             `;
 
             let okPacket = await req.conn.queryAsync(sql, updateStr.values);
@@ -518,13 +560,14 @@ router.delete("/workout/:id/", async (req, res) => {
     }
 });
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 // Delete lift
 router.delete("/:id/", async (req, res) => {
     const params = req.params;
 
     let delete_sql = `
         DELETE FROM lift_set WHERE lift_fk = ${params.id};
+        DELETE FROM lift_set_parent WHERE lift_fk = ${params.id};
         DELETE FROM lift WHERE id = ${params.id}
     `;
 
@@ -544,22 +587,34 @@ router.delete("/:id/", async (req, res) => {
     }
 });
 
-// TODO: lift set parent functionality
+// TO-TEST: lift set parent functionality
 // Delete lift set
 router.delete("/:id/set/", async (req, res) => {
     const params = req.params;
     const body = req.body;
 
+    let infoSql = `
+        SELECT id
+        FROM lift_set_parent
+        WHERE lift_fk = ${params.id} AND date = '${body.date}'
+    `;
+
+    let parent_delete_sql = `
+        DELETE FROM lift_set_parent WHERE lift_fk = ${params.id} AND date = '${body.date}'
+    `;
+
     let delete_sql = `
-        DELETE FROM lift_set WHERE lift_fk = ${params.id} AND date = '${body.date}'
+        DELETE FROM lift_set WHERE lift_set_parent_fk = ?
     `;
 
     try {
         await verifyUserLift(req, params.id);
 
-        let sqlArr = delete_sql.split(";");
+        let parentID = await req.conn.queryAsync(infoSql);
+        if (parentID.length === 0) throw Error("Parent set not found.");
 
-        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift set.");
+        await req.conn.queryAsync(delete_sql, [parentID[0].id]);
+        await req.conn.queryAsync(parent_delete_sql);
 
         await liftUtil.updateLiftMax(req, params.id);
 
