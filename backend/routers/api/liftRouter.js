@@ -19,6 +19,7 @@ const workoutNameRange = [1, 20];
 const descRange = [1, 200];
 const daysRange = [1, 7];
 const unitNumRange = [1, 2];
+const starredRange = [0, 1];
 
 const verifyUserLift = async (req, id) => {
     let sql = `SELECT * FROM lift WHERE id = ${id}`;
@@ -58,10 +59,7 @@ const validateLiftInputs = (body, initial) => {
     let unitIdx = validUtil.validateNum("Unit index", body.unit_fk, initial, unitNumRange);
     if (unitIdx.valid === -1) throw Error(unitIdx.msg);
 
-    let workout_fk = validUtil.validateNum("Unit index", body.workout_fk, false, unitNumRange);
-    if (workout_fk.valid === -1) throw Error(workout_fk.msg);
-
-    let starred = validUtil.validateNum("Unit index", body.starred, initial, unitNumRange);
+    let starred = validUtil.validateNum("Starred", body.starred, initial, starredRange);
     if (starred.valid === -1) throw Error(starred.msg);
 };
 
@@ -254,7 +252,7 @@ router.post("/workout/", async (req, res) => {
         let okPacket = await req.conn.queryAsync(sql, [body.name, body.desc, body.days, req.user.id]);
 
         util.cleanup(req.conn);
-        res.json({ success: "lift has been created", id: okPacket.insertId });
+        res.json({ success: "workout has been created", id: okPacket.insertId });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
@@ -280,9 +278,12 @@ router.post("/", async (req, res) => {
 
     try {
         validateLiftInputs(body, true);
-        let wFK = body.workout_fk ? body.workout_fk : -1;
+        let wFK = body.workout_fk ? body.workout_fk : null;
+        if (wFK !== null) await verifyUserWorkout(req, wFK);
 
         let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id, wFK, body.starred]);
+
+        if (wFK !== null) await liftUtil.updateLiftCnt(req, wFK);
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been created", id: okPacket.insertId });
@@ -386,7 +387,14 @@ router.put("/:id/", async (req, res) => {
         await verifyUserLift(req, params.id);
         validateLiftInputs(body, false);
 
-        let updateStr = util.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, ["workout_fk"]);
+        if (updateStr.affected) {
+            await verifyUserWorkout(req, body.workout_fk);
+            if (body.workout_fk === null) {
+                let widIdx = updateStr.valueStr.indexOf("workout_fk");
+                updateStr.values[widIdx] = null;
+            }
+        }
 
         let sql = `
             UPDATE lift
@@ -395,6 +403,8 @@ router.put("/:id/", async (req, res) => {
         `;
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
+
+        if (updateStr.affected) await liftUtil.updateLiftCnt(req, body.workout_fk);
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been updated" });

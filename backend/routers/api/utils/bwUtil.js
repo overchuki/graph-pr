@@ -1,3 +1,4 @@
+const util = require("./util");
 const dateUtil = require("./dateUtil");
 const millisInYear = 1000 * 60 * 60 * 24 * 365;
 
@@ -51,9 +52,9 @@ const updateMaintenanceCal = async (req, userId, updateDate, tz) => {
 
     let deletePacket = await req.conn.queryAsync(`DELETE FROM maintenance_calories WHERE user_fk = ${user.id} AND date = '${updateDate}'`);
 
-    let kgBodyweight = convertUnit(latestBodyweight[0].weight, user.bw_unit_fk, 1);
+    let kgBodyweight = util.convertUnit(latestBodyweight[0].weight, user.bw_unit_fk, 1);
 
-    let cmHeight = convertUnit(user.height, user.height_unit_fk, 5);
+    let cmHeight = util.convertUnit(user.height, user.height_unit_fk, 5);
 
     let bmr = await getBMR(req, kgBodyweight, cmHeight, age, user.gender_fk);
     let main_cal = await getMaintenanceCal(req, bmr, user.activity_level_fk);

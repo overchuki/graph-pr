@@ -16,7 +16,7 @@ const unitMatrix = [
 ];
 
 const handleError = (err) => {
-    console.error(err.message);
+    console.error(err);
     return err.message;
 };
 
@@ -56,7 +56,6 @@ const getUpdateStr = (body, affectedArray) => {
 };
 
 const getDeleteStr = async (req, db, userId, key) => {
-    console.log(db, userId);
     let entries = await req.conn.queryAsync(`SELECT id FROM ${db} WHERE user_fk = ${userId}`);
     let entriesStr = "";
 

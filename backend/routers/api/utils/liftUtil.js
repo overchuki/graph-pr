@@ -14,7 +14,7 @@ const getLiftInfo = async (req, liftId) => {
             ltheo.theomax,
             ltheo.weight AS theomax_weight,
             ltheo.reps AS theomax_reps,
-            w.name,
+            w.name AS workout_name,
             l.created_at
         FROM lift AS l
         LEFT JOIN workout AS w ON l.workout_fk = w.id
@@ -89,7 +89,7 @@ const getLiftDuration = async (req, liftId) => {
     let sqlDuration = `
         SELECT
             DATEDIFF(MAX(date), MIN(date)) AS duration
-        FROM lift_set
+        FROM lift_set_parent
         WHERE lift_fk = ${liftId}
     `;
 
@@ -125,17 +125,17 @@ const getLiftSets = async (req, liftId) => {
         ORDER BY lp.date ASC, s.set_num ASC
     `;
 
-    let sql = `
-        SELECT
-            lsp.id,
-            lsp.set_quantity,
-            lsp.top_set,
-            lsp.date,
-            (SELECT * FROM lift_set WHERE lift_set_parent_fk = lsp.id) AS sets
-        FROM lift_set_parent AS lsp
-        WHERE lift_fk = ${liftId}
-        ORDER by date ASC
-    `;
+    // let sql = `
+    //     SELECT
+    //         lsp.id,
+    //         lsp.set_quantity,
+    //         lsp.top_set,
+    //         lsp.date,
+    //         (SELECT * FROM lift_set WHERE lift_set_parent_fk = lsp.id) AS sets
+    //     FROM lift_set_parent AS lsp
+    //     WHERE lift_fk = ${liftId}
+    //     ORDER by date ASC
+    // `;
 
     let sets = await req.conn.queryAsync(setSql);
 
@@ -148,6 +148,18 @@ const checkExistingLiftSet = async (req, liftId, date) => {
     return dateSet;
 };
 
+const updateLiftCnt = async (req, wId) => {
+    let sql = `
+        UPDATE workout
+        SET liftCnt = (SELECT COUNT(*) FROM lift WHERE workout_fk = ${wId})
+        WHERE id = ${wId}
+    `;
+
+    let okPacket = await req.conn.queryAsync(sql);
+
+    return okPacket;
+};
+
 module.exports = {
     getTheoMax,
     getLiftInfo,
@@ -156,4 +168,5 @@ module.exports = {
     getLiftDuration,
     getLiftSets,
     checkExistingLiftSet,
+    updateLiftCnt,
 };
