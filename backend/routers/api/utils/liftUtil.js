@@ -11,15 +11,19 @@ const getLiftInfo = async (req, liftId) => {
             u.plur_abbr,
             lmax.weight AS max,
             lmax.reps AS max_reps,
+            lpmax.date AS max_date,
             ltheo.theomax,
             ltheo.weight AS theomax_weight,
             ltheo.reps AS theomax_reps,
+            lptheo.date AS theomax_date,
             w.name AS workout_name,
             l.created_at
         FROM lift AS l
         LEFT JOIN workout AS w ON l.workout_fk = w.id
         LEFT JOIN lift_set AS lmax ON l.max_set = lmax.id
+        LEFT JOIN lift_set_parent AS lpmax ON lmax.lift_set_parent_fk = lpmax.id
         LEFT JOIN lift_set AS ltheo ON l.theomax_set = ltheo.id
+        LEFT JOIN lift_set_parent AS lptheo ON ltheo.lift_set_parent_fk = lptheo.id
         LEFT JOIN unit AS u ON l.unit_fk = u.id
         WHERE l.id = ${liftId}
     `;
@@ -99,17 +103,7 @@ const getLiftDuration = async (req, liftId) => {
     return duration[0].duration;
 };
 
-// TO-TEST: lift set parent functionality
 const getLiftSets = async (req, liftId) => {
-    // let sql = `
-    //     SELECT *
-    //     FROM lift_set
-    //     WHERE lift_set_parent_fk = ${liftId}
-    //     ORDER BY set_num ASC
-    // `;
-
-    // let sets = await req.conn.queryAsync(sql, [i + 1]);
-
     let setSql = `
         SELECT
             s.set_num,
@@ -125,24 +119,11 @@ const getLiftSets = async (req, liftId) => {
         ORDER BY lp.date ASC, s.set_num ASC
     `;
 
-    // let sql = `
-    //     SELECT
-    //         lsp.id,
-    //         lsp.set_quantity,
-    //         lsp.top_set,
-    //         lsp.date,
-    //         (SELECT * FROM lift_set WHERE lift_set_parent_fk = lsp.id) AS sets
-    //     FROM lift_set_parent AS lsp
-    //     WHERE lift_fk = ${liftId}
-    //     ORDER by date ASC
-    // `;
-
     let sets = await req.conn.queryAsync(setSql);
 
     return sets;
 };
 
-// TO-TEST: lift set parent functionality
 const checkExistingLiftSet = async (req, liftId, date) => {
     let dateSet = await req.conn.queryAsync(`SELECT * FROM lift_set_parent WHERE date = '${date}' AND lift_fk = ${liftId}`);
     return dateSet;

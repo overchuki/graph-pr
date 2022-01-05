@@ -41,14 +41,17 @@ const validateWorkoutInputs = (body, initial) => {
     let name = validUtil.validateString("Name", body.name, initial, workoutNameRange, true, false, false, false, false);
     if (name.valid === -1) throw Error(name.msg);
 
-    let desc = validUtil.validateString("Description", body.desc, false, descRange, true, false, false, false, false);
+    let desc = validUtil.validateString("Description", body.description, false, descRange, true, false, false, false, false);
     if (desc.valid === -1) throw Error(desc.msg);
 
-    body.days = body.days.toUpperCase();
     let days = validUtil.validateString("Days String", body.days, false, daysRange, true, false, false, false, false);
     if (days.valid === -1) throw Error(days.msg);
-    for (let i = 0; i < days.length; i++) {
-        if (!daysArr.includes(days.charAt(i))) throw Error("Invalid day character.");
+
+    if (body.days) {
+        body.days = body.days.toUpperCase();
+        for (let i = 0; i < body.days.length; i++) {
+            if (!daysArr.includes(body.days.charAt(i))) throw Error("Invalid day character.");
+        }
     }
 };
 
@@ -69,7 +72,6 @@ const validateLiftInputs = (body, initial) => {
 //
 //---------
 
-// TO-TEST:
 // Get all workouts
 router.get("/workout/", async (req, res) => {
     const query = req.query;
@@ -102,12 +104,13 @@ router.get("/workout/", async (req, res) => {
     }
 });
 
-// TO-TEST:
 // Get a workout and all of its lifts (id -1 yields all lifts without workout)
 router.get("/workout/:id/", async (req, res) => {
     const params = req.params;
+    let pId = parseInt(params.id);
+
     let whereClause = `= ${params.id}`;
-    if (params.id === -1) whereClause = `IS NULL`;
+    if (pId === -1) whereClause = `IS NULL`;
 
     let sql = `
         SELECT id
@@ -116,9 +119,9 @@ router.get("/workout/:id/", async (req, res) => {
     `;
 
     try {
-        if (params.id !== -1) await verifyUserWorkout(req, params.id);
+        if (pId !== -1) await verifyUserWorkout(req, params.id);
         let workout = -1;
-        if (params.id !== -1) workout = await liftUtil.getWorkoutInfo(req, params.id);
+        if (pId !== -1) workout = await liftUtil.getWorkoutInfo(req, params.id);
         let lifts = await req.conn.queryAsync(sql);
 
         let liftArray = [];
@@ -168,7 +171,6 @@ router.get("/", async (req, res) => {
     }
 });
 
-// TO-TEST: lift set parent functionality
 // Get lift by id
 router.get("/:id/single/", async (req, res) => {
     const params = req.params;
@@ -189,7 +191,6 @@ router.get("/:id/single/", async (req, res) => {
     }
 });
 
-// TO-TEST: lift set parent functionality
 // Get a set
 router.get("/:id/set/", async (req, res) => {
     const query = req.query;
@@ -231,7 +232,6 @@ router.get("/:id/set/", async (req, res) => {
 //
 //----------
 
-// TO-TEST:
 // Create a workout
 router.post("/workout/", async (req, res) => {
     const body = req.body;
@@ -249,7 +249,7 @@ router.post("/workout/", async (req, res) => {
     try {
         validateWorkoutInputs(body, true);
 
-        let okPacket = await req.conn.queryAsync(sql, [body.name, body.desc, body.days, req.user.id]);
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.description, body.days, req.user.id]);
 
         util.cleanup(req.conn);
         res.json({ success: "workout has been created", id: okPacket.insertId });
@@ -260,7 +260,6 @@ router.post("/workout/", async (req, res) => {
     }
 });
 
-// TO-TEST: create an option to add lift to workout right away or null
 // Create a lift
 router.post("/", async (req, res) => {
     const body = req.body;
@@ -278,7 +277,7 @@ router.post("/", async (req, res) => {
 
     try {
         validateLiftInputs(body, true);
-        let wFK = body.workout_fk ? body.workout_fk : null;
+        let wFK = body.workout_fk !== -1 ? body.workout_fk : null;
         if (wFK !== null) await verifyUserWorkout(req, wFK);
 
         let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id, wFK, body.starred]);
@@ -294,7 +293,6 @@ router.post("/", async (req, res) => {
     }
 });
 
-// TO-TEST: lift set parent functionality
 // Create a lift set
 router.post("/:id/set/", async (req, res) => {
     const body = req.body;
@@ -377,7 +375,6 @@ router.post("/:id/set/", async (req, res) => {
 //
 //---------
 
-// TO-TEST: can change starred and workout_fk as well, remove from workout in general as well
 // Update a lift
 router.put("/:id/", async (req, res) => {
     const body = req.body;
@@ -387,11 +384,15 @@ router.put("/:id/", async (req, res) => {
         await verifyUserLift(req, params.id);
         validateLiftInputs(body, false);
 
+        let wId = body.workout_fk;
+
         let updateStr = util.getUpdateStr(body, ["workout_fk"]);
         if (updateStr.affected) {
-            await verifyUserWorkout(req, body.workout_fk);
-            if (body.workout_fk === null) {
-                let widIdx = updateStr.valueStr.indexOf("workout_fk");
+            if (wId !== -1) await verifyUserWorkout(req, wId);
+            else {
+                wId = await req.conn.queryAsync(`SELECT workout_fk FROM lift WHERE id = ${params.id}`);
+                wId = wId[0].workout_fk;
+                let widIdx = updateStr.values.indexOf(-1);
                 updateStr.values[widIdx] = null;
             }
         }
@@ -404,7 +405,7 @@ router.put("/:id/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        if (updateStr.affected) await liftUtil.updateLiftCnt(req, body.workout_fk);
+        if (updateStr.affected) await liftUtil.updateLiftCnt(req, wId);
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been updated" });
@@ -415,7 +416,6 @@ router.put("/:id/", async (req, res) => {
     }
 });
 
-// TO-TEST: lift set parent functionality
 // Edit a lift set
 router.put("/:id/set/", async (req, res) => {
     const body = req.body;
@@ -425,11 +425,13 @@ router.put("/:id/set/", async (req, res) => {
         await verifyUserLift(req, params.id);
 
         let sets = body.sets;
+        let setLen = sets ? sets.length : 0;
 
         let oldDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.oldDate);
         if (oldDateSet.length === 0) throw Error("No set exists at old date");
+        oldDateSet = oldDateSet[0];
 
-        if (sets.length !== oldDateSet.set_quantity) throw Error("Number of sets do not match.");
+        if (sets && setLen !== oldDateSet.set_quantity) throw Error("Number of sets do not match.");
 
         if (body.date) {
             let newDateSet = await liftUtil.checkExistingLiftSet(req, params.id, body.date);
@@ -443,7 +445,13 @@ router.put("/:id/set/", async (req, res) => {
             if (body.date) updateObj.date = body.date;
             if (body.top_set) updateObj.top_set = body.top_set;
 
-            let parentUpdateString = util.getUpdateStr(updateObj, []);
+            let parentUpdateString = util.getUpdateStr(updateObj, ["top_set"]);
+            if (parentUpdateString.affected) {
+                if (body.top_set === -1) {
+                    let tsIdx = parentUpdateString.values.indexOf(-1);
+                    parentUpdateString.values[tsIdx] = null;
+                }
+            }
 
             let parentSql = `
                 UPDATE lift_set_parent
@@ -454,7 +462,7 @@ router.put("/:id/set/", async (req, res) => {
             let parentOkPacket = await req.conn.queryAsync(parentSql, parentUpdateString.values);
         }
 
-        for (let i = 0; i < sets.length; i++) {
+        for (let i = 0; i < setLen; i++) {
             let setBody = {};
 
             if (!sets[i]) {
@@ -488,7 +496,6 @@ router.put("/:id/set/", async (req, res) => {
     }
 });
 
-// TO-TEST:
 // Modify a workout
 router.put("/workout/:id/", async (req, res) => {
     const body = req.body;
@@ -523,11 +530,11 @@ router.put("/workout/:id/", async (req, res) => {
 //
 //------------
 
-// TO-TEST (keepLift as well):
 // Delete a workout
 router.delete("/workout/:id/", async (req, res) => {
     const params = req.params;
-    const keepLift = req.query.keepLift;
+    let keepLift = req.query.keepLift;
+    if (keepLift === "false") keepLift = false;
 
     let delete_lift_sql = `
         DELETE FROM lift_set WHERE lift_fk = ?;
@@ -545,16 +552,15 @@ router.delete("/workout/:id/", async (req, res) => {
         let sqlArr = delete_sql.split(";");
 
         if (keepLift) {
-            await req.queryAsync(`UPDATE lift SET workout_fk = -1 WHERE workout_fk = ${params.id}`);
+            await req.conn.queryAsync(`UPDATE lift SET workout_fk = null WHERE workout_fk = ${params.id}`);
 
-            await req.queryAsync(sqlArr[1]);
+            await req.conn.queryAsync(sqlArr[1]);
         } else {
-            let liftIDs = await req.queryAsync(`SELECT id FROM lift WHERE workout_fk = ${params.id}`);
+            let liftIDs = await req.conn.queryAsync(`SELECT id FROM lift WHERE workout_fk = ${params.id}`);
 
             for (let i = 0; i < liftIDs.length; i++) {
-                let updatedDelete = delete_lift_sql.replace("?", liftIDs[i].id);
+                let updatedDelete = delete_lift_sql.replace(/\?/g, liftIDs[i].id);
                 let liftSqlArr = updatedDelete.split(";");
-
                 await util.runMultipleLinesOfSql(req, liftSqlArr, "Error deleting lifts from workout.");
             }
 
@@ -570,10 +576,15 @@ router.delete("/workout/:id/", async (req, res) => {
     }
 });
 
-// TO-TEST: lift set parent functionality
 // Delete lift
 router.delete("/:id/", async (req, res) => {
     const params = req.params;
+
+    let infoSql = `
+        SELECT workout_fk
+        FROM lift
+        WHERE id = ${params.id}
+    `;
 
     let delete_sql = `
         DELETE FROM lift_set WHERE lift_fk = ${params.id};
@@ -584,9 +595,13 @@ router.delete("/:id/", async (req, res) => {
     try {
         await verifyUserLift(req, params.id);
 
+        let wId = await req.conn.queryAsync(infoSql);
+
         let sqlArr = delete_sql.split(";");
 
         await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift.");
+
+        if (wId[0].workout_fk !== null) await liftUtil.updateLiftCnt(req, wId[0].workout_fk);
 
         util.cleanup(req.conn);
         res.json({ success: "Lift has been deleted." });
@@ -597,7 +612,6 @@ router.delete("/:id/", async (req, res) => {
     }
 });
 
-// TO-TEST: lift set parent functionality
 // Delete lift set
 router.delete("/:id/set/", async (req, res) => {
     const params = req.params;
