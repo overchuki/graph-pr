@@ -1,8 +1,8 @@
 import { Grid, GridSize } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import { Dispatch, SetStateAction, useState } from "react";
-import { basicVerify, dobVerify } from "./util";
-import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle, keyChangeFunc } from "../global/globalTypes";
+import { basicVerify, dobVerify } from "../util";
+import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle, keyChangeFunc } from "../../global/globalTypes";
 
 interface Props {
     label: string;

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import LocalizationProvider from "@mui/lab/LocalizationProvider";
 import DesktopDatePicker from "@mui/lab/DesktopDatePicker";
-import CircleChartGroup from "../components/CircleChartGroup";
+import CircleChartGroup from "../components/nutrition/CircleChartGroup";
 
 const Nutrition: React.FC = () => {
     let today = new Date();

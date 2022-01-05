@@ -6,12 +6,12 @@ import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import axios from "axios";
 import { Dispatch, SetStateAction, useState } from "react";
-import Config from "../Config";
+import Config from "../../Config";
 import InputField from "./InputField";
-import { basicVerify } from "./util";
+import { basicVerify } from "../util";
 import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
-import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle } from "../global/globalTypes";
+import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle } from "../../global/globalTypes";
 
 const PREFIX = "InFieldCheck";
 const classes = {

@@ -1,5 +1,4 @@
-import Grid from "@mui/material/Grid";
-import CircleChart from "../components/CircleChart";
+import CircleChart from "./CircleChart";
 import { useTheme } from "@mui/material";
 
 interface Props {

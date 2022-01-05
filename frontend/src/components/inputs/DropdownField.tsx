@@ -4,8 +4,8 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import { Dispatch, SetStateAction, useState } from "react";
-import { basicVerify } from "./util";
-import { ErrorType, VerificationObj, onChangeFuncNum, GridStyle } from "../global/globalTypes";
+import { basicVerify } from "../util";
+import { ErrorType, VerificationObj, onChangeFuncNum, GridStyle } from "../../global/globalTypes";
 
 interface Props {
     label: string;

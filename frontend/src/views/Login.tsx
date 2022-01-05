@@ -9,7 +9,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
-import InputField from "../components/InputField";
+import InputField from "../components/inputs/InputField";
 import { useAppDispatch } from "../global/hooks";
 import { loginUser, setTheme } from "../global/actions";
 import { ErrorType, HTTPBasicResponse, getUserDataResponse } from "../global/globalTypes";

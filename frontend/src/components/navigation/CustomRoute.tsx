@@ -1,6 +1,6 @@
 import { Route, Redirect } from "react-router-dom";
-import { RootState } from "../global/store";
-import { useAppSelector } from "../global/hooks";
+import { RootState } from "../../global/store";
+import { useAppSelector } from "../../global/hooks";
 
 interface Props {
     path: string;

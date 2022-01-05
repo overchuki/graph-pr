@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import Config from "../Config";
+import Config from "../../Config";
 import { Link } from "react-router-dom";
 import Divider from "@mui/material/Divider";
 import AppBar from "@mui/material/AppBar";
@@ -11,10 +11,10 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import NavBarLink from "./NavBarLink";
 import NavBarLinkBtn from "./NavBarLinkBtn";
-import { RootState } from "../global/store";
-import { useAppDispatch, useAppSelector } from "../global/hooks";
-import { logoutUser, setDefaultTheme } from "../global/actions";
-import { HTTPBasicResponse } from "../global/globalTypes";
+import { RootState } from "../../global/store";
+import { useAppDispatch, useAppSelector } from "../../global/hooks";
+import { logoutUser, setDefaultTheme } from "../../global/actions";
+import { HTTPBasicResponse } from "../../global/globalTypes";
 
 const Navbar: React.FC = () => {
     const user = useAppSelector((state: RootState) => state.user);

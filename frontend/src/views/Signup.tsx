@@ -6,10 +6,10 @@ import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
-import DropdownField from "../components/DropdownField";
+import DropdownField from "../components/inputs/DropdownField";
 import { styled } from "@mui/material/styles";
-import InputField from "../components/InputField";
-import InputFieldCheck from "../components/InputFieldCheck";
+import InputField from "../components/inputs/InputField";
+import InputFieldCheck from "../components/inputs/InputFieldCheck";
 import { useAppDispatch } from "../global/hooks";
 import { defaultThemeIdx } from "../global/reducer";
 import { setDefaultTheme, setTheme } from "../global/actions";
@@ -55,11 +55,7 @@ const Root = styled("div")(({ theme }) => ({
     },
 }));
 
-type ChangeFuncCustom = (
-    confirmVal: string,
-    passVal?: string,
-    err?: boolean
-) => { returnError: boolean; error: ErrorType; overwrite: boolean };
+type ChangeFuncCustom = (confirmVal: string, passVal?: string, err?: boolean) => { returnError: boolean; error: ErrorType; overwrite: boolean };
 
 interface userDataSend {
     name: string;
@@ -243,11 +239,7 @@ const Signup: React.FC = () => {
                 >
                     {/* Title */}
                     <Grid item>
-                        <Typography
-                            display="inline"
-                            variant="body1"
-                            className={generalError ? classes.textError : classes.textMain}
-                        >
+                        <Typography display="inline" variant="body1" className={generalError ? classes.textError : classes.textMain}>
                             {generalError ? generalError : "Account Information"}
                         </Typography>
                     </Grid>
