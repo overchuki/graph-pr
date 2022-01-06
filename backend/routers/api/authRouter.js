@@ -9,7 +9,7 @@ const validUtil = require("./utils/validUtil");
 const router = express.Router();
 
 const saltRounds = 10;
-const maxTokenAgeSeconds = 1 * 24 * 60 * 60;
+const maxTokenAgeSeconds = 7 * 24 * 60 * 60;
 
 const nameLenRange = [2, 20];
 const usernameLenRange = [2, 20];

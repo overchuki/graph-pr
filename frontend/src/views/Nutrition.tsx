@@ -19,6 +19,9 @@ const Nutrition: React.FC = () => {
     useEffect(() => {
         console.log(date);
         console.log("effect test");
+        return () => {
+            console.log("return");
+        };
     }, [date]);
 
     return (
