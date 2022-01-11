@@ -337,7 +337,7 @@ const Signup: React.FC = () => {
                                 email: false,
                                 ascii: true,
                                 dob: false,
-                                alphaNum: true,
+                                alphaNum: false,
                             }}
                             checkType={"username"}
                         />
@@ -618,7 +618,7 @@ const Signup: React.FC = () => {
                                 email: false,
                                 ascii: true,
                                 dob: false,
-                                alphaNum: true,
+                                alphaNum: false,
                             }}
                         />
                         <InputField
@@ -646,7 +646,7 @@ const Signup: React.FC = () => {
                                 email: false,
                                 ascii: true,
                                 dob: false,
-                                alphaNum: true,
+                                alphaNum: false,
                             }}
                         />
                     </Grid>

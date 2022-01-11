@@ -177,7 +177,7 @@ const Login: React.FC<Props> = ({ title }) => {
                             email: false,
                             ascii: true,
                             dob: false,
-                            alphaNum: true,
+                            alphaNum: false,
                         }}
                     />
                     <InputField
@@ -199,7 +199,7 @@ const Login: React.FC<Props> = ({ title }) => {
                             email: false,
                             ascii: true,
                             dob: false,
-                            alphaNum: true,
+                            alphaNum: false,
                         }}
                     />
                     <Grid item container direction="column" alignItems="flex-start" justifyContent="flex-start" spacing={0}>

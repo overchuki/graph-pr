@@ -345,6 +345,8 @@ router.post("/:id/set/", async (req, res) => {
         for (let i = 0; i < sets.length; i++) {
             let weight = sets[i][0];
             let reps = sets[i][1];
+            if (reps > 30 || reps < 1) throw Error("Reps must be 1-30");
+
             let args = [i + 1, weight, reps];
             args.push(liftUtil.getTheoMax(weight, reps));
             args.push(parentOkPacket.insertId);

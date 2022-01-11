@@ -48,3 +48,32 @@ export type GridStyle = {
     padding?: string;
 };
 export type keyChangeFunc = (keyString: string) => any;
+export type liftObj = {
+    id: number;
+    name: string;
+    plur_abbr: string;
+    max: number | null;
+    max_reps: number | null;
+    max_date: string | null;
+    theomax: number | null;
+    theomax_weight: number | null;
+    theomax_reps: number | null;
+    theomax_date: string | null;
+    workout_name: string | null;
+    created_at: string;
+    duration: number | null;
+};
+export type workoutObj = {
+    id: number;
+    name: string;
+    description: string | null;
+    days: string | null;
+    liftCnt: number;
+    created_at: string;
+};
+export type getLiftResponse = {
+    liftArray: liftObj[];
+};
+export type getWorkoutResponse = {
+    workouts: workoutObj[];
+};

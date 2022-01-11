@@ -38,7 +38,7 @@ const validateUserInfo = (body, initial, tz) => {
     if (name.valid === -1) throw Error(name.msg);
     let username = validUtil.validateString("Username", body.username, initial, usernameLenRange, true, false, false, false, false);
     if (username.valid === -1) throw Error(username.msg);
-    let email = validUtil.validateString("Email", body.email, false, emailLenRange, false, true, false, false, false);
+    let email = validUtil.validateString("Email", body.email, false, emailLenRange, true, true, false, false, false);
     if (email.valid === -1) throw Error(email.msg);
     let desc = validUtil.validateString("Description", body.description, false, descriptionLenRange, true, false, false, false, false);
     if (desc.valid === -1) throw Error(desc.msg);

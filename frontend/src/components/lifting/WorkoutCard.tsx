@@ -1,18 +1,17 @@
-interface workoutObj {
-    id: number;
-    name: string;
-    description: string | null;
-    days: string | null;
-    liftCnt: number;
-    created_at: string;
-}
+import Grid from "@mui/material/Grid";
+import { workoutObj } from "../../global/globalTypes";
 
 interface Props {
     workoutObj: workoutObj;
+    selected: boolean;
 }
 
-const WorkoutCard: React.FC<Props> = (workoutObj) => {
-    return <>workout card here</>;
+const WorkoutCard: React.FC<Props> = (workoutObj, selected) => {
+    return (
+        <Grid item>
+            <>workout card here</>
+        </Grid>
+    );
 };
 
 export default WorkoutCard;
