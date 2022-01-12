@@ -12,7 +12,7 @@ const validUtil = require("./utils/validUtil");
 // R: Thursday
 // F: Friday
 // S: Saturday
-const daysArr = ["U", "M", "T", "W", "R", "F", "S"];
+const daysArr = ["M", "T", "W", "R", "F", "S", "U"];
 
 const nameLenRange = [1, 20];
 const workoutNameRange = [1, 20];

@@ -1,9 +1,9 @@
 import Config from "../Config";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
-import { BrowserRouter as Router, Switch, Route, Link, useParams, useRouteMatch } from "react-router-dom";
-import LiftView from "../components/lifting/LiftView";
-import WorkoutView from "../components/lifting/WorkoutView";
+import { Switch, Route, useRouteMatch } from "react-router-dom";
+import LiftView from "./lifting/LiftView";
+import WorkoutView from "./lifting/WorkoutView";
 import axios from "axios";
 import { liftObj, workoutObj, getLiftResponse, getWorkoutResponse } from "../global/globalTypes";
 import LiftCard from "../components/lifting/LiftCard";
@@ -11,11 +11,9 @@ import { styled } from "@mui/material/styles";
 import WorkoutCard from "../components/lifting/WorkoutCard";
 import { Typography } from "@mui/material";
 
-// type = 0: for lift
-// type = 1: for workout
-interface selectedCard {
-    cardType: number;
+interface selectedLift {
     id: number;
+    wId: number;
 }
 
 const PREFIX = "Lifting";
@@ -33,9 +31,12 @@ const Root = styled("div")(({ theme }) => ({
 }));
 
 const Lifting: React.FC = () => {
-    let { path, url } = useRouteMatch();
+    let { path } = useRouteMatch();
+    const daysArr = ["M", "T", "W", "R", "F", "S", "U"];
+    const daysFullArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-    const [selectedCard, setSelectedCard] = useState<selectedCard>({ cardType: -1, id: -1 });
+    const [selectedLift, setSelectedLift] = useState<selectedLift>({ id: -1, wId: -1 });
+    const [selectedWorkout, setSelectedWorkout] = useState<number>(-1);
 
     const [lifts, setLifts] = useState<liftObj[]>([]);
     const [workouts, setWorkouts] = useState<workoutObj[]>([]);
@@ -53,17 +54,21 @@ const Lifting: React.FC = () => {
 
     const handleLiftClick = (selected: boolean, id: number) => {
         if (selected) {
-            setSelectedCard({ cardType: -1, id: -1 });
+            setSelectedLift({ id: -1, wId: -1 });
         } else {
-            setSelectedCard({ cardType: 0, id: id });
+            let workId = lifts.find((lift) => lift.id === id)?.workout_id;
+            if (!workId) workId = -1;
+
+            setSelectedLift({ id: id, wId: workId });
         }
     };
 
     const handleWorkoutClick = (selected: boolean, id: number) => {
         if (selected) {
-            setSelectedCard({ cardType: -1, id: -1 });
+            setSelectedWorkout(-1);
         } else {
-            setSelectedCard({ cardType: 1, id: id });
+            if (selectedLift.wId !== id) setSelectedLift({ id: -1, wId: -1 });
+            setSelectedWorkout(id);
         }
     };
 
@@ -96,19 +101,15 @@ const Lifting: React.FC = () => {
                             {filterWorkouts.map((workout) => (
                                 <WorkoutCard
                                     key={workout.id}
+                                    handleClick={handleWorkoutClick}
                                     workoutObj={workout}
-                                    selected={selectedCard.cardType === 1 && selectedCard.id === workout.id}
+                                    selected={selectedWorkout === workout.id}
                                 />
                             ))}
                         </Grid>
                         <Grid container item xs={4} direction="column" alignItems="center" spacing={2}>
                             {filterLifts.map((lift) => (
-                                <LiftCard
-                                    key={lift.id}
-                                    liftObj={lift}
-                                    handleClick={handleLiftClick}
-                                    selected={selectedCard.cardType === 0 && selectedCard.id === lift.id}
-                                />
+                                <LiftCard key={lift.id} liftObj={lift} handleClick={handleLiftClick} selected={selectedLift.id === lift.id} />
                             ))}
                         </Grid>
                         <Grid container item xs={4} direction="column" alignItems="center" spacing={2}>

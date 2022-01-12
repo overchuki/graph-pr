@@ -60,6 +60,7 @@ export type liftObj = {
     theomax_reps: number | null;
     theomax_date: string | null;
     workout_name: string | null;
+    workout_id: number | null;
     created_at: string;
     duration: number | null;
 };

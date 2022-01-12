@@ -17,6 +17,7 @@ const getLiftInfo = async (req, liftId) => {
             ltheo.reps AS theomax_reps,
             lptheo.date AS theomax_date,
             w.name AS workout_name,
+            w.id AS workout_id,
             l.created_at
         FROM lift AS l
         LEFT JOIN workout AS w ON l.workout_fk = w.id
