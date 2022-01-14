@@ -8,7 +8,8 @@ import { basicVerify } from "../util";
 import { ErrorType, VerificationObj, onChangeFuncNum, GridStyle } from "../../global/globalTypes";
 
 interface Props {
-    label: string;
+    label: string | null;
+    variant: "outlined" | "standard" | "filled" | undefined;
     defaultValue: number;
     onChange?: onChangeFuncNum;
     setValue: Dispatch<SetStateAction<number>>;
@@ -24,6 +25,7 @@ interface Props {
 const DropdownField: React.FC<Props> = ({
     label,
     defaultValue,
+    variant,
     onChange,
     setValue,
     valuesArr,
@@ -39,7 +41,7 @@ const DropdownField: React.FC<Props> = ({
     let gridStyle: GridStyle = { width: "100%" };
     if (position !== -1) gridStyle.padding = pStr;
 
-    const id = `${label.replace(/\s/g, "")}Select`;
+    const id = label ? `${label.replace(/\s/g, "")}Select` : null;
 
     const [error, setError] = useState<ErrorType>(false);
 
@@ -77,12 +79,17 @@ const DropdownField: React.FC<Props> = ({
 
     return (
         <Grid item container alignItems="center" justifyContent="center" xs={size} style={gridStyle}>
-            <FormControl variant="outlined" style={{ width: "100%" }}>
-                <InputLabel error={error || errorOverwrite ? true : false} id={id}>
-                    {label}
-                </InputLabel>
+            <FormControl variant={variant} style={{ width: "100%" }}>
+                {label ? (
+                    <InputLabel error={error || errorOverwrite ? true : false} id={id ? id : undefined}>
+                        {label}
+                    </InputLabel>
+                ) : (
+                    ""
+                )}
+
                 <Select
-                    labelId={id}
+                    labelId={id ? id : undefined}
                     defaultValue={defaultValue}
                     disabled={disabled}
                     error={error || errorOverwrite ? true : false}

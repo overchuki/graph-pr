@@ -34,6 +34,7 @@ const Lifting: React.FC = () => {
     let { path } = useRouteMatch();
     const daysArr = ["M", "T", "W", "R", "F", "S", "U"];
     const daysFullArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    let today = daysArr[new Date().getDay()];
 
     const [selectedLift, setSelectedLift] = useState<selectedLift>({ id: -1, wId: -1 });
     const [selectedWorkout, setSelectedWorkout] = useState<number>(-1);
@@ -89,6 +90,8 @@ const Lifting: React.FC = () => {
             }
         }
         getData();
+        setSelectedLift({ id: -1, wId: -1 });
+        setSelectedWorkout(-1);
         return () => {};
     }, []);
 
@@ -109,7 +112,13 @@ const Lifting: React.FC = () => {
                         </Grid>
                         <Grid container item xs={4} direction="column" alignItems="center" spacing={2}>
                             {filterLifts.map((lift) => (
-                                <LiftCard key={lift.id} liftObj={lift} handleClick={handleLiftClick} selected={selectedLift.id === lift.id} />
+                                <LiftCard
+                                    key={lift.id}
+                                    liftObj={lift}
+                                    workoutArr={workouts}
+                                    handleClick={handleLiftClick}
+                                    selected={selectedLift.id === lift.id}
+                                />
                             ))}
                         </Grid>
                         <Grid container item xs={4} direction="column" alignItems="center" spacing={2}>

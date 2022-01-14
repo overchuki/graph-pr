@@ -191,34 +191,58 @@ router.get("/:id/single/", async (req, res) => {
     }
 });
 
-// Get a set
+// Get a set, either date or latest param, default will be latest = 1
 router.get("/:id/set/", async (req, res) => {
     const query = req.query;
     const params = req.params;
 
-    let parentSql = `
+    let date = query.date || null;
+    let latest = query.latest;
+
+    let sqlDate = `
         SELECT *
         FROM lift_set_parent
-        WHERE lift_fk = ${params.id} AND date = '${query.date}'
+        WHERE lift_fk = ${params.id} AND date = ?
     `;
 
-    let sql = `
+    let sqlLatest = `
+        SELECT *
+        FROM lift_set_parent
+        WHERE lift_fk = ${params.id}
+        ORDER BY date DESC
+        LIMIT ?
+    `;
+
+    let sqlSets = `
         SELECT *
         FROM lift_set
         WHERE lift_set_parent_fk = ?
-        ORDER BY set_num
+        ORDER BY set_num ASC
     `;
 
     try {
         await verifyUserLift(req, params.id);
 
-        let parent = await req.conn.queryAsync(parentSql);
-        if (parent.length === 0) throw Error("Parent set does not exist at this date.");
+        let setParent = null;
+        let sets = [];
 
-        let sets = await req.conn.queryAsync(sql, [parent[0].id]);
+        if (date && latest) throw Error("Invalid, select either date or latest.");
+        else if (date) {
+            setParent = await req.conn.queryAsync(sqlDate, [date]);
+        } else {
+            if (!latest) latest = 1;
+            setParent = await req.conn.queryAsync(sqlLatest, [latest]);
+        }
+
+        if (setParent && setParent.length !== 0) {
+            setParent = setParent[0];
+            sets = await req.conn.queryAsync(sqlSets, [setParent.id]);
+        } else {
+            setParent = null;
+        }
 
         util.cleanup(req.conn);
-        res.json({ setInfo: parent[0], sets });
+        res.json({ setParent, sets });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);

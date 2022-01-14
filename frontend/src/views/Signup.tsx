@@ -292,6 +292,7 @@ const Signup: React.FC = () => {
                         />
                         <DropdownField
                             label={"Gender"}
+                            variant="outlined"
                             defaultValue={0}
                             setValue={setGenderField}
                             valuesArr={[
@@ -391,6 +392,7 @@ const Signup: React.FC = () => {
                         />
                         <DropdownField
                             label={"Height Unit"}
+                            variant="outlined"
                             defaultValue={6}
                             setValue={setHeightUnitField}
                             valuesArr={[
@@ -437,6 +439,7 @@ const Signup: React.FC = () => {
                         />
                         <DropdownField
                             label={"Weight Unit"}
+                            variant="outlined"
                             defaultValue={2}
                             setValue={setBodyweightUnitField}
                             valuesArr={[
@@ -464,6 +467,7 @@ const Signup: React.FC = () => {
                     {/* Fourth Row: Activity Level */}
                     <DropdownField
                         label={"Activity Level"}
+                        variant="outlined"
                         defaultValue={3}
                         setValue={setActivityLevelField}
                         valuesArr={[
@@ -494,6 +498,7 @@ const Signup: React.FC = () => {
                     <Grid item container alignItems="center" justifyContent="center" className={classes.inputField}>
                         <DropdownField
                             label={"Weight Goal"}
+                            variant="outlined"
                             defaultValue={4}
                             setValue={setWeightGoalField}
                             valuesArr={[
@@ -523,6 +528,7 @@ const Signup: React.FC = () => {
                         />
                         <DropdownField
                             label={"Theme"}
+                            variant="outlined"
                             defaultValue={1}
                             setValue={setThemeField}
                             onChange={handleThemeChange}
@@ -549,6 +555,7 @@ const Signup: React.FC = () => {
                         />
                         <DropdownField
                             label={"Icon"}
+                            variant="outlined"
                             defaultValue={1}
                             setValue={setIconField}
                             valuesArr={[[1, "Default"]]}
