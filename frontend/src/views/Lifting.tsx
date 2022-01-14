@@ -53,6 +53,24 @@ const Lifting: React.FC = () => {
         // set the filters for the workouts
     };
 
+    const updateLiftWorkoutState = (id: number, workoutId: number): void => {
+        let wObj = workouts.filter((workout) => workout.id === workoutId);
+        let workoutName: string | null = null;
+        if (wObj.length > 0) workoutName = wObj[0].name;
+
+        let liftsNew = lifts.map((lift) => {
+            if (lift.id === id) return { ...lift, workout_id: workoutId, workout_name: workoutName };
+            return lift;
+        });
+        let filterLiftsNew = filterLifts.map((lift) => {
+            if (lift.id === id) return { ...lift, workout_id: workoutId, workout_name: workoutName };
+            return lift;
+        });
+
+        setLifts(liftsNew);
+        setFilterLifts(filterLiftsNew);
+    };
+
     const handleLiftClick = (selected: boolean, id: number) => {
         if (selected) {
             setSelectedLift({ id: -1, wId: -1 });
@@ -117,6 +135,7 @@ const Lifting: React.FC = () => {
                                     liftObj={lift}
                                     workoutArr={workouts}
                                     handleClick={handleLiftClick}
+                                    updateLiftState={updateLiftWorkoutState}
                                     selected={selectedLift.id === lift.id}
                                 />
                             ))}

@@ -13,11 +13,13 @@ import DropdownField from "../inputs/DropdownField";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
+import axios from "axios";
 
 interface Props {
     liftObj: liftObj;
     selected: boolean;
     handleClick: (selected: boolean, id: number) => void;
+    updateLiftState: (id: number, workoutId: number) => void;
     workoutArr: workoutObj[];
 }
 
@@ -66,24 +68,29 @@ const Root = styled("div")(({ theme }) => ({
     },
 }));
 
-const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, workoutArr }) => {
+const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftState, workoutArr }) => {
     let { url } = useRouteMatch();
 
     const [editWorkout, setEditWorkout] = useState<boolean>(false);
     const [workoutId, setWorkoutId] = useState<number>(liftObj.workout_id || -1);
     const [disableWorkoutChange, setDisableWorkoutChange] = useState<boolean>(false);
 
-    let workoutArrVals: [number, string][] = [[-1, "--None--"]];
+    let workoutArrVals: [number, string][] = [[-1, "None"]];
     for (let i = 0; i < workoutArr.length; i++) {
         workoutArrVals.push([workoutArr[i].id, workoutArr[i].name]);
     }
 
     const onWorkoutChange: onChangeFuncNum = (val) => {
+        async function setWorkout() {
+            await axios.put(`${Config.apiUrl}/lift/${liftObj.id}`, { workout_fk: val }, { withCredentials: true });
+
+            updateLiftState(liftObj.id, val);
+            setEditWorkout(false);
+            setDisableWorkoutChange(false);
+        }
         setDisableWorkoutChange(true);
 
-        // Send request to modify workout here
-
-        setDisableWorkoutChange(false);
+        setWorkout();
 
         return { returnError: false, error: false, overwrite: false };
     };
@@ -155,7 +162,8 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, workoutArr 
                                     <DropdownField
                                         label={null}
                                         variant="standard"
-                                        defaultValue={liftObj.workout_id || -1}
+                                        defaultValue={workoutId}
+                                        useDefault={false}
                                         setValue={setWorkoutId}
                                         onChange={onWorkoutChange}
                                         valuesArr={workoutArrVals}

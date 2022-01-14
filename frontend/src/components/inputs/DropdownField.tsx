@@ -11,6 +11,7 @@ interface Props {
     label: string | null;
     variant: "outlined" | "standard" | "filled" | undefined;
     defaultValue: number;
+    useDefault: boolean;
     onChange?: onChangeFuncNum;
     setValue: Dispatch<SetStateAction<number>>;
     valuesArr: Array<[number, string]>;
@@ -25,6 +26,7 @@ interface Props {
 const DropdownField: React.FC<Props> = ({
     label,
     defaultValue,
+    useDefault,
     variant,
     onChange,
     setValue,
@@ -90,7 +92,8 @@ const DropdownField: React.FC<Props> = ({
 
                 <Select
                     labelId={id ? id : undefined}
-                    defaultValue={defaultValue}
+                    defaultValue={useDefault ? defaultValue : undefined}
+                    value={useDefault ? undefined : defaultValue}
                     disabled={disabled}
                     error={error || errorOverwrite ? true : false}
                     onChange={(e: any) => handleChange(e.target.value)}

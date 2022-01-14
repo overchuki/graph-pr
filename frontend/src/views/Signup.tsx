@@ -294,6 +294,7 @@ const Signup: React.FC = () => {
                             label={"Gender"}
                             variant="outlined"
                             defaultValue={0}
+                            useDefault={true}
                             setValue={setGenderField}
                             valuesArr={[
                                 [0, "-Select-"],
@@ -394,6 +395,7 @@ const Signup: React.FC = () => {
                             label={"Height Unit"}
                             variant="outlined"
                             defaultValue={6}
+                            useDefault={true}
                             setValue={setHeightUnitField}
                             valuesArr={[
                                 [6, "In"],
@@ -441,6 +443,7 @@ const Signup: React.FC = () => {
                             label={"Weight Unit"}
                             variant="outlined"
                             defaultValue={2}
+                            useDefault={true}
                             setValue={setBodyweightUnitField}
                             valuesArr={[
                                 [2, "Lb"],
@@ -469,6 +472,7 @@ const Signup: React.FC = () => {
                         label={"Activity Level"}
                         variant="outlined"
                         defaultValue={3}
+                        useDefault={true}
                         setValue={setActivityLevelField}
                         valuesArr={[
                             [1, "Sedetary: Little to no exercise."],
@@ -500,6 +504,7 @@ const Signup: React.FC = () => {
                             label={"Weight Goal"}
                             variant="outlined"
                             defaultValue={4}
+                            useDefault={true}
                             setValue={setWeightGoalField}
                             valuesArr={[
                                 [1, "Extreme Loss (2lb / .9kg a week)"],
@@ -530,6 +535,7 @@ const Signup: React.FC = () => {
                             label={"Theme"}
                             variant="outlined"
                             defaultValue={1}
+                            useDefault={true}
                             setValue={setThemeField}
                             onChange={handleThemeChange}
                             valuesArr={[
@@ -557,6 +563,7 @@ const Signup: React.FC = () => {
                             label={"Icon"}
                             variant="outlined"
                             defaultValue={1}
+                            useDefault={true}
                             setValue={setIconField}
                             valuesArr={[[1, "Default"]]}
                             size={3}
