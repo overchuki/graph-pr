@@ -245,7 +245,7 @@ const Lifting: React.FC = () => {
                                 <BigButton type={0} text="" contrast={false}>
                                     <AddIcon color="action" />
                                     <Typography variant="subtitle1" color="text.primary">
-                                        Add Workout
+                                        Workout
                                     </Typography>
                                 </BigButton>
                             </Link>
@@ -293,7 +293,7 @@ const Lifting: React.FC = () => {
                                 <BigButton type={0} text="" contrast={false}>
                                     <AddIcon color="action" />
                                     <Typography variant="subtitle1" color="text.primary">
-                                        Add Lift
+                                        Lift
                                     </Typography>
                                 </BigButton>
                             </Link>
