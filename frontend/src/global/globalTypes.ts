@@ -52,6 +52,7 @@ export type liftObj = {
     id: number;
     name: string;
     plur_abbr: string;
+    starred: number;
     max: number | null;
     max_reps: number | null;
     max_date: string | null;

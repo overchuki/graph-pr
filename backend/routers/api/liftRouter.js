@@ -61,9 +61,6 @@ const validateLiftInputs = (body, initial) => {
 
     let unitIdx = validUtil.validateNum("Unit index", body.unit_fk, initial, unitNumRange);
     if (unitIdx.valid === -1) throw Error(unitIdx.msg);
-
-    let starred = validUtil.validateNum("Starred", body.starred, initial, starredRange);
-    if (starred.valid === -1) throw Error(starred.msg);
 };
 
 //---------
@@ -411,9 +408,13 @@ router.put("/:id/", async (req, res) => {
         validateLiftInputs(body, false);
 
         let wId = body.workout_fk;
+        let prevWID = body.prevWID;
 
-        let updateStr = util.getUpdateStr(body, ["workout_fk"]);
+        let updateStr = util.getUpdateStr(body, ["workout_fk"], ["prevWID"], []);
         if (updateStr.affected) {
+            if (!prevWID) throw Error("Please provide previous workout info.");
+            if (prevWID !== -1) await verifyUserWorkout(req, prevWID);
+
             if (wId !== -1) await verifyUserWorkout(req, wId);
             else {
                 wId = await req.conn.queryAsync(`SELECT workout_fk FROM lift WHERE id = ${params.id}`);
@@ -431,7 +432,10 @@ router.put("/:id/", async (req, res) => {
 
         let okPacket = await req.conn.queryAsync(sql, updateStr.values);
 
-        if (updateStr.affected) await liftUtil.updateLiftCnt(req, wId);
+        if (updateStr.affected) {
+            if (wId !== -1) await liftUtil.updateLiftCnt(req, wId);
+            if (prevWID !== -1) await liftUtil.updateLiftCnt(req, prevWID);
+        }
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been updated" });
@@ -471,7 +475,7 @@ router.put("/:id/set/", async (req, res) => {
             if (body.date) updateObj.date = body.date;
             if (body.top_set) updateObj.top_set = body.top_set;
 
-            let parentUpdateString = util.getUpdateStr(updateObj, ["top_set"]);
+            let parentUpdateString = util.getUpdateStr(updateObj, ["top_set"], []);
             if (parentUpdateString.affected) {
                 if (body.top_set === -1) {
                     let tsIdx = parentUpdateString.values.indexOf(-1);
@@ -499,7 +503,7 @@ router.put("/:id/set/", async (req, res) => {
                 setBody.theomax = liftUtil.getTheoMax(setBody.weight, setBody.reps);
             }
 
-            let updateStr = util.getUpdateStr(setBody, []);
+            let updateStr = util.getUpdateStr(setBody, [], []);
 
             let sql = `
                 UPDATE lift_set
@@ -531,7 +535,7 @@ router.put("/workout/:id/", async (req, res) => {
         await verifyUserWorkout(req, params.id);
         validateWorkoutInputs(body, false);
 
-        let updateStr = util.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, [], []);
 
         let sql = `
             UPDATE workout

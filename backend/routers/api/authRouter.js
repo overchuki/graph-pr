@@ -307,7 +307,7 @@ router.put("/account/", requireAuth, async (req, res) => {
         validateUserInfo(body, false, req.user.tz);
 
         let maintenanceFactors = ["dob", "height", "height_unit_fk", "gender_fk", "bw_unit_fk", "activity_level_fk", "weight_goal_fk"];
-        let updateStr = util.getUpdateStr(body, maintenanceFactors);
+        let updateStr = util.getUpdateStr(body, maintenanceFactors, []);
 
         let sql = `
             UPDATE user

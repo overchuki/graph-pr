@@ -9,6 +9,7 @@ const getLiftInfo = async (req, liftId) => {
             l.id,
             l.name,
             u.plur_abbr,
+            l.starred,
             lmax.weight AS max,
             lmax.reps AS max_reps,
             lpmax.date AS max_date,

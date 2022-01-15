@@ -253,7 +253,7 @@ router.put("/:id/", async (req, res) => {
         await verifyUser(req, params.id);
         validateItemInputs(body, false);
 
-        let updateStr = util.getUpdateStr(body, ["serving_size", "serving_size_unit_fk", "category_fk"]);
+        let updateStr = util.getUpdateStr(body, ["serving_size", "serving_size_unit_fk", "category_fk"], []);
         if (updateStr.affected) throw Error("Cannot modify these attributes.");
 
         let sql = `

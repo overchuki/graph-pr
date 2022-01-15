@@ -288,7 +288,7 @@ router.put("/:id/", async (req, res) => {
         await verifyUser(req, params.id);
         validateMealInputs(body, false);
 
-        let updateStr = util.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, [], []);
 
         let sql = `
             UPDATE meal

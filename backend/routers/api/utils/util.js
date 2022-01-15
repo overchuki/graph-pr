@@ -29,7 +29,7 @@ const convertUnit = (value, convertFrom, convertTo) => {
     return value * factor;
 };
 
-const getUpdateStr = (body, affectedArray) => {
+const getUpdateStr = (body, affectedArray, ignoreKeys) => {
     let valueStr = "";
     let values = [];
     let keys = Object.keys(body);
@@ -38,7 +38,8 @@ const getUpdateStr = (body, affectedArray) => {
     if (keys.length === 0) throw Error("Please modify something.");
 
     for (let i = 0; i < keys.length; i++) {
-        if (!body[keys[i]]) continue;
+        if (ignoreKeys.includes(keys[i])) continue;
+        if (body[keys[i]] === undefined || body[keys[i]] === null) continue;
 
         if (affectedArray.includes(keys[i])) affected = true;
 

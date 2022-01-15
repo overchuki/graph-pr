@@ -135,7 +135,7 @@ router.put("/:id/", async (req, res) => {
             if (bwDate.length > 0) throw Error("Bodyweight already set on this date.");
         }
 
-        let updateStr = util.getUpdateStr(body, []);
+        let updateStr = util.getUpdateStr(body, [], []);
 
         let sql = `
             UPDATE bodyweight
