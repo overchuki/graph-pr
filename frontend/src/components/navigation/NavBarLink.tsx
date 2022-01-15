@@ -29,7 +29,7 @@ const NavBarLink: React.FC<Props> = ({ path, name }) => {
 
     return (
         <Root>
-            <NavLink to={path} className={className} activeClassName={activeClassName} exact>
+            <NavLink to={path} className={className} activeClassName={activeClassName}>
                 <Typography display="inline" variant="subtitle1">
                     {name}
                 </Typography>
