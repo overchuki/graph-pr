@@ -199,17 +199,25 @@ CREATE TABLE IF NOT EXISTS LIFT (
     theomax_set INT,
     unit_fk INT NOT NULL,
     user_fk INT NOT NULL,
-    workout_fk INT DEFAULT NULL,
     starred BOOLEAN NOT NULL DEFAULT false,
     created_at DATETIME NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (id),
     FOREIGN KEY (unit_fk) REFERENCES UNIT (id),
-    FOREIGN KEY (user_fk) REFERENCES USER (id),
+    FOREIGN KEY (user_fk) REFERENCES USER (id)
+);
+CREATE TABLE IF NOT EXISTS WORKOUT_LIFT (
+    lift_fk INT NOT NULL,
+    workout_fk INT NOT NULL,
+    order_num INT NOT NULL,
+
+    PRIMARY KEY (lift_fk, workout_fk),
+    FOREIGN KEY (lift_fk) REFERENCES LIFT (id),
     FOREIGN KEY (workout_fk) REFERENCES WORKOUT (id)
 );
 CREATE TABLE IF NOT EXISTS LIFT_SET_PARENT (
     id INT NOT NULL AUTO_INCREMENT,
+    notes VARCHAR(100),
     set_quantity INT NOT NULL,
     top_set INT DEFAULT -1,
     date DATE NOT NULL,
@@ -225,9 +233,9 @@ CREATE TABLE IF NOT EXISTS LIFT_SET_PARENT (
 CREATE TABLE IF NOT EXISTS LIFT_SET (
     id INT NOT NULL AUTO_INCREMENT,
     set_num INT NOT NULL,
-    weight INT NOT NULL,
+    weight DECIMAL(8, 2) NOT NULL,
     reps INT NOT NULL,
-    theomax DECIMAL(10, 2) NOT NULL,
+    theomax DECIMAL(8, 2) NOT NULL,
     lift_set_parent_fk INT NOT NULL,
     lift_fk INT NOT NULL,
 

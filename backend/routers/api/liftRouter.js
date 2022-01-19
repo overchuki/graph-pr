@@ -19,7 +19,6 @@ const workoutNameRange = [1, 20];
 const descRange = [1, 200];
 const daysRange = [1, 7];
 const unitNumRange = [1, 2];
-const starredRange = [0, 1];
 
 const verifyUserLift = async (req, id) => {
     let sql = `SELECT * FROM lift WHERE id = ${id}`;
@@ -27,6 +26,8 @@ const verifyUserLift = async (req, id) => {
     let lift = await req.conn.queryAsync(sql);
     if (lift.length === 0) throw Error("This lift does not exist.");
     if (lift[0].user_fk !== req.user.id) throw Error("You can only modify your own lifts.");
+
+    return lift[0];
 };
 
 const verifyUserWorkout = async (req, id) => {
@@ -35,6 +36,8 @@ const verifyUserWorkout = async (req, id) => {
     let workout = await req.conn.queryAsync(sql);
     if (workout.length === 0) throw Error("This workout does not exist.");
     if (workout[0].user_fk !== req.user.id) throw Error("You can only modify your own workouts.");
+
+    return workout[0];
 };
 
 const validateWorkoutInputs = (body, initial) => {
@@ -101,34 +104,55 @@ router.get("/workout/", async (req, res) => {
     }
 });
 
-// Get a workout and all of its lifts (id -1 yields all lifts without workout)
+// Get a workout and all of its lifts
 router.get("/workout/:id/", async (req, res) => {
     const params = req.params;
-    let pId = parseInt(params.id);
 
-    let whereClause = `= ${params.id}`;
-    if (pId === -1) whereClause = `IS NULL`;
+    let liftSql = `
+        SELECT
+            l.id,
+            l.name,
+            u.plur_abbr,
+            l.starred,
+            lmax.weight AS max,
+            lmax.reps AS max_reps,
+            lpmax.date AS max_date,
+            ltheo.theomax,
+            ltheo.weight AS theomax_weight,
+            ltheo.reps AS theomax_reps,
+            lptheo.date AS theomax_date,
+            l.created_at
+        FROM workout_lift AS wl
+        LEFT JOIN lift AS l ON wl.lift_fk = l.id
+        LEFT JOIN lift_set AS lmax ON l.max_set = lmax.id
+        LEFT JOIN lift_set_parent AS lpmax ON lmax.lift_set_parent_fk = lpmax.id
+        LEFT JOIN lift_set AS ltheo ON l.theomax_set = ltheo.id
+        LEFT JOIN lift_set_parent AS lptheo ON ltheo.lift_set_parent_fk = lptheo.id
+        LEFT JOIN unit AS u ON l.unit_fk = u.id
+        WHERE wl.workout_fk = ${params.id}
+        ORDER BY wl.order_num DESC
+    `;
 
-    let sql = `
-        SELECT id
-        FROM lift
-        WHERE workout_fk ${whereClause}
+    let wSql = `
+        SELECT
+            w.id,
+            w.name
+        FROM workout_lift AS wl
+        LEFT JOIN workout AS w ON wl.workout_fk = w.id
+        WHERE lift_fk = ?
     `;
 
     try {
-        if (pId !== -1) await verifyUserWorkout(req, params.id);
-        let workout = -1;
-        if (pId !== -1) workout = await liftUtil.getWorkoutInfo(req, params.id);
-        let lifts = await req.conn.queryAsync(sql);
+        let workout = await verifyUserWorkout(req, params.id);
 
-        let liftArray = [];
-
+        let lifts = await req.conn.queryAsync(liftSql);
         for (let i = 0; i < lifts.length; i++) {
-            liftArray.push(await liftUtil.getLiftInfo(req, lifts[i].id));
+            let workouts = await req.conn.queryAsync(wSql, [lifts[i].id]);
+            lifts[i].workouts = workouts;
         }
 
         util.cleanup(req.conn);
-        res.json({ workout, liftArray });
+        res.json({ workout, lifts });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
@@ -143,24 +167,49 @@ router.get("/", async (req, res) => {
     const offset = query.offset || 0;
 
     let sql = `
-        SELECT id
-        FROM lift
-        WHERE user_fk = ${req.user.id}
+        SELECT
+            l.id,
+            l.name,
+            u.plur_abbr,
+            l.starred,
+            lmax.weight AS max,
+            lmax.reps AS max_reps,
+            lpmax.date AS max_date,
+            ltheo.theomax,
+            ltheo.weight AS theomax_weight,
+            ltheo.reps AS theomax_reps,
+            lptheo.date AS theomax_date,
+            l.created_at
+        FROM lift AS l
+        LEFT JOIN lift_set AS lmax ON l.max_set = lmax.id
+        LEFT JOIN lift_set_parent AS lpmax ON lmax.lift_set_parent_fk = lpmax.id
+        LEFT JOIN lift_set AS ltheo ON l.theomax_set = ltheo.id
+        LEFT JOIN lift_set_parent AS lptheo ON ltheo.lift_set_parent_fk = lptheo.id
+        LEFT JOIN unit AS u ON l.unit_fk = u.id
+        WHERE l.user_fk = ${req.user.id}
         LIMIT ${limit}
         OFFSET ${offset}
+    `;
+
+    let wSql = `
+        SELECT
+            w.id,
+            w.name
+        FROM workout_lift AS wl
+        LEFT JOIN workout AS w ON wl.workout_fk = w.id
+        WHERE lift_fk = ?
     `;
 
     try {
         let lifts = await req.conn.queryAsync(sql);
 
-        let liftArray = [];
-
         for (let i = 0; i < lifts.length; i++) {
-            liftArray.push(await liftUtil.getLiftInfo(req, lifts[i].id));
+            let wName = await req.conn.queryAsync(wSql, [lifts[i].id]);
+            lifts[i].workouts = wName;
         }
 
         util.cleanup(req.conn);
-        res.json({ liftArray });
+        res.json({ lifts });
     } catch (err) {
         const errors = util.handleError(err);
         util.cleanup(req.conn);
@@ -291,19 +340,37 @@ router.post("/", async (req, res) => {
             name,
             unit_fk,
             user_fk,
-            workout_fk,
             starred)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?)
+    `;
+
+    let wSql = `
+        INSERT
+        INTO workout_lift (
+            lift_fk,
+            workout_fk,
+            order_num)
+        VALUES (?, ?, ?)
     `;
 
     try {
         validateLiftInputs(body, true);
         let wFK = body.workout_fk !== -1 ? body.workout_fk : null;
-        if (wFK !== null) await verifyUserWorkout(req, wFK);
+        if (wFK !== null) {
+            for (let i = 0; i < wFK.length; i++) {
+                await verifyUserWorkout(req, wFK[i]);
+            }
+        }
 
-        let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id, wFK, body.starred]);
+        let okPacket = await req.conn.queryAsync(sql, [body.name, body.unit_fk, req.user.id, body.starred]);
 
-        if (wFK !== null) await liftUtil.updateLiftCnt(req, wFK);
+        if (wFK !== null) {
+            for (let i = 0; i < wFK.length; i++) {
+                let curCount = await liftUtil.getLiftCnt(req, wFK[i]);
+                await req.conn.queryAsync(wSql, [okPacket.insertId, wFK[i], curCount + 1]);
+                await liftUtil.updateLiftCnt(req, wFK[i]);
+            }
+        }
 
         util.cleanup(req.conn);
         res.json({ success: "lift has been created", id: okPacket.insertId });
@@ -323,10 +390,11 @@ router.post("/:id/set/", async (req, res) => {
         INSERT
         INTO lift_set_parent (
             set_quantity,
+            notes,
             top_set,
             date,
             lift_fk)
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
     `;
 
     let sql = `
@@ -355,13 +423,15 @@ router.post("/:id/set/", async (req, res) => {
 
         let topSet = validUtil.validateNum("Top set", body.top_set, false, [1, setLen]);
         if (topSet.valid === -1) throw Error(topSet.msg);
+        let notes = validUtil.validateNum("Top set", body.notes, false, [1, setLen]);
+        if (notes.valid === -1) throw Error(notes.msg);
 
         let okPackets = [];
         let updateNeccessary = false;
 
         let liftInfo = await liftUtil.getLiftInfo(req, params.id);
 
-        let parentOkPacket = await req.conn.queryAsync(parentSql, [setLen, body.top_set, body.date, params.id]);
+        let parentOkPacket = await req.conn.queryAsync(parentSql, [setLen, body.notes, body.top_set, body.date, params.id]);
 
         for (let i = 0; i < sets.length; i++) {
             let weight = sets[i][0];
@@ -397,6 +467,111 @@ router.post("/:id/set/", async (req, res) => {
 //   PUT
 //
 //---------
+
+// Modify which workouts a lift is in
+router.put("/:id/workout/", async (req, res) => {
+    const liftID = req.params.id;
+    const workoutIDs = req.body.workoutIDs;
+
+    let wSql = `
+        SELECT
+            workout_fk,
+            order_num
+        FROM workout_lift
+        WHERE lift_fk = ${liftID}
+    `;
+
+    let addSql = `
+        INSERT
+        INTO workout_lift (
+            lift_fk,
+            workout_fk,
+            order_num)
+        VALUES (?, ?, ?)
+    `;
+
+    let removeSql = `
+        DELETE
+        FROM workout_lift
+        WHERE workout_fk = ? AND lift_fk = ?
+    `;
+
+    let removeModifySql = `
+        UPDATE workout_lift
+        SET order_num = order_num - 1
+        WHERE workout_fk = ? AND order_num > ?
+    `;
+
+    try {
+        await verifyUserLift(req, liftID);
+        let modWorkouts = [];
+
+        let curWorkouts = await req.conn.queryAsync(wSql);
+        let curWIDs = [];
+        for (let i = 0; i < curWorkouts.length; i++) {
+            curWIDs.push(curWorkouts[i].workout_fk);
+        }
+
+        for (let i = 0; i < workoutIDs.length; i++) {
+            if (!curWIDs.includes(workoutIDs[i])) {
+                let cnt = await liftUtil.getLiftCnt(req, workoutIDs[i]);
+                await req.conn.queryAsync(addSql, [liftID, workoutIDs[i], cnt + 1]);
+
+                modWorkouts.push(workoutIDs[i]);
+            } else {
+                curWIDs.splice(curWIDs.indexOf(workoutIDs[i]), 1);
+            }
+        }
+
+        for (let i = 0; i < curWIDs.length; i++) {
+            await req.conn.queryAsync(removeSql, [curWIDs[i], liftID]);
+
+            let order = curWorkouts.find((w) => w.workout_fk === curWIDs[i]).order_num;
+            await req.conn.queryAsync(removeModifySql, [curWIDs[i], order]);
+
+            modWorkouts.push(curWIDs[i]);
+        }
+
+        for (let i = 0; i < modWorkouts.length; i++) {
+            await liftUtil.updateLiftCnt(req, modWorkouts[i]);
+        }
+
+        util.cleanup(req.conn);
+        res.json({ success: "lift workouts have been updated" });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
+});
+
+// Change the order of the lifts in a workout
+router.put("/workout/:id/order/", async (req, res) => {
+    const workoutID = req.params.id;
+    // order: [[lift_id, newOrder]]
+    const order = req.body.order;
+
+    let sql = `
+        UPDATE workout_lift
+        SET order_num = ?
+        WHERE lift_fk = ? AND workout_fk = ?
+    `;
+
+    try {
+        await verifyUserWorkout(req, workoutID);
+
+        for (let i = 0; i < order.length; i++) {
+            await req.conn.queryAsync(sql, [order[i][1], order[i][0], workoutID]);
+        }
+
+        util.cleanup(req.conn);
+        res.json({ success: "workout lift order has been updated" });
+    } catch (err) {
+        const errors = util.handleError(err);
+        util.cleanup(req.conn);
+        res.json({ error: errors });
+    }
+});
 
 // Update a lift
 router.put("/:id/", async (req, res) => {
@@ -563,16 +738,9 @@ router.put("/workout/:id/", async (req, res) => {
 // Delete a workout
 router.delete("/workout/:id/", async (req, res) => {
     const params = req.params;
-    let keepLift = req.query.keepLift;
-    if (keepLift === "false") keepLift = false;
-
-    let delete_lift_sql = `
-        DELETE FROM lift_set WHERE lift_fk = ?;
-        DELETE FROM lift_set_parent WHERE lift_fk = ?
-    `;
 
     let delete_sql = `
-        DELETE FROM lift WHERE workout_fk = ${params.id};
+        DELETE FROM workout_lift WHERE workout_fk = ${params.id};
         DELETE FROM workout WHERE id = ${params.id}
     `;
 
@@ -581,21 +749,7 @@ router.delete("/workout/:id/", async (req, res) => {
 
         let sqlArr = delete_sql.split(";");
 
-        if (keepLift) {
-            await req.conn.queryAsync(`UPDATE lift SET workout_fk = null WHERE workout_fk = ${params.id}`);
-
-            await req.conn.queryAsync(sqlArr[1]);
-        } else {
-            let liftIDs = await req.conn.queryAsync(`SELECT id FROM lift WHERE workout_fk = ${params.id}`);
-
-            for (let i = 0; i < liftIDs.length; i++) {
-                let updatedDelete = delete_lift_sql.replace(/\?/g, liftIDs[i].id);
-                let liftSqlArr = updatedDelete.split(";");
-                await util.runMultipleLinesOfSql(req, liftSqlArr, "Error deleting lifts from workout.");
-            }
-
-            await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting workout.");
-        }
+        await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting workout.");
 
         util.cleanup(req.conn);
         res.json({ success: "Workout has been deleted." });
@@ -611,14 +765,23 @@ router.delete("/:id/", async (req, res) => {
     const params = req.params;
 
     let infoSql = `
-        SELECT workout_fk
-        FROM lift
-        WHERE id = ${params.id}
+        SELECT
+            workout_fk,
+            order_num
+        FROM workout_lift
+        WHERE lift_fk = ${params.id}
+    `;
+
+    let removeModifySql = `
+        UPDATE workout_lift
+        SET order_num = order_num - 1
+        WHERE workout_fk = ? AND order_num > ?
     `;
 
     let delete_sql = `
         DELETE FROM lift_set WHERE lift_fk = ${params.id};
         DELETE FROM lift_set_parent WHERE lift_fk = ${params.id};
+        DELETE FROM workout_lift WHERE lift_fk = ${params.id};
         DELETE FROM lift WHERE id = ${params.id}
     `;
 
@@ -631,7 +794,10 @@ router.delete("/:id/", async (req, res) => {
 
         await util.runMultipleLinesOfSql(req, sqlArr, "Error deleting lift.");
 
-        if (wId[0].workout_fk !== null) await liftUtil.updateLiftCnt(req, wId[0].workout_fk);
+        for (let i = 0; i < wId.length; i++) {
+            await req.conn.queryAsync(removeModifySql, [wId[i].workout_fk, wId[i].order_num]);
+            await liftUtil.updateLiftCnt(req, wId[i].workout_fk);
+        }
 
         util.cleanup(req.conn);
         res.json({ success: "Lift has been deleted." });

@@ -17,11 +17,8 @@ const getLiftInfo = async (req, liftId) => {
             ltheo.weight AS theomax_weight,
             ltheo.reps AS theomax_reps,
             lptheo.date AS theomax_date,
-            w.name AS workout_name,
-            w.id AS workout_id,
             l.created_at
         FROM lift AS l
-        LEFT JOIN workout AS w ON l.workout_fk = w.id
         LEFT JOIN lift_set AS lmax ON l.max_set = lmax.id
         LEFT JOIN lift_set_parent AS lpmax ON lmax.lift_set_parent_fk = lpmax.id
         LEFT JOIN lift_set AS ltheo ON l.theomax_set = ltheo.id
@@ -30,8 +27,20 @@ const getLiftInfo = async (req, liftId) => {
         WHERE l.id = ${liftId}
     `;
 
+    let wSql = `
+        SELECT
+            w.id,
+            w.name
+        FROM workout_lift AS wl
+        LEFT JOIN workout AS w ON wl.workout_fk = w.id
+        WHERE lift_fk = ${liftId}
+    `;
+
     let info = await req.conn.queryAsync(sql);
     if (info.length === 0) throw Error("Requested lift does not exist.");
+
+    let wInfo = await req.conn.queryAsync(wSql);
+    info[0].workouts = wInfo;
 
     let duration = await getLiftDuration(req, liftId);
     info[0].duration = duration;
@@ -131,10 +140,19 @@ const checkExistingLiftSet = async (req, liftId, date) => {
     return dateSet;
 };
 
+const getLiftCnt = async (req, wId) => {
+    let sql = `SELECT COUNT(*) AS count FROM workout_lift WHERE workout_fk = ${wId}`;
+
+    let liftCnt = await req.conn.queryAsync(sql);
+    liftCnt = liftCnt[0].count;
+
+    return liftCnt;
+};
+
 const updateLiftCnt = async (req, wId) => {
     let sql = `
         UPDATE workout
-        SET liftCnt = (SELECT COUNT(*) FROM lift WHERE workout_fk = ${wId})
+        SET liftCnt = (SELECT COUNT(*) AS count FROM workout_lift WHERE workout_fk = ${wId})
         WHERE id = ${wId}
     `;
 
@@ -152,4 +170,5 @@ module.exports = {
     getLiftSets,
     checkExistingLiftSet,
     updateLiftCnt,
+    getLiftCnt,
 };
