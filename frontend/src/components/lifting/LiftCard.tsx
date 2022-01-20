@@ -8,12 +8,13 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import { Link, useRouteMatch } from "react-router-dom";
-import { liftObj, workoutObj, onChangeFuncNum, workoutShort } from "../../global/globalTypes";
+import { liftObj, workoutObj, onChangeFuncNum, workoutShort, HTTPBasicResponse } from "../../global/globalTypes";
 import WorkoutDialog from "./WorkoutsDialog";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import axios from "axios";
 import { Box, Rating } from "@mui/material";
+import SnackbarWrapper from "../SnackbarWrapper";
 
 interface Props {
     liftObj: liftObj;
@@ -22,6 +23,8 @@ interface Props {
     updateLiftState: () => void;
     workoutArr: workoutObj[];
 }
+
+type snackbarType = "success" | "info" | "warning" | "error";
 
 const PREFIX = "LiftCard";
 const classes = {
@@ -80,6 +83,15 @@ const Root = styled("div")(({ theme }) => ({
 const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftState, workoutArr }) => {
     let { url } = useRouteMatch();
 
+    const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+    const [snackbarMessage, setSnackbarMessage] = useState<string>("");
+    const [snackbarType, setSnackbarType] = useState<snackbarType>("success");
+
+    const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === "clickaway") return;
+        setSnackbarOpen(false);
+    };
+
     const [openDialog, setOpenDialog] = useState<boolean>(false);
 
     const [workoutString, setWorkoutString] = useState<string>("");
@@ -88,6 +100,10 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
 
     const getWorkoutIDs = (workoutArr: workoutShort[]): number[] => {
         return workoutArr.map((w) => w.id);
+    };
+
+    const capitalizeFirstLetter = (str: string): string => {
+        return str.charAt(0).toUpperCase() + str.substring(1, str.length);
     };
 
     const compareTwoArrays = (one: number[], two: number[]): boolean => {
@@ -105,10 +121,54 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
         setOpenDialog(false);
         if (workoutArr) {
             if (!compareTwoArrays(workoutArr, getWorkoutIDs(liftObj.workouts))) {
-                await axios.put(`${Config.apiUrl}/lift/${liftObj.id}/workout/`, { workoutIDs: workoutArr }, { withCredentials: true });
-                updateLiftState();
+                const res: { data: HTTPBasicResponse } = await axios.put(
+                    `${Config.apiUrl}/lift/${liftObj.id}/workout/`,
+                    { workoutIDs: workoutArr },
+                    { withCredentials: true }
+                );
+                if (res.data.success) {
+                    updateLiftState();
+                    openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+                } else if (res.data.error) {
+                    openSnackbar(res.data.error, "error");
+                } else {
+                    openSnackbar("Issue updating workouts.", "error");
+                }
             }
         }
+    };
+
+    const openSnackbar = (message: string, type: snackbarType) => {
+        setSnackbarMessage(message);
+        setSnackbarType(type);
+        setSnackbarOpen(true);
+    };
+
+    const onStarredChange: onChangeFuncNum = (val) => {
+        async function setStarred() {
+            let boolVal = val === 1;
+            const res: { data: HTTPBasicResponse } = await axios.put(
+                `${Config.apiUrl}/lift/${liftObj.id}`,
+                { starred: boolVal },
+                { withCredentials: true }
+            );
+
+            if (res.data.success) {
+                updateLiftState();
+                openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+            } else if (res.data.error) {
+                openSnackbar(res.data.error, "error");
+            } else {
+                openSnackbar("Issue updating lift.", "error");
+            }
+
+            setDisableStarredChange(false);
+        }
+        setDisableStarredChange(true);
+
+        setStarred();
+
+        return { returnError: false, error: false, overwrite: false };
     };
 
     useEffect(() => {
@@ -120,21 +180,6 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
         setWorkoutString(tempWStr);
     }, [liftObj]);
 
-    const onStarredChange: onChangeFuncNum = (val) => {
-        async function setStarred() {
-            let boolVal = val === 1;
-            await axios.put(`${Config.apiUrl}/lift/${liftObj.id}`, { starred: boolVal }, { withCredentials: true });
-
-            updateLiftState();
-            setDisableStarredChange(false);
-        }
-        setDisableStarredChange(true);
-
-        setStarred();
-
-        return { returnError: false, error: false, overwrite: false };
-    };
-
     return (
         <Root
             style={{ width: "100%", margin: "10px 0" }}
@@ -143,6 +188,13 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
             }}
         >
             <Grid item>
+                <SnackbarWrapper
+                    open={snackbarOpen}
+                    message={snackbarMessage}
+                    type={snackbarType}
+                    duration={3000}
+                    handleClose={handleSnackbarClose}
+                />
                 <Card className={selected ? classes.selectedCard : classes.card}>
                     <CardContent>
                         {/* Title of the card with units */}
