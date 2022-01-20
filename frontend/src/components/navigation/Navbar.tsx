@@ -57,11 +57,11 @@ const Navbar: React.FC = () => {
                         margin: "0 10% 0 10%",
                     }}
                 >
-                    <NavBarLink path="/" name="Home" />
-                    <NavBarLink path="/nutrition" name="Nutrition" />
-                    <NavBarLink path="/meals" name="Meals" />
-                    <NavBarLink path="/lifting" name="Lifting" />
-                    <NavBarLink path="/bodyweight" name="Bodyweight" />
+                    <NavBarLink path="/" name="Home" exact={true} />
+                    <NavBarLink path="/nutrition" name="Nutrition" exact={false} />
+                    <NavBarLink path="/meals" name="Meals" exact={false} />
+                    <NavBarLink path="/lifting" name="Lifting" exact={false} />
+                    <NavBarLink path="/bodyweight" name="Bodyweight" exact={false} />
                     <div style={{ flexGrow: 1 }} />
                     {user ? (
                         <>

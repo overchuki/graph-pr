@@ -136,7 +136,8 @@ router.get("/workout/:id/", async (req, res) => {
     let wSql = `
         SELECT
             w.id,
-            w.name
+            w.name,
+            wl.order_num
         FROM workout_lift AS wl
         LEFT JOIN workout AS w ON wl.workout_fk = w.id
         WHERE lift_fk = ?
@@ -194,7 +195,8 @@ router.get("/", async (req, res) => {
     let wSql = `
         SELECT
             w.id,
-            w.name
+            w.name,
+            wl.order_num
         FROM workout_lift AS wl
         LEFT JOIN workout AS w ON wl.workout_fk = w.id
         WHERE lift_fk = ?
@@ -204,6 +206,10 @@ router.get("/", async (req, res) => {
         let lifts = await req.conn.queryAsync(sql);
 
         for (let i = 0; i < lifts.length; i++) {
+            let combinedSet = await liftUtil.getLatestLiftSet(req, lifts[i].id, 1);
+            if (combinedSet.setParent) lifts[i].lastSet = { parent: combinedSet.setParent, sets: combinedSet.sets };
+            else lifts[i].lastSet = null;
+
             let wName = await req.conn.queryAsync(wSql, [lifts[i].id]);
             lifts[i].workouts = wName;
         }
@@ -251,14 +257,6 @@ router.get("/:id/set/", async (req, res) => {
         WHERE lift_fk = ${params.id} AND date = ?
     `;
 
-    let sqlLatest = `
-        SELECT *
-        FROM lift_set_parent
-        WHERE lift_fk = ${params.id}
-        ORDER BY date DESC
-        LIMIT ?
-    `;
-
     let sqlSets = `
         SELECT *
         FROM lift_set
@@ -277,13 +275,15 @@ router.get("/:id/set/", async (req, res) => {
             setParent = await req.conn.queryAsync(sqlDate, [date]);
         } else {
             if (!latest) latest = 1;
-            setParent = await req.conn.queryAsync(sqlLatest, [latest]);
+            const combinedSet = await liftUtil.getLatestLiftSet(req, params.id, latest);
+            setParent = combinedSet.setParent;
+            sets = combinedSet.sets;
         }
 
-        if (setParent && setParent.length !== 0) {
+        if (setParent && setParent.length !== 0 && date) {
             setParent = setParent[0];
             sets = await req.conn.queryAsync(sqlSets, [setParent.id]);
-        } else {
+        } else if (!setParent || setParent.length === 0) {
             setParent = null;
         }
 

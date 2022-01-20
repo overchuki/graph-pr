@@ -1,5 +1,5 @@
 import Config from "../../Config";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
@@ -8,19 +8,18 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import { Link, useRouteMatch } from "react-router-dom";
-import { liftObj, workoutObj, onChangeFuncNum } from "../../global/globalTypes";
-import DropdownField from "../inputs/DropdownField";
+import { liftObj, workoutObj, onChangeFuncNum, workoutShort } from "../../global/globalTypes";
+import WorkoutDialog from "./WorkoutsDialog";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
-import CancelIcon from "@mui/icons-material/Cancel";
 import axios from "axios";
-import { Rating } from "@mui/material";
+import { Box, Rating } from "@mui/material";
 
 interface Props {
     liftObj: liftObj;
     selected: boolean;
     handleClick: (selected: boolean, id: number) => void;
-    updateLiftState: (id: number, workout: boolean, workoutId: number, prevWorkoutId: number, starred: boolean, starredVal: number) => void;
+    updateLiftState: () => void;
     workoutArr: workoutObj[];
 }
 
@@ -81,39 +80,52 @@ const Root = styled("div")(({ theme }) => ({
 const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftState, workoutArr }) => {
     let { url } = useRouteMatch();
 
-    const [editWorkout, setEditWorkout] = useState<boolean>(false);
-    const [workoutId, setWorkoutId] = useState<number>(liftObj.workout_id || -1);
-    const [disableWorkoutChange, setDisableWorkoutChange] = useState<boolean>(false);
+    const [openDialog, setOpenDialog] = useState<boolean>(false);
+
+    const [workoutString, setWorkoutString] = useState<string>("");
 
     const [disableStarredChange, setDisableStarredChange] = useState<boolean>(false);
 
-    let workoutArrVals: [number, string][] = [[-1, "None"]];
-    for (let i = 0; i < workoutArr.length; i++) {
-        workoutArrVals.push([workoutArr[i].id, workoutArr[i].name]);
-    }
-
-    const onWorkoutChange: onChangeFuncNum = (val) => {
-        async function setWorkout() {
-            let prevWID: number = liftObj.workout_id || -1;
-            await axios.put(`${Config.apiUrl}/lift/${liftObj.id}`, { workout_fk: val, prevWID }, { withCredentials: true });
-
-            updateLiftState(liftObj.id, true, val, prevWID, false, -1);
-            setEditWorkout(false);
-            setDisableWorkoutChange(false);
-        }
-        setDisableWorkoutChange(true);
-
-        setWorkout();
-
-        return { returnError: false, error: false, overwrite: false };
+    const getWorkoutIDs = (workoutArr: workoutShort[]): number[] => {
+        return workoutArr.map((w) => w.id);
     };
+
+    const compareTwoArrays = (one: number[], two: number[]): boolean => {
+        if (one.length !== two.length) return false;
+
+        for (let i = 0; i < two.length; i++) {
+            one.splice(one.indexOf(two[i]), 1);
+        }
+        if (one.length === 0) return true;
+
+        return false;
+    };
+
+    const onDialogSave = async (workoutArr: number[] | null) => {
+        setOpenDialog(false);
+        if (workoutArr) {
+            if (!compareTwoArrays(workoutArr, getWorkoutIDs(liftObj.workouts))) {
+                await axios.put(`${Config.apiUrl}/lift/${liftObj.id}/workout/`, { workoutIDs: workoutArr }, { withCredentials: true });
+                updateLiftState();
+            }
+        }
+    };
+
+    useEffect(() => {
+        let tempWStr: string = "";
+        for (let i = 0; i < liftObj.workouts.length; i++) {
+            tempWStr += liftObj.workouts[i].name;
+            if (i < liftObj.workouts.length - 1) tempWStr += ", ";
+        }
+        setWorkoutString(tempWStr);
+    }, [liftObj]);
 
     const onStarredChange: onChangeFuncNum = (val) => {
         async function setStarred() {
             let boolVal = val === 1;
             await axios.put(`${Config.apiUrl}/lift/${liftObj.id}`, { starred: boolVal }, { withCredentials: true });
 
-            updateLiftState(liftObj.id, false, -1, -1, true, val);
+            updateLiftState();
             setDisableStarredChange(false);
         }
         setDisableStarredChange(true);
@@ -157,14 +169,9 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
                         </Grid>
                         {/* First row with maxes, theomaxes, and workout */}
                         <Grid container direction="row">
-                            <Grid item xs={4}>
+                            <Grid item xs={8}>
                                 <Typography variant="subtitle1" color="text.primary" gutterBottom className={classes.txt}>
-                                    Max: {liftObj.max ? liftObj.max : "---"}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography variant="subtitle1" color="text.primary" gutterBottom className={classes.txt}>
-                                    Theo Max: {liftObj.theomax ? liftObj.theomax : "---"}
+                                    Last Set Group{liftObj.lastSet ? ` (${new Date(liftObj.lastSet.parent.date).toDateString()})` : ""}:
                                 </Typography>
                             </Grid>
                             <Grid item container direction="row" xs={4} alignItems="center">
@@ -173,64 +180,44 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
                                 </Typography>
                                 <IconButton
                                     onClick={() => {
-                                        setEditWorkout(!editWorkout);
+                                        setOpenDialog(true);
                                     }}
                                 >
-                                    {editWorkout ? <CancelIcon className={classes.smlIcon} /> : <EditIcon className={classes.smlIcon} />}
+                                    <EditIcon className={classes.smlIcon} />
                                 </IconButton>
                             </Grid>
                         </Grid>
                         {/* Secondary row with details */}
                         <Grid container direction="row">
-                            <Grid item xs={4}>
-                                <Typography variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
-                                    {liftObj.max ? `${liftObj.max} for ${liftObj.max_reps}` : ""}
-                                </Typography>
-                                <Typography variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
-                                    {liftObj.max_date ? `${new Date(liftObj.max_date).toDateString()}` : ""}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
-                                    {liftObj.theomax_weight ? `${liftObj.theomax_weight} for ${liftObj.theomax_reps}` : ""}
-                                </Typography>
-                                <Typography variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
-                                    {liftObj.theomax_date ? `${new Date(liftObj.theomax_date).toDateString()}` : ""}
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                {editWorkout ? (
-                                    <DropdownField
-                                        label={null}
-                                        variant="standard"
-                                        defaultValue={workoutId}
-                                        useDefault={false}
-                                        setValue={setWorkoutId}
-                                        onChange={onWorkoutChange}
-                                        valuesArr={workoutArrVals}
-                                        size={12}
-                                        position={-1}
-                                        errorOverwrite={false}
-                                        disabled={disableWorkoutChange}
-                                        verify={false}
-                                        verifyObj={{
-                                            name: "workout",
-                                            required: false,
-                                            range: [1, 2],
-                                            int: true,
-                                            email: false,
-                                            ascii: false,
-                                            dob: false,
-                                            alphaNum: true,
-                                        }}
-                                    />
+                            <Grid item xs={8}>
+                                {liftObj.lastSet ? (
+                                    liftObj.lastSet.sets.map((s, i) => (
+                                        <Typography key={i} variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
+                                            {s.weight} for {s.reps} ({s.theomax} theomax).
+                                        </Typography>
+                                    ))
                                 ) : (
+                                    <Box sx={{ typography: "subtitle1", fontStyle: "italic", color: "text.secondary" }}>No lift sets exist.</Box>
+                                )}
+                            </Grid>
+                            <Grid item xs={4}>
+                                {liftObj.workouts.length > 0 ? (
                                     <Typography variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
-                                        {liftObj.workout_name ? `${liftObj.workout_name}` : "None"}
+                                        {workoutString}
                                     </Typography>
+                                ) : (
+                                    <Box sx={{ typography: "subtitle1", fontStyle: "italic", color: "text.secondary" }}>None.</Box>
                                 )}
                             </Grid>
                         </Grid>
+                        <WorkoutDialog
+                            id="workoutDialog"
+                            keepMounted
+                            open={openDialog}
+                            onSaveParent={onDialogSave}
+                            workoutsProp={workoutArr}
+                            selectedWorkoutsProp={getWorkoutIDs(liftObj.workouts)}
+                        />
                     </CardContent>
                     <CardActions>
                         <Grid container direction="row" className={classes.marginBtm}>

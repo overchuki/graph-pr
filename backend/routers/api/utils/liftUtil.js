@@ -114,6 +114,32 @@ const getLiftDuration = async (req, liftId) => {
     return duration[0].duration;
 };
 
+const getLatestLiftSet = async (req, liftId, latest) => {
+    let sqlLatest = `
+        SELECT *
+        FROM lift_set_parent
+        WHERE lift_fk = ${liftId}
+        ORDER BY date DESC
+        LIMIT ?
+    `;
+
+    let sqlSets = `
+        SELECT *
+        FROM lift_set
+        WHERE lift_set_parent_fk = ?
+        ORDER BY set_num ASC
+    `;
+
+    let setParent = await req.conn.queryAsync(sqlLatest, [latest]);
+    if (setParent.length !== 0) setParent = setParent[0];
+    else setParent = null;
+
+    let sets = null;
+    if (setParent && setParent.length !== 0) sets = await req.conn.queryAsync(sqlSets, [setParent.id]);
+
+    return { setParent, sets };
+};
+
 const getLiftSets = async (req, liftId) => {
     let setSql = `
         SELECT
@@ -171,4 +197,5 @@ module.exports = {
     checkExistingLiftSet,
     updateLiftCnt,
     getLiftCnt,
+    getLatestLiftSet,
 };

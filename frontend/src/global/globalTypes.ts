@@ -60,10 +60,28 @@ export type liftObj = {
     theomax_weight: number | null;
     theomax_reps: number | null;
     theomax_date: string | null;
-    workout_name: string | null;
-    workout_id: number | null;
+    lastSet: { parent: liftSetParent; sets: liftSet[] };
+    workouts: workoutShort[];
     created_at: string;
     duration: number | null;
+};
+export type workoutShort = { name: string; id: number; order_num: number };
+export type liftSetParent = {
+    id: number;
+    notes: string | null;
+    set_quantity: number;
+    top_set: number | null;
+    date: string;
+    lift_fk: number;
+};
+export type liftSet = {
+    id: number;
+    set_num: number;
+    weight: number;
+    reps: number;
+    theomax: number;
+    lift_set_parent_fk: number;
+    lift_fk: number;
 };
 export type workoutObj = {
     id: number;
@@ -74,7 +92,7 @@ export type workoutObj = {
     created_at: string;
 };
 export type getLiftResponse = {
-    liftArray: liftObj[];
+    lifts: liftObj[];
 };
 export type getWorkoutResponse = {
     workouts: workoutObj[];

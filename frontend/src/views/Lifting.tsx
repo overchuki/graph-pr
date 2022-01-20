@@ -5,7 +5,7 @@ import { Switch, Route, useRouteMatch, Link } from "react-router-dom";
 import LiftView from "./lifting/LiftView";
 import WorkoutView from "./lifting/WorkoutView";
 import axios from "axios";
-import { liftObj, workoutObj, getLiftResponse, getWorkoutResponse } from "../global/globalTypes";
+import { liftObj, workoutObj, getLiftResponse, getWorkoutResponse, workoutShort } from "../global/globalTypes";
 import LiftCard from "../components/lifting/LiftCard";
 import { styled } from "@mui/material/styles";
 import WorkoutCard from "../components/lifting/WorkoutCard";
@@ -17,8 +17,7 @@ import BigButton from "../components/inputs/BigButton";
 
 interface selectedLift {
     id: number;
-    wId: number;
-    wName: string;
+    workouts: workoutShort[];
 }
 interface selectedWorkout {
     id: number;
@@ -59,12 +58,14 @@ const Root = styled("div")(({ theme }) => ({
 const Lifting: React.FC = () => {
     let { url, path } = useRouteMatch();
     const daysArr = ["U", "M", "T", "W", "R", "F", "S"];
-    let today = daysArr[new Date().getDay()];
+    const [today, setToday] = useState<string>(daysArr[new Date().getDay()]);
 
     const [workoutSearch, setWorkoutSearch] = useState<string>("");
     const [liftSearch, setLiftSearch] = useState<string>("");
 
-    const [selectedLift, setSelectedLift] = useState<selectedLift>({ id: -1, wId: -1, wName: "" });
+    const [stateChange, setStateChange] = useState<boolean>(false);
+
+    const [selectedLift, setSelectedLift] = useState<selectedLift>({ id: -1, workouts: [] });
     const [selectedWorkout, setSelectedWorkout] = useState<selectedWorkout>({ id: -1, name: "" });
 
     const [lifts, setLifts] = useState<liftObj[]>([]);
@@ -75,121 +76,77 @@ const Lifting: React.FC = () => {
 
     const liftSearchChange = (value: string): void => {
         setLiftSearch(value);
-        setFilterLiftsWrapper(value, selectedWorkout.id);
+        setFilterLiftsWrapper(value, selectedWorkout.id, lifts);
     };
 
     const workoutSearchChange = (value: string): void => {
         setWorkoutSearch(value);
-        setFilterWorkoutsWrapper(value);
+        setFilterWorkoutsWrapper(value, workouts);
     };
 
-    const updateLiftWorkoutState = (
-        id: number,
-        workout: boolean,
-        workoutId: number,
-        prevWorkoutId: number,
-        starred: boolean,
-        starredVal: number
-    ): void => {
-        let liftsNew: liftObj[] = [];
-        let filterLiftsNew: liftObj[] = [];
-        let workoutsNew: workoutObj[] = [];
-        let filterWorkoutsNew: workoutObj[] = [];
+    const getWorkoutIDs = (workoutArr: workoutShort[]): number[] => {
+        return workoutArr.map((w) => w.id);
+    };
 
-        if (workout) {
-            let wObj = workouts.filter((workout) => workout.id === workoutId);
-            let workoutName: string | null = null;
-            if (wObj.length > 0) workoutName = wObj[0].name;
-
-            liftsNew = lifts.map((lift) => {
-                if (lift.id === id) return { ...lift, workout_id: workoutId, workout_name: workoutName };
-                return lift;
-            });
-            filterLiftsNew = filterLifts.map((lift) => {
-                if (lift.id === id) return { ...lift, workout_id: workoutId, workout_name: workoutName };
-                return lift;
-            });
-
-            workoutsNew = workouts.map((workout) => {
-                if (workout.id === workoutId) return { ...workout, liftCnt: workout.liftCnt + 1 };
-                else if (workout.id === prevWorkoutId) return { ...workout, liftCnt: workout.liftCnt - 1 };
-                return workout;
-            });
-            filterWorkoutsNew = filterWorkouts.map((workout) => {
-                if (workout.id === workoutId) return { ...workout, liftCnt: workout.liftCnt + 1 };
-                else if (workout.id === prevWorkoutId) return { ...workout, liftCnt: workout.liftCnt - 1 };
-                return workout;
-            });
-        } else if (starred) {
-            liftsNew = lifts.map((lift) => {
-                if (lift.id === id) return { ...lift, starred: starredVal };
-                return lift;
-            });
-            filterLiftsNew = filterLifts.map((lift) => {
-                if (lift.id === id) return { ...lift, starred: starredVal };
-                return lift;
-            });
-        }
-
-        if (workout || starred) {
-            setLifts(liftsNew);
-            setFilterLifts(filterLiftsNew);
-
-            if (workout) {
-                setWorkouts(workoutsNew);
-                setFilterWorkouts(filterWorkoutsNew);
-            }
-        }
+    const updateLiftWorkoutState = () => {
+        setStateChange(!stateChange);
     };
 
     const handleLiftClick = (selected: boolean, id: number) => {
         if (selected) {
-            setSelectedLift({ id: -1, wId: -1, wName: "" });
+            setSelectedLift({ id: -1, workouts: [] });
         } else {
             let lift = lifts.find((lift) => lift.id === id);
-            let workId = lift?.workout_id;
-            let workName = lift?.workout_name;
-            if (!workId) workId = -1;
-            if (!workName) workName = "";
+            let workouts = lift?.workouts;
+            if (!workouts) workouts = [];
 
-            setSelectedLift({ id: id, wId: workId, wName: workName });
+            setSelectedLift({ id: id, workouts });
         }
     };
 
     const handleWorkoutClick = (selected: boolean, id: number, name: string) => {
         if (selected) {
             setSelectedWorkout({ id: -1, name: "" });
-            setFilterLiftsWrapper(liftSearch, -1);
+            setFilterLiftsWrapper(liftSearch, -1, lifts);
         } else {
-            if (selectedLift.wId !== id) setSelectedLift({ id: -1, wId: -1, wName: "" });
+            let wIDs = getWorkoutIDs(selectedLift.workouts);
+            if (!wIDs.includes(id)) setSelectedLift({ id: -1, workouts: [] });
             setSelectedWorkout({ id, name });
-            setFilterLiftsWrapper(liftSearch, id);
+            setFilterLiftsWrapper(liftSearch, id, lifts);
         }
     };
 
-    const setFilterWorkoutsWrapper = (searchVal: string) => {
+    const setFilterWorkoutsWrapper = (searchVal: string, localWorkouts: workoutObj[]) => {
         if (searchVal === "") {
-            setFilterWorkouts(workouts);
+            setFilterWorkouts(localWorkouts);
         } else {
             let filtered: workoutObj[] = [];
-            filtered = workouts.filter((workout) => workout.name.toLowerCase().includes(searchVal.toLowerCase()));
+            filtered = localWorkouts.filter((workout) => workout.name.toLowerCase().includes(searchVal.toLowerCase()));
             setFilterWorkouts(filtered);
         }
     };
 
-    const setFilterLiftsWrapper = (searchVal: string, wId: number) => {
+    const setFilterLiftsWrapper = (searchVal: string, wId: number, localLifts: liftObj[]) => {
         if (searchVal === "" && wId === -1) {
-            setFilterLifts(lifts);
+            setFilterLifts(localLifts);
         } else {
             let filtered: liftObj[] = [];
             if (wId === -1) {
-                filtered = lifts.filter((lift) => lift.name.toLowerCase().includes(searchVal.toLowerCase()));
+                filtered = localLifts.filter((lift) => lift.name.toLowerCase().includes(searchVal.toLowerCase()));
             } else if (searchVal === "") {
-                filtered = lifts.filter((lift) => lift.workout_id === wId);
+                filtered = localLifts.filter((lift) => getWorkoutIDs(lift.workouts).includes(wId));
             } else {
-                filtered = lifts.filter((lift) => lift.workout_id === wId && lift.name.toLowerCase().includes(searchVal.toLowerCase()));
+                filtered = localLifts.filter(
+                    (lift) => getWorkoutIDs(lift.workouts).includes(wId) && lift.name.toLowerCase().includes(searchVal.toLowerCase())
+                );
             }
-            filtered.sort((a, b) => b.starred - a.starred);
+            if (wId === -1) {
+                filtered.sort((a, b) => b.starred - a.starred);
+            } else {
+                filtered.sort(
+                    (a, b) => (a.workouts.find((w) => w.id === wId)?.order_num || -1) - (b.workouts.find((w) => w.id === wId)?.order_num || -1)
+                );
+            }
             setFilterLifts(filtered);
         }
     };
@@ -201,26 +158,27 @@ const Lifting: React.FC = () => {
 
                 const resWorkout: { data: getWorkoutResponse } = await axios.get(`${Config.apiUrl}/lift/workout/`, { withCredentials: true });
 
-                setLifts(resLift.data.liftArray);
+                setLifts(resLift.data.lifts);
                 setWorkouts(resWorkout.data.workouts);
 
-                setFilterLifts(resLift.data.liftArray.sort((a, b) => b.starred - a.starred));
-                setFilterWorkouts(
-                    resWorkout.data.workouts.sort(
-                        (a, b) =>
-                            (b.days?.toLowerCase().includes(today.toLowerCase()) ? 1 : 0) -
-                            (a.days?.toLowerCase().includes(today.toLowerCase()) ? 1 : 0)
-                    )
+                let tempFilterLifts = resLift.data.lifts.sort((a, b) => b.starred - a.starred);
+                setFilterLifts(tempFilterLifts);
+
+                let tempFilterWorkouts = resWorkout.data.workouts.sort(
+                    (a, b) =>
+                        (b.days?.toLowerCase().includes(today.toLowerCase()) ? 1 : 0) - (a.days?.toLowerCase().includes(today.toLowerCase()) ? 1 : 0)
                 );
+                setFilterWorkouts(tempFilterWorkouts);
+
+                setFilterLiftsWrapper(liftSearch, selectedWorkout.id, tempFilterLifts);
+                setFilterWorkoutsWrapper(workoutSearch, tempFilterWorkouts);
             } catch (err) {
                 console.error(err);
             }
         }
         getData();
-        setSelectedLift({ id: -1, wId: -1, wName: "" });
-        setSelectedWorkout({ id: -1, name: "" });
         return () => {};
-    }, []);
+    }, [stateChange]);
 
     return (
         <Root>
@@ -254,7 +212,7 @@ const Lifting: React.FC = () => {
                             </Typography>
                             <hr className={classes.hr} />
                             {filterWorkouts.map((workout, idx) => (
-                                <>
+                                <div key={workout.id}>
                                     {!workout.days?.toLowerCase().includes(today.toLowerCase()) &&
                                     (idx === 0 || filterWorkouts[idx - 1].days?.toLowerCase().includes(today.toLowerCase())) ? (
                                         <>
@@ -266,13 +224,8 @@ const Lifting: React.FC = () => {
                                     ) : (
                                         ""
                                     )}
-                                    <WorkoutCard
-                                        key={workout.id}
-                                        handleClick={handleWorkoutClick}
-                                        workoutObj={workout}
-                                        selected={selectedWorkout.id === workout.id}
-                                    />
-                                </>
+                                    <WorkoutCard handleClick={handleWorkoutClick} workoutObj={workout} selected={selectedWorkout.id === workout.id} />
+                                </div>
                             ))}
                         </Grid>
                         {/* Lift Section */}

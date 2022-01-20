@@ -21,15 +21,16 @@ const Root = styled("div")(({ theme }) => ({
 interface Props {
     path: string;
     name: string;
+    exact: boolean;
 }
 
-const NavBarLink: React.FC<Props> = ({ path, name }) => {
+const NavBarLink: React.FC<Props> = ({ path, name, exact }) => {
     let className: string = classes.linkStyle;
     let activeClassName: string = classes.activeLinkStyle;
 
     return (
         <Root>
-            <NavLink to={path} className={className} activeClassName={activeClassName}>
+            <NavLink to={path} className={className} activeClassName={activeClassName} exact={exact}>
                 <Typography display="inline" variant="subtitle1">
                     {name}
                 </Typography>
