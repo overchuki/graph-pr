@@ -10,10 +10,12 @@ import LiftCard from "../components/lifting/LiftCard";
 import { styled } from "@mui/material/styles";
 import WorkoutCard from "../components/lifting/WorkoutCard";
 import AddIcon from "@mui/icons-material/Add";
-import { TextField, Typography } from "@mui/material";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
 import CreateLiftView from "./lifting/CreateLiftView";
 import CreateWorkoutView from "./lifting/CreateWorkoutView";
 import BigButton from "../components/inputs/BigButton";
+import AddLiftSet from "../components/lifting/AddLiftSet";
 
 interface selectedLift {
     id: number;
@@ -267,9 +269,13 @@ const Lifting: React.FC = () => {
                         </Grid>
                         {/* Add lift set section */}
                         <Grid container item xs={3} direction="column" alignItems="center" spacing={2}>
-                            <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
-                                Click on a lift to quickly add a set here.
-                            </Typography>
+                            {selectedLift.id === -1 ? (
+                                <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                                    Click on a lift to quickly add a set here.
+                                </Typography>
+                            ) : (
+                                <AddLiftSet id={selectedLift.id} unit={lifts.find((l) => l.id === selectedLift.id)?.plur_abbr || "lbs"} />
+                            )}
                         </Grid>
                     </Grid>
                 </Route>

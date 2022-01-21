@@ -19,6 +19,7 @@ const workoutNameRange = [1, 20];
 const descRange = [1, 200];
 const daysRange = [1, 7];
 const unitNumRange = [1, 2];
+const notesLenRange = [1, 50];
 
 const verifyUserLift = async (req, id) => {
     let sql = `SELECT * FROM lift WHERE id = ${id}`;
@@ -421,9 +422,9 @@ router.post("/:id/set/", async (req, res) => {
         let sets = body.sets;
         let setLen = sets.length;
 
-        let topSet = validUtil.validateNum("Top set", body.top_set, false, [1, setLen]);
+        let topSet = validUtil.validateNum("Top set", parseInt(body.top_set), false, [1, setLen]);
         if (topSet.valid === -1) throw Error(topSet.msg);
-        let notes = validUtil.validateNum("Top set", body.notes, false, [1, setLen]);
+        let notes = validUtil.validateString("Notes", body.notes, false, notesLenRange);
         if (notes.valid === -1) throw Error(notes.msg);
 
         let okPackets = [];
@@ -645,10 +646,11 @@ router.put("/:id/set/", async (req, res) => {
 
         let okPackets = [];
 
-        if (body.date || body.top_set) {
+        if (body.date || body.top_set || body.notes) {
             let updateObj = {};
             if (body.date) updateObj.date = body.date;
             if (body.top_set) updateObj.top_set = body.top_set;
+            if (body.notes) updateObj.notes = body.notes;
 
             let parentUpdateString = util.getUpdateStr(updateObj, ["top_set"], []);
             if (parentUpdateString.affected) {

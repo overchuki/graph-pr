@@ -244,7 +244,13 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
                             <Grid item xs={8}>
                                 {liftObj.lastSet ? (
                                     liftObj.lastSet.sets.map((s, i) => (
-                                        <Typography key={i} variant="subtitle1" color="text.secondary" gutterBottom className={classes.txt}>
+                                        <Typography
+                                            key={i}
+                                            variant="subtitle1"
+                                            color={s.set_num === liftObj.lastSet.parent.top_set ? "text.primary" : "text.secondary"}
+                                            gutterBottom
+                                            className={classes.txt}
+                                        >
                                             {s.weight} for {s.reps} ({s.theomax} theomax).
                                         </Typography>
                                     ))

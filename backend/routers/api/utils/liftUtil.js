@@ -149,7 +149,8 @@ const getLiftSets = async (req, liftId) => {
             s.theomax,
             lp.top_set,
             lp.date,
-            lp.set_quantity
+            lp.set_quantity,
+            lp.notes
         FROM lift_set as s
         LEFT JOIN lift_set_parent AS lp ON s.lift_set_parent_fk = lp.id
         WHERE s.lift_fk = ${liftId}

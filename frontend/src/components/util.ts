@@ -78,3 +78,7 @@ export const dobVerify: DobVerifyFunc = (value) => {
     const formattedVal = `${year}${month < 10 ? "0" + month : month}${day < 10 ? "0" + day : day}`;
     return { error: false, formatted: formattedVal };
 };
+
+export const dateToString = (date: Date): string => {
+    return date.getFullYear() + date.getMonth() + date.getDate() + "";
+};
