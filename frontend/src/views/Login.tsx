@@ -161,7 +161,8 @@ const Login: React.FC<Props> = ({ title }) => {
                     <InputField
                         label={"Username or Email"}
                         type={"text"}
-                        defaultValue={""}
+                        value={""}
+                        controlled={false}
                         setValue={setUserField}
                         errorOverwrite={userField === false ? "Invalid username" : false}
                         autoComplete={"username email"}
@@ -183,7 +184,8 @@ const Login: React.FC<Props> = ({ title }) => {
                     <InputField
                         label={"Password"}
                         type={"password"}
-                        defaultValue={""}
+                        value={""}
+                        controlled={false}
                         setValue={setPassField}
                         errorOverwrite={passField === false ? "Invalid password" : false}
                         autoComplete={""}

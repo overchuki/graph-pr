@@ -165,7 +165,8 @@ const InputFieldCheck: React.FC<Props> = ({
             <InputField
                 label={label}
                 type={type}
-                defaultValue={defaultValue}
+                value={defaultValue}
+                controlled={false}
                 setValue={setValue}
                 keyChange={(keyString: any) => {
                     if (keyString === "Enter" && availability === 0) handleCheck();

@@ -6,8 +6,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
-import { ErrorType, onChangeFuncStr } from "../../global/globalTypes";
-import InputField from "../inputs/InputField";
+import { ErrorType } from "../../global/globalTypes";
 
 interface Props {
     values: [number | string, number | string];

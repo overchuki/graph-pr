@@ -89,6 +89,7 @@ router.get("/workout/", async (req, res) => {
             created_at
         FROM workout
         WHERE user_fk = ${req.user.id}
+        ORDER BY id
         LIMIT ${limit}
         OFFSET ${offset}
     `;

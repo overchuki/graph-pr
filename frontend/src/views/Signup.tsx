@@ -249,7 +249,8 @@ const Signup: React.FC = () => {
                         <InputField
                             label={"Name (2-20)"}
                             type={"text"}
-                            defaultValue={""}
+                            value={""}
+                            controlled={false}
                             setValue={setNameField}
                             errorOverwrite={nameField === false ? "Please enter your name." : false}
                             autoComplete={"name"}
@@ -271,7 +272,8 @@ const Signup: React.FC = () => {
                         <InputField
                             label={"Birthday (MM/DD/YYYY)"}
                             type={"text"}
-                            defaultValue={""}
+                            value={""}
+                            controlled={false}
                             setValue={setDobField}
                             errorOverwrite={dobField === false ? "Invalid (MM/DD/YYYY)" : false}
                             autoComplete={"bdate"}
@@ -372,7 +374,8 @@ const Signup: React.FC = () => {
                         <InputField
                             label={"Height"}
                             type={"number"}
-                            defaultValue={""}
+                            value={""}
+                            controlled={false}
                             setValue={setHeightField}
                             errorOverwrite={heightField === false ? "Please enter your height." : false}
                             autoComplete={""}
@@ -420,7 +423,8 @@ const Signup: React.FC = () => {
                         <InputField
                             label={"Bodyweight"}
                             type={"number"}
-                            defaultValue={""}
+                            value={""}
+                            controlled={false}
                             setValue={setBodyweightField}
                             errorOverwrite={bodyweightField === false ? "Please enter your weight." : false}
                             autoComplete={""}
@@ -588,7 +592,8 @@ const Signup: React.FC = () => {
                     <InputField
                         label={"Description (1-100) (optional)"}
                         type={"text"}
-                        defaultValue={""}
+                        value={""}
+                        controlled={false}
                         setValue={setDescriptionField}
                         errorOverwrite={false}
                         autoComplete={""}
@@ -613,7 +618,8 @@ const Signup: React.FC = () => {
                         <InputField
                             label={"Password (8-256)"}
                             type={"password"}
-                            defaultValue={""}
+                            value={""}
+                            controlled={false}
                             setValue={setPasswordField}
                             onChange={(val) => {
                                 return handleConfirmPasswordFieldChange(confirmPasswordField + "", val, false);
@@ -638,7 +644,8 @@ const Signup: React.FC = () => {
                         <InputField
                             label={"Confirm Password"}
                             type={"password"}
-                            defaultValue={""}
+                            value={""}
+                            controlled={false}
                             setValue={setConfirmPasswordField}
                             keyChange={(keyString) => {
                                 if (keyString === "Enter") signup();

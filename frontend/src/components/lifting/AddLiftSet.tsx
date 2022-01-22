@@ -13,7 +13,7 @@ import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import LocalizationProvider from "@mui/lab/LocalizationProvider";
 import { dateToString, capitalizeFirstLetter } from "../util";
 import LiftSetInputLine from "./LiftSetInputLine";
-import InputFieldControlled from "../inputs/InputFieldControlled";
+import InputField from "../inputs/InputField";
 import SnackbarWrapper from "../SnackbarWrapper";
 import CircularProgress from "@mui/material/CircularProgress";
 
@@ -237,10 +237,11 @@ const AddLiftSet: React.FC<Props> = ({ id, unit, name, updateState }) => {
                         />
                     </LocalizationProvider>
                 </Grid>
-                <InputFieldControlled
+                <InputField
                     label={"Notes"}
                     type={"text"}
                     value={notesVal}
+                    controlled={true}
                     setValue={setNotes}
                     onChange={(v) => {
                         setNotesVal(v);

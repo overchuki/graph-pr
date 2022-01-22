@@ -94,3 +94,17 @@ export const dateToString = (date: Date): string => {
 export const capitalizeFirstLetter = (str: string): string => {
     return str.charAt(0).toUpperCase() + str.substring(1, str.length);
 };
+
+export const compareTwoArrays = (one: number[], two: number[]): boolean => {
+    if (one.length !== two.length) return false;
+
+    for (let i = 0; i < two.length; i++) {
+        let idxTwo = one.indexOf(two[i]);
+        if (idxTwo === -1) return false;
+
+        one.splice(idxTwo, 1);
+    }
+    if (one.length === 0) return true;
+
+    return false;
+};

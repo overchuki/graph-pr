@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "@mui/material/Button";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -32,11 +32,15 @@ const WorkoutDialog: React.FC<Props> = ({ workoutsProp, selectedWorkoutsProp, on
     const handleChecked = (event: any, checked: boolean) => {
         let wID = parseInt(event.target.value);
         if (checked) {
-            setSelectedWorkouts([...selectedWorkouts, wID]);
+            setSelectedWorkouts([...selectedWorkouts, wID].sort((a, b) => a - b));
         } else {
             setSelectedWorkouts(selectedWorkouts.filter((w) => w !== wID));
         }
     };
+
+    useEffect(() => {
+        setSelectedWorkouts(selectedWorkoutsProp);
+    }, [selectedWorkoutsProp]);
 
     return (
         <Dialog sx={{ "& .MuiDialog-paper": { width: "80%", maxHeight: 435 } }} maxWidth="xs" open={open} {...other}>

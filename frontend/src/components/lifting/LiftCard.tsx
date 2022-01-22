@@ -15,7 +15,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import axios from "axios";
 import { Box, Rating } from "@mui/material";
 import SnackbarWrapper from "../SnackbarWrapper";
-import { capitalizeFirstLetter } from "../util";
+import { capitalizeFirstLetter, compareTwoArrays } from "../util";
 
 interface Props {
     liftObj: liftObj;
@@ -107,17 +107,6 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
         return workoutArr.map((w) => w.id);
     };
 
-    const compareTwoArrays = (one: number[], two: number[]): boolean => {
-        if (one.length !== two.length) return false;
-
-        for (let i = 0; i < two.length; i++) {
-            one.splice(one.indexOf(two[i]), 1);
-        }
-        if (one.length === 0) return true;
-
-        return false;
-    };
-
     const onDialogSave = async (workoutArr: number[] | null) => {
         setOpenDialog(false);
         if (workoutArr) {
@@ -187,7 +176,14 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
         <Root
             style={{ width: "100%", margin: "10px 0" }}
             onClick={(e: any) => {
-                if (e.target.nodeName === "DIV") handleClick(selected, liftObj.id);
+                const regex = new RegExp(/(MuiDialog)/g);
+                const classString: string = e.target.className;
+                if (
+                    (e.target.nodeName === "DIV" || e.target.nodeName === "H6" || e.target.nodeName === "H5") &&
+                    classString &&
+                    !classString.match(regex)
+                )
+                    handleClick(selected, liftObj.id);
             }}
         >
             <Grid item>

@@ -229,6 +229,20 @@ const Lifting: React.FC = () => {
                                     <WorkoutCard handleClick={handleWorkoutClick} workoutObj={workout} selected={selectedWorkout.id === workout.id} />
                                 </div>
                             ))}
+                            {workouts.length === 0 ? (
+                                <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                                    You do not have any workouts yet, create one above.
+                                </Typography>
+                            ) : (
+                                ""
+                            )}
+                            {workouts.length !== 0 && filterWorkouts.length === 0 ? (
+                                <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                                    The search does not match any workouts.
+                                </Typography>
+                            ) : (
+                                ""
+                            )}
                         </Grid>
                         {/* Lift Section */}
                         <Grid container item xs={4} direction="column" spacing={2}>
@@ -266,6 +280,27 @@ const Lifting: React.FC = () => {
                                     selected={selectedLift.id === lift.id}
                                 />
                             ))}
+                            {lifts.length === 0 ? (
+                                <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                                    You do not have any lifts yet, create one above.
+                                </Typography>
+                            ) : (
+                                ""
+                            )}
+                            {lifts.length !== 0 && filterLifts.length === 0 && selectedWorkout.id !== -1 ? (
+                                <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                                    This workout does not have any lifts yet.
+                                </Typography>
+                            ) : (
+                                ""
+                            )}
+                            {lifts.length !== 0 && filterLifts.length === 0 && selectedWorkout.id === -1 ? (
+                                <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                                    The search does not match any lifts.
+                                </Typography>
+                            ) : (
+                                ""
+                            )}
                         </Grid>
                         {/* Add lift set section */}
                         <Grid container item xs={3} direction="column" alignItems="center" spacing={2}>
