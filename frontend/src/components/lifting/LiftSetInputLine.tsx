@@ -6,6 +6,8 @@ import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
+import { ErrorType, onChangeFuncStr } from "../../global/globalTypes";
+import InputField from "../inputs/InputField";
 
 interface Props {
     values: [number | string, number | string];
@@ -13,8 +15,8 @@ interface Props {
     unit: string;
     selected: boolean;
     handleRemove: (setNumber: number) => void;
-    handleWeightChange: (setNumber: number, weight: number) => void;
-    handleRepsChange: (setNumber: number, reps: number) => void;
+    handleWeightChange: (setNumber: number, weight: string) => ErrorType;
+    handleRepsChange: (setNumber: number, reps: string) => ErrorType;
     handleTopSetClick: (setNumber: number) => void;
 }
 
@@ -29,6 +31,8 @@ const LiftSetInputLine: React.FC<Props> = ({
     handleTopSetClick,
 }) => {
     const [iconHover, setIconHover] = useState<boolean>(false);
+    const [weightError, setWeightError] = useState<ErrorType>(false);
+    const [repsError, setRepsError] = useState<ErrorType>(false);
 
     return (
         <Grid item container direction="row" spacing={1} alignItems="center">
@@ -51,22 +55,29 @@ const LiftSetInputLine: React.FC<Props> = ({
                 <TextField
                     variant="outlined"
                     type="number"
-                    label={`Weight (${unit})`}
+                    label={weightError ? weightError : `Weight (${unit})`}
+                    error={weightError ? true : false}
                     onChange={(e) => {
-                        handleWeightChange(set_num, parseInt(e.target.value));
+                        let err = handleWeightChange(set_num, e.target.value);
+                        setWeightError(err);
                     }}
                     value={values[0]}
+                    style={{ width: "100%" }}
+                    InputProps={{ inputProps: { min: 1, max: 2000 } }}
                 />
             </Grid>
             <Grid item xs={3}>
                 <TextField
                     variant="outlined"
                     type="number"
-                    label="Reps"
+                    label={repsError ? repsError : "Reps"}
+                    error={repsError ? true : false}
                     onChange={(e) => {
-                        handleRepsChange(set_num, parseInt(e.target.value));
+                        let err = handleRepsChange(set_num, e.target.value);
+                        setRepsError(err);
                     }}
                     value={values[1]}
+                    InputProps={{ inputProps: { min: 1, max: 30 } }}
                 />
             </Grid>
             {set_num !== 0 ? (

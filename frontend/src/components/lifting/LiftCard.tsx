@@ -8,13 +8,14 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import { Link, useRouteMatch } from "react-router-dom";
-import { liftObj, workoutObj, onChangeFuncNum, workoutShort, HTTPBasicResponse } from "../../global/globalTypes";
+import { liftObj, workoutObj, onChangeFuncNum, workoutShort, HTTPBasicResponse, snackbarType } from "../../global/globalTypes";
 import WorkoutDialog from "./WorkoutsDialog";
 import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import axios from "axios";
 import { Box, Rating } from "@mui/material";
 import SnackbarWrapper from "../SnackbarWrapper";
+import { capitalizeFirstLetter } from "../util";
 
 interface Props {
     liftObj: liftObj;
@@ -23,8 +24,6 @@ interface Props {
     updateLiftState: () => void;
     workoutArr: workoutObj[];
 }
-
-type snackbarType = "success" | "info" | "warning" | "error";
 
 const PREFIX = "LiftCard";
 const classes = {
@@ -92,6 +91,12 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
         setSnackbarOpen(false);
     };
 
+    const openSnackbar = (message: string, type: snackbarType) => {
+        setSnackbarMessage(message);
+        setSnackbarType(type);
+        setSnackbarOpen(true);
+    };
+
     const [openDialog, setOpenDialog] = useState<boolean>(false);
 
     const [workoutString, setWorkoutString] = useState<string>("");
@@ -100,10 +105,6 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
 
     const getWorkoutIDs = (workoutArr: workoutShort[]): number[] => {
         return workoutArr.map((w) => w.id);
-    };
-
-    const capitalizeFirstLetter = (str: string): string => {
-        return str.charAt(0).toUpperCase() + str.substring(1, str.length);
     };
 
     const compareTwoArrays = (one: number[], two: number[]): boolean => {
@@ -121,45 +122,47 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
         setOpenDialog(false);
         if (workoutArr) {
             if (!compareTwoArrays(workoutArr, getWorkoutIDs(liftObj.workouts))) {
-                const res: { data: HTTPBasicResponse } = await axios.put(
-                    `${Config.apiUrl}/lift/${liftObj.id}/workout/`,
-                    { workoutIDs: workoutArr },
-                    { withCredentials: true }
-                );
-                if (res.data.success) {
-                    updateLiftState();
-                    openSnackbar(capitalizeFirstLetter(res.data.success), "success");
-                } else if (res.data.error) {
-                    openSnackbar(res.data.error, "error");
-                } else {
+                try {
+                    const res: { data: HTTPBasicResponse } = await axios.put(
+                        `${Config.apiUrl}/lift/${liftObj.id}/workout/`,
+                        { workoutIDs: workoutArr },
+                        { withCredentials: true }
+                    );
+                    if (res.data.success) {
+                        updateLiftState();
+                        openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+                    } else if (res.data.error) {
+                        openSnackbar(capitalizeFirstLetter(res.data.error), "error");
+                    } else {
+                        openSnackbar("Issue updating workouts.", "error");
+                    }
+                } catch (err) {
                     openSnackbar("Issue updating workouts.", "error");
                 }
             }
         }
     };
 
-    const openSnackbar = (message: string, type: snackbarType) => {
-        setSnackbarMessage(message);
-        setSnackbarType(type);
-        setSnackbarOpen(true);
-    };
-
     const onStarredChange: onChangeFuncNum = (val) => {
         async function setStarred() {
             let boolVal = val === 1;
-            const res: { data: HTTPBasicResponse } = await axios.put(
-                `${Config.apiUrl}/lift/${liftObj.id}`,
-                { starred: boolVal },
-                { withCredentials: true }
-            );
+            try {
+                const res: { data: HTTPBasicResponse } = await axios.put(
+                    `${Config.apiUrl}/lift/${liftObj.id}`,
+                    { starred: boolVal },
+                    { withCredentials: true }
+                );
 
-            if (res.data.success) {
-                updateLiftState();
-                openSnackbar(capitalizeFirstLetter(res.data.success), "success");
-            } else if (res.data.error) {
-                openSnackbar(res.data.error, "error");
-            } else {
-                openSnackbar("Issue updating lift.", "error");
+                if (res.data.success) {
+                    updateLiftState();
+                    openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+                } else if (res.data.error) {
+                    openSnackbar(capitalizeFirstLetter(res.data.error), "error");
+                } else {
+                    openSnackbar("Issue updating lift.", "error");
+                }
+            } catch (err) {
+                openSnackbar("Issue updating workouts.", "error");
             }
 
             setDisableStarredChange(false);

@@ -274,7 +274,12 @@ const Lifting: React.FC = () => {
                                     Click on a lift to quickly add a set here.
                                 </Typography>
                             ) : (
-                                <AddLiftSet id={selectedLift.id} unit={lifts.find((l) => l.id === selectedLift.id)?.plur_abbr || "lbs"} />
+                                <AddLiftSet
+                                    id={selectedLift.id}
+                                    updateState={updateLiftWorkoutState}
+                                    name={lifts.find((l) => l.id === selectedLift.id)?.name}
+                                    unit={lifts.find((l) => l.id === selectedLift.id)?.plur_abbr || "lbs"}
+                                />
                             )}
                         </Grid>
                     </Grid>

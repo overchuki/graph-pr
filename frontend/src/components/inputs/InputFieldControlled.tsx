@@ -6,7 +6,7 @@ import { ErrorType, VerificationObj, onChangeFuncStr, GridStyle, keyChangeFunc }
 
 interface Props {
     label: string;
-    defaultValue: string;
+    value: string;
     onChange?: onChangeFuncStr;
     keyChange?: keyChangeFunc;
     setValue: Dispatch<SetStateAction<ErrorType>>;
@@ -21,9 +21,9 @@ interface Props {
     range?: [number, number];
 }
 
-const InputField: React.FC<Props> = ({
+const InputFieldControlled: React.FC<Props> = ({
     label,
-    defaultValue,
+    value,
     onChange,
     keyChange,
     setValue,
@@ -87,7 +87,7 @@ const InputField: React.FC<Props> = ({
             <TextField
                 label={errorOverwrite || error ? error || errorOverwrite : label}
                 type={type}
-                defaultValue={defaultValue}
+                value={value}
                 error={error || errorOverwrite ? true : false}
                 onChange={(e) => handleChange(e.target.value)}
                 autoComplete={autoComplete}
@@ -106,4 +106,4 @@ const InputField: React.FC<Props> = ({
     );
 };
 
-export default InputField;
+export default InputFieldControlled;

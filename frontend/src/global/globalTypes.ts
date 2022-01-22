@@ -97,3 +97,4 @@ export type getLiftResponse = {
 export type getWorkoutResponse = {
     workouts: workoutObj[];
 };
+export type snackbarType = "success" | "info" | "warning" | "error";

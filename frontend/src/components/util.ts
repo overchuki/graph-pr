@@ -80,5 +80,17 @@ export const dobVerify: DobVerifyFunc = (value) => {
 };
 
 export const dateToString = (date: Date): string => {
-    return date.getFullYear() + date.getMonth() + date.getDate() + "";
+    let month = date.getMonth() + 1;
+    let monthStr = month + "";
+    if (month < 10) monthStr = "0" + month;
+
+    let dateNum = date.getDate();
+    let dateStr = dateNum + "";
+    if (dateNum < 10) dateStr = "0" + dateNum;
+
+    return date.getFullYear() + monthStr + dateStr;
+};
+
+export const capitalizeFirstLetter = (str: string): string => {
+    return str.charAt(0).toUpperCase() + str.substring(1, str.length);
 };
