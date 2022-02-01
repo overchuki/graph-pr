@@ -2,9 +2,9 @@ import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CheckIcon from "@mui/icons-material/Check";
-import ClearIcon from "@mui/icons-material/Clear";
-import AddIcon from "@mui/icons-material/Add";
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import DisabledByDefaultIcon from "@mui/icons-material/DisabledByDefault";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { useState } from "react";
 import { ErrorType } from "../../global/globalTypes";
 
@@ -47,7 +47,7 @@ const LiftSetInputLine: React.FC<Props> = ({
                         handleTopSetClick(set_num);
                     }}
                 >
-                    {selected ? <>{iconHover ? <ClearIcon /> : <CheckIcon />}</> : <AddIcon />}
+                    {selected ? <>{iconHover ? <DisabledByDefaultIcon /> : <CheckBoxIcon />}</> : <CheckBoxOutlineBlankIcon />}
                 </IconButton>
             </Grid>
             <Grid item xs={5}>

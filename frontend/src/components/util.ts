@@ -25,8 +25,12 @@ export const basicVerify: BasicVerifyFunc = (name, value, required, range, int, 
         else error = "skip";
     }
 
-    name = name.split(" ")[1];
-    name = name.charAt(0).toUpperCase() + name.slice(1);
+    let nameArr = name.split(" ");
+    name = "";
+    for (let i = 0; i < nameArr.length; i++) {
+        name += nameArr[i] + " ";
+    }
+    name = name.charAt(0).toUpperCase() + name.slice(1, name.length - 1);
 
     if (!error && alphaNum && !validator.isAlphanumeric(value + "")) error = `${name} is invalid.`;
 

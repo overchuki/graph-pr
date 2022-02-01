@@ -54,6 +54,7 @@ const Root = styled("div")(({ theme }) => ({
     [`& .${classes.hr}`]: {
         width: "100%",
         borderColor: theme.palette.grey[500],
+        background: theme.palette.grey[500],
     },
 }));
 
@@ -193,14 +194,6 @@ const Lifting: React.FC = () => {
                                 Workouts
                             </Typography>
                             <hr className={classes.hr} />
-                            <TextField
-                                label="Start typing to search workouts"
-                                variant="outlined"
-                                className={classes.fullWidth}
-                                onChange={(e) => {
-                                    workoutSearchChange(e.target.value);
-                                }}
-                            />
                             <Link to={`${url}/createWorkout`} className={`${classes.link} ${classes.fullWidth}`}>
                                 <BigButton type={0} text="" contrast={false}>
                                     <AddIcon color="action" />
@@ -209,6 +202,15 @@ const Lifting: React.FC = () => {
                                     </Typography>
                                 </BigButton>
                             </Link>
+                            <TextField
+                                label="Start typing to search workouts"
+                                variant="outlined"
+                                className={classes.fullWidth}
+                                onChange={(e) => {
+                                    workoutSearchChange(e.target.value);
+                                }}
+                                style={{ marginTop: "20px" }}
+                            />
                             <Typography variant="h5" color="text.primary" className={classes.marginTop}>
                                 Today
                             </Typography>
@@ -250,14 +252,6 @@ const Lifting: React.FC = () => {
                                 Lifts
                             </Typography>
                             <hr className={classes.hr} />
-                            <TextField
-                                label="Start typing to search lifts"
-                                variant="outlined"
-                                className={classes.fullWidth}
-                                onChange={(e) => {
-                                    liftSearchChange(e.target.value);
-                                }}
-                            />
                             <Link to={`${url}/createLift`} className={`${classes.link} ${classes.fullWidth}`}>
                                 <BigButton type={0} text="" contrast={false}>
                                     <AddIcon color="action" />
@@ -266,6 +260,15 @@ const Lifting: React.FC = () => {
                                     </Typography>
                                 </BigButton>
                             </Link>
+                            <TextField
+                                label="Start typing to search lifts"
+                                variant="outlined"
+                                className={classes.fullWidth}
+                                onChange={(e) => {
+                                    liftSearchChange(e.target.value);
+                                }}
+                                style={{ marginTop: "20px" }}
+                            />
                             <Typography variant="h5" color="text.primary" className={classes.marginTop}>
                                 {selectedWorkout.id === -1 ? "All Lifts" : `${selectedWorkout.name}`}
                             </Typography>

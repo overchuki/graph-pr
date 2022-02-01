@@ -3,6 +3,11 @@ export type HTTPBasicResponse = {
     success?: string;
     error?: string;
 };
+export type HTTPPostResponse = {
+    success?: string;
+    error?: string;
+    id?: number;
+};
 export type userData = {
     name: string;
     username: string;

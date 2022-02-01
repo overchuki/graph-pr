@@ -22,7 +22,7 @@ const Root = styled("div")(({ theme }) => ({
         backgroundColor: theme.palette.grey[800],
         padding: "10px 0 10px 0",
         border: "solid 1px",
-        borderColor: theme.palette.grey[500],
+        borderColor: theme.palette.grey[600],
         borderRadius: "5px",
 
         "&:hover": {

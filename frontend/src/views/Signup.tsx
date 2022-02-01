@@ -247,7 +247,7 @@ const Signup: React.FC = () => {
                     {/* First row: Name, Birthday, Gender */}
                     <Grid item container justifyContent="center" alignItems="center" className={classes.inputField}>
                         <InputField
-                            label={"Name (2-20)"}
+                            label={"Name (1-20)"}
                             type={"text"}
                             value={""}
                             controlled={false}
@@ -261,7 +261,7 @@ const Signup: React.FC = () => {
                             verifyObj={{
                                 name: "your name",
                                 required: true,
-                                range: [2, 20],
+                                range: [1, 20],
                                 int: false,
                                 email: false,
                                 ascii: true,
