@@ -3,31 +3,23 @@ import Config from "../../Config";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
-import { Switch, Route, useHistory, Link } from "react-router-dom";
+import { useHistory, Link } from "react-router-dom";
 import { HTTPPostResponse, ErrorType, snackbarType } from "../../global/globalTypes";
 import SnackbarWrapper from "../../components/SnackbarWrapper";
 import InputField from "../../components/inputs/InputField";
 import { Button, CircularProgress, Typography } from "@mui/material";
-import DayOfWeekCheck from "../../components/lifting/DayOfWeekCheck";
+import CheckWithLabel from "../../components/inputs/CheckWithLabel";
 import { capitalizeFirstLetter } from "../../components/util";
 
 const PREFIX = "CreateWorkout";
 const classes = {
     halfWidth: `${PREFIX}-halfWidth`,
-    link: `${PREFIX}-link`,
-    label: `${PREFIX}-label`,
 };
 const Root = styled("div")(({ theme }) => ({
     [`& .${classes.halfWidth}`]: {
         width: "40%",
         padding: "30px",
         margin: "auto",
-    },
-    [`& .${classes.link}`]: {
-        textDecoration: "none",
-    },
-    [`& .${classes.label}`]: {
-        color: theme.palette.text.secondary,
     },
 }));
 
@@ -70,6 +62,13 @@ const CreateWorkoutView: React.FC = () => {
 
     const submitWorkout = async (nameIn: string, descIn: string, daysIn: string) => {
         setStatus(true);
+
+        if (nameIn === "") {
+            openSnackbar("Workout name required", "error");
+            setStatus(false);
+            return;
+        }
+
         let data = {
             name: nameIn,
             description: descIn,
@@ -155,7 +154,7 @@ const CreateWorkoutView: React.FC = () => {
                         Select Days of the Week (optional):
                     </Typography>
                     {daysFullArr.map((d, i) => (
-                        <DayOfWeekCheck key={i} onCheckChange={onCheckChange} value={i} label={d} />
+                        <CheckWithLabel key={i} onCheckChange={onCheckChange} value={i} label={d} />
                     ))}
                 </Grid>
                 <Grid item container justifyContent="center" spacing={2}>

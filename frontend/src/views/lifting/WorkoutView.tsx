@@ -9,7 +9,7 @@ import SnackbarWrapper from "../../components/SnackbarWrapper";
 import InputField from "../../components/inputs/InputField";
 import { Button, CircularProgress, Typography } from "@mui/material";
 
-const PREFIX = "CreateWorkout";
+const PREFIX = "WorkoutView";
 const classes = {
     halfWidth: `${PREFIX}-halfWidth`,
     link: `${PREFIX}-link`,
