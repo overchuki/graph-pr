@@ -1,3 +1,5 @@
+import { ScatterDataPoint } from "chart.js";
+
 export type ErrorType = string | boolean;
 export type HTTPBasicResponse = {
     success?: string;
@@ -88,6 +90,31 @@ export type liftSet = {
     lift_set_parent_fk: number;
     lift_fk: number;
 };
+export type liftSetFull = {
+    set_num: number;
+    weight: string;
+    reps: number;
+    theomax: string;
+    top_set?: number;
+    date: string;
+    set_quantity: number;
+    notes?: string;
+};
+export type liftSetShort = {
+    weight: string;
+    reps: number;
+    theomax: string;
+};
+export type liftSetShortDate = {
+    weight: string;
+    reps: number;
+    theomax: string;
+    date: string;
+};
+export type liftSetAllInfo = {
+    parent: liftSetParent;
+    sets: liftSetShort[];
+};
 export type workoutObj = {
     id: number;
     name: string;
@@ -103,3 +130,16 @@ export type getWorkoutResponse = {
     workouts: workoutObj[];
 };
 export type snackbarType = "success" | "info" | "warning" | "error";
+export type datesetArr = { x: string; y: number | null }[];
+export type tooltipStrings = {
+    title: string;
+    label: string[];
+    footer: string;
+};
+export type dataSetType = {
+    spanGaps: boolean;
+    data: { x: string; y: number | null }[];
+    borderColor: string;
+    borderWidth: number;
+    fill: boolean;
+};

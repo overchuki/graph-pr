@@ -120,7 +120,7 @@ const getLatestLiftSet = async (req, liftId, latest) => {
         FROM lift_set_parent
         WHERE lift_fk = ${liftId}
         ORDER BY date DESC
-        LIMIT ?
+        LIMIT ${latest}
     `;
 
     let sqlSets = `
@@ -130,7 +130,7 @@ const getLatestLiftSet = async (req, liftId, latest) => {
         ORDER BY set_num ASC
     `;
 
-    let setParent = await req.conn.queryAsync(sqlLatest, [latest]);
+    let setParent = await req.conn.queryAsync(sqlLatest);
     if (setParent.length !== 0) setParent = setParent[0];
     else setParent = null;
 
