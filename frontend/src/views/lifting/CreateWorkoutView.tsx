@@ -154,7 +154,7 @@ const CreateWorkoutView: React.FC = () => {
                         Select Days of the Week (optional):
                     </Typography>
                     {daysFullArr.map((d, i) => (
-                        <CheckWithLabel key={i} onCheckChange={onCheckChange} value={i} label={d} />
+                        <CheckWithLabel key={i} onCheckChange={onCheckChange} value={i} label={d} controlled={false} />
                     ))}
                 </Grid>
                 <Grid item container justifyContent="center" spacing={2}>

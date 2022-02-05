@@ -26,9 +26,11 @@ interface Props {
     tooltipLabels?: tooltipStrings[];
     tooltipBools: { title: boolean; label: boolean; footer: boolean };
     highlightIndex?: number;
+    xRange: number[] | string[];
+    yRange: number[];
 }
 
-const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedArr, tooltipLabels, tooltipBools, highlightIndex }) => {
+const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedArr, tooltipLabels, tooltipBools, highlightIndex, xRange, yRange }) => {
     const timeFormat = "YYYYMMDD";
 
     const [labels, setLabels] = useState<tooltipStrings[]>([]);
@@ -37,8 +39,8 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
     const [data, setData] = useState<{ datasets: dataSetType[] }>({ datasets: [] });
 
     const titleTooltip = (tooltipItems: { dataIndex: number; datasetIndex: number; label: string; raw: { x: string; y: number } }[]): string => {
-        if (tooltipLabels) {
-            return tooltipLabels[tooltipItems[0].dataIndex].title;
+        if (labels) {
+            return labels[tooltipItems[0].dataIndex].title;
         }
         return "Title Error";
     };
@@ -49,14 +51,21 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
         label: string;
         raw: { x: string; y: number };
     }): string[] | undefined => {
-        if (tooltipLabels && tooltipItem.datasetIndex === 0) {
-            return tooltipLabels[tooltipItem.dataIndex].label;
+        return undefined;
+    };
+
+    const afterBodyTooltip = (
+        tooltipItems: { dataIndex: number; datasetIndex: number; label: string; raw: { x: string; y: number } }[]
+    ): string[] => {
+        if (labels) {
+            return labels[tooltipItems[0].dataIndex].label;
         }
+        return ["Label Error"];
     };
 
     const footerTooltip = (tooltipItems: { dataIndex: number; datasetIndex: number; label: string; raw: { x: string; y: number } }[]): string => {
-        if (tooltipLabels) {
-            return tooltipLabels[tooltipItems[0].dataIndex].footer;
+        if (labels) {
+            return labels[tooltipItems[0].dataIndex].footer;
         }
         return "Footer Error";
     };
@@ -107,6 +116,8 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
                 else dateStrArr.push("");
             }
             minDateObj = getMinDate(dateStrArr);
+            if (currentIter === 0) {
+            }
 
             for (let i = 0; i < numOfArrays; i++) {
                 if (!minDateObj.indices.includes(i)) {
@@ -173,6 +184,7 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
                     callbacks: {
                         title: tooltipBools.title ? titleTooltip : undefined,
                         label: tooltipBools.label ? labelTooltip : undefined,
+                        afterBody: tooltipBools.label ? afterBodyTooltip : undefined,
                         footer: tooltipBools.footer ? footerTooltip : undefined,
                     },
                 },
@@ -196,6 +208,8 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
                         text: "Date",
                         display: true,
                     },
+                    min: xRange[0],
+                    max: xRange[1],
                 },
                 y: {
                     title: {
@@ -207,6 +221,8 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
                         borderColor: CHART_COLORS.darkGrey,
                         borderWidth: 2,
                     },
+                    min: yRange[0],
+                    max: yRange[1],
                 },
             },
         });
@@ -215,7 +231,7 @@ const ChartWrapper: React.FC<Props> = ({ numArrays, title, showTitle, selectedAr
     useEffect(() => {
         setConfig();
         if (tooltipLabels) setLabels(tooltipLabels);
-    }, [numArrays]);
+    }, [numArrays, selectedArr]);
 
     return <Line width="1000" height="300" options={options} data={data} />;
 };

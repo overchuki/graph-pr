@@ -58,6 +58,7 @@ export type keyChangeFunc = (keyString: string) => any;
 export type liftObj = {
     id: number;
     name: string;
+    unit_fk: number;
     plur_abbr: string;
     starred: number;
     max: number | null;

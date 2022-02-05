@@ -193,7 +193,7 @@ const CreateLiftView: React.FC = () => {
                     </Grid>
                 </Grid>
                 <Grid item container direction="column" alignItems="flex-start" spacing={0}>
-                    <CheckWithLabel onCheckChange={onStarChange} value={1} label={"Star this lift"} />
+                    <CheckWithLabel onCheckChange={onStarChange} value={1} label={"Star this lift"} controlled={false} />
                 </Grid>
                 <Grid item container justifyContent="center" spacing={2}>
                     {status === false ? (

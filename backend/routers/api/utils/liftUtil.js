@@ -8,6 +8,7 @@ const getLiftInfo = async (req, liftId) => {
         SELECT
             l.id,
             l.name,
+            l.unit_fk,
             u.plur_abbr,
             l.starred,
             lmax.weight AS max,
