@@ -4,11 +4,22 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
 import { Switch, Route, useHistory, Link, useLocation, useParams } from "react-router-dom";
-import { HTTPPostResponse, ErrorType, snackbarType } from "../../global/globalTypes";
 import SnackbarWrapper from "../../components/SnackbarWrapper";
 import InputField from "../../components/inputs/InputField";
-import { Button, CircularProgress, Typography } from "@mui/material";
-import { liftObj, liftSetFull, liftSetParent, liftSetAllInfo, datesetArr, tooltipStrings } from "../../global/globalTypes";
+import { Button, CircularProgress, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Typography } from "@mui/material";
+import {
+    liftObj,
+    liftSetFull,
+    snackbarType,
+    liftSetAllInfo,
+    datesetArr,
+    tooltipStrings,
+    ErrorType,
+    onChangeFuncStr,
+    HTTPBasicResponse,
+    workoutShort,
+    workoutObj,
+} from "../../global/globalTypes";
 import ChartWrapper from "../../components/datadisplay/ChartWrapper";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import IconButton from "@mui/material/IconButton";
@@ -17,6 +28,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import WorkoutDialog from "../../components/lifting/WorkoutsDialog";
+import { capitalizeFirstLetter, compareTwoArrays } from "../../components/util";
+import ConfirmDialogWrapper from "../../components/inputs/ConfirmDialogWrapper";
 
 const PREFIX = "LiftView";
 const classes = {
@@ -26,6 +40,8 @@ const classes = {
     marginTopSml: `${PREFIX}-marginTopSml`,
     hr: `${PREFIX}-hr`,
     outline: `${PREFIX}-outline`,
+    label: `${PREFIX}-label`,
+    smlIcon: `${PREFIX}-smlIcon`,
 };
 const Root = styled("div")(({ theme }) => ({
     [`& .${classes.halfWidth}`]: {
@@ -54,6 +70,12 @@ const Root = styled("div")(({ theme }) => ({
         margin: "0 10px",
         padding: "0",
     },
+    [`& .${classes.label}`]: {
+        color: theme.palette.text.secondary,
+    },
+    [`& .${classes.smlIcon}`]: {
+        transform: "scale(0.8)",
+    },
 }));
 
 interface Props {}
@@ -69,8 +91,12 @@ const LiftView: React.FC<Props> = () => {
     const GRAPH_PADDING = 40;
 
     const location = useLocation<LocationState>();
+    const history = useHistory();
     const params: { id?: string } = useParams();
 
+    // ------------------------------------------
+    // SNACKBAR OPTIONS
+    // ------------------------------------------
     const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
     const [snackbarMessage, setSnackbarMessage] = useState<string>("");
     const [snackbarType, setSnackbarType] = useState<snackbarType>("success");
@@ -86,6 +112,16 @@ const LiftView: React.FC<Props> = () => {
         setSnackbarOpen(true);
     };
 
+    // ------------------------------------------
+    // SNACKBAR OPTIONS END
+    // ------------------------------------------
+
+    // ------------------------------------------
+    // LIFT OPTIONS
+    // ------------------------------------------
+
+    const [updateState, setUpdateState] = useState<boolean>(false);
+
     const [lift, setLift] = useState<liftObj>();
     const [sets, setSets] = useState<liftSetFull[]>([]);
     const [setsWithParent, setSetsWithParent] = useState<liftSetAllInfo[]>([]);
@@ -97,6 +133,10 @@ const LiftView: React.FC<Props> = () => {
 
     const [xRange, setXRange] = useState<[string, string]>(["", ""]);
     const [yRange, setYRange] = useState<[number, number]>([0, 100]);
+
+    const goBackToLifting = () => {
+        history.push("/lifting", { snackBarStatusRoot: false });
+    };
 
     const roundToTen = (val: number, dir: number): number => {
         let temp = val / 10;
@@ -179,33 +219,161 @@ const LiftView: React.FC<Props> = () => {
         setSelectedArr(newSelectedArr);
     };
 
-    // 0: not editing, 1: editing, 2: editing but nothing changed, so disable
-    const [editLiftStatus, setEditLiftStatus] = useState<number>(0);
-    const [editLiftName, setEditLitName] = useState<string>("");
-    const [editLiftUnit, setEditLitUnit] = useState<number>(-1);
+    // ------------------------------------------
+    // LIFT OPTIONS END
+    // ------------------------------------------
 
-    const handleLiftNameChange = () => {};
-    const handleLiftUnitChange = () => {};
+    // ------------------------------------------
+    // WORKOUT DIALOG OPTIONS
+    // ------------------------------------------
+
+    const [openDialog, setOpenDialog] = useState<boolean>(false);
+    const [workoutArray, setWorkoutArray] = useState<workoutObj[]>([]);
+
+    const getWorkoutIDs = (workoutArr: workoutShort[]): number[] => {
+        return workoutArr.map((w) => w.id);
+    };
+
+    const onDialogSave = async (workoutArr: number[] | null) => {
+        setOpenDialog(false);
+        if (workoutArr && lift) {
+            if (!compareTwoArrays(workoutArr, getWorkoutIDs(lift.workouts))) {
+                try {
+                    const res: { data: HTTPBasicResponse } = await axios.put(
+                        `${Config.apiUrl}/lift/${lift.id}/workout/`,
+                        { workoutIDs: workoutArr },
+                        { withCredentials: true }
+                    );
+                    if (res.data.success) {
+                        setUpdateState(!updateState);
+                        openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+                    } else if (res.data.error) {
+                        openSnackbar(capitalizeFirstLetter(res.data.error), "error");
+                    } else {
+                        openSnackbar("Issue updating workouts.", "error");
+                    }
+                } catch (err) {
+                    openSnackbar("Issue updating workouts.", "error");
+                }
+            }
+        }
+    };
+
+    // ------------------------------------------
+    // WORKOUT DIALOG OPTIONS END
+    // ------------------------------------------
+
+    // ------------------------------------------
+    // EDIT LIFT OPTIONS
+    // ------------------------------------------
+
+    // 0: not editing, 1: editing, 2: editing but nothing changed, so disable, 3: submited, loading symbol
+    const [editLiftStatus, setEditLiftStatus] = useState<number>(0);
+
+    const [editLiftName, setEditLiftName] = useState<string>("");
+    const [editLiftNameDiff, setEditLiftNameDiff] = useState<boolean>(false);
+    const [editLiftNameErr, setEditLiftNameErr] = useState<ErrorType>("");
+
+    const [editLiftUnit, setEditLitUnit] = useState<number>(-1);
+    const [editLiftUnitDiff, setEditLiftUnitDiff] = useState<boolean>(false);
+
+    const handleLiftNameChange: onChangeFuncStr = (val) => {
+        setEditLiftName(val);
+
+        if (lift?.name === val) {
+            setEditLiftStatus(2);
+            setEditLiftNameDiff(false);
+        } else {
+            setEditLiftStatus(1);
+            setEditLiftNameDiff(true);
+        }
+
+        return { error: false, overwrite: false, returnError: false };
+    };
+
+    const handleLiftUnitChange = (unitVal: number) => {
+        setEditLitUnit(unitVal);
+
+        if (lift?.unit_fk === unitVal) {
+            setEditLiftStatus(2);
+            setEditLiftUnitDiff(false);
+        } else {
+            setEditLiftStatus(1);
+            setEditLiftUnitDiff(true);
+        }
+    };
 
     const handleEditLift = () => {
         if (lift) {
-            setEditLitName(lift.name);
+            setEditLiftName(lift.name);
             setEditLitUnit(lift.unit_fk);
         }
         setEditLiftStatus(2);
     };
 
-    const handleSaveLift = () => {};
+    const handleSaveLift = async () => {
+        if (editLiftNameErr === false) return;
+        setEditLiftStatus(3);
+
+        let data = {
+            name: editLiftNameDiff ? editLiftName : null,
+            unit_fk: editLiftUnitDiff ? editLiftUnit : null,
+        };
+
+        try {
+            const res: { data: HTTPBasicResponse } = await axios.put(`${Config.apiUrl}/lift/${lift?.id}/`, data, { withCredentials: true });
+            if (res.data.success) {
+                setUpdateState(!updateState);
+                openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+            } else if (res.data.error) {
+                openSnackbar(capitalizeFirstLetter(res.data.error), "error");
+            } else {
+                openSnackbar("Issue updating lift.", "error");
+            }
+        } catch (err) {
+            openSnackbar("Issue updating lift.", "error");
+        }
+
+        setEditLiftStatus(0);
+    };
 
     const handleCancelEdit = () => {
         if (lift) {
-            setEditLitName(lift.name);
+            setEditLiftName(lift.name);
             setEditLitUnit(lift.unit_fk);
         }
         setEditLiftStatus(0);
     };
 
-    const handleDeleteLift = () => {};
+    const [openDeleteDialog, setOpenDeleteDialog] = useState<boolean>(false);
+
+    const handleDeleteLift = () => {
+        setOpenDeleteDialog(true);
+    };
+
+    const cancelDeleteLift = () => {
+        setOpenDeleteDialog(false);
+    };
+
+    const confirmDeleteLift = async () => {
+        setOpenDeleteDialog(false);
+        try {
+            const res: { data: HTTPBasicResponse } = await axios.delete(`${Config.apiUrl}/lift/${lift?.id}/`, { withCredentials: true });
+            if (res.data.success) {
+                history.push("/lifting", { snackBarStatusRoot: true, snackBarMessage: "Lift has been deleted" });
+            } else if (res.data.error) {
+                openSnackbar(capitalizeFirstLetter(res.data.error), "error");
+            } else {
+                openSnackbar("Issue deleting lift.", "error");
+            }
+        } catch (err) {
+            openSnackbar("Issue deleting lift.", "error");
+        }
+    };
+
+    // ------------------------------------------
+    // EDIT LIFT OPTIONS END
+    // ------------------------------------------
 
     useEffect(() => {
         async function getLiftData() {
@@ -217,13 +385,16 @@ const LiftView: React.FC<Props> = () => {
                 setSets(res.data.liftSets);
                 configureLiftSets(res.data.liftSets);
             }
+
+            let ws: { data: { workouts: workoutObj[] } } = await axios.get(`${Config.apiUrl}/lift/workout`, { withCredentials: true });
+            setWorkoutArray(ws.data.workouts);
         }
         getLiftData();
 
         if (location.state && location.state.snackBarStatus) {
             openSnackbar("Lift Created", "success");
         }
-    }, [location.state, params.id]);
+    }, [location.state, params.id, updateState]);
 
     return (
         <Root>
@@ -231,11 +402,9 @@ const LiftView: React.FC<Props> = () => {
             <Grid container direction="column" spacing={3}>
                 <Grid item container direction="row" className={classes.marginTop}>
                     <Grid item container justifyContent="center" xs={1}>
-                        <Link to="/lifting">
-                            <IconButton>
-                                <ArrowBackIcon fontSize="large" />
-                            </IconButton>
-                        </Link>
+                        <IconButton onClick={goBackToLifting}>
+                            <ArrowBackIcon fontSize="large" />
+                        </IconButton>
                     </Grid>
                     <Grid item container justifyContent="center" xs={10}>
                         <Typography variant="h4" color="text.secondary">
@@ -288,15 +457,16 @@ const LiftView: React.FC<Props> = () => {
                 </Grid>
                 <Grid item></Grid>
                 <Grid item container direction="row" spacing={3}>
-                    <Grid item container direction="column" xs={3}>
+                    <Grid item container direction="column" xs={3} spacing={3}>
                         <Grid item container direction="row">
                             <Grid item xs={1}></Grid>
-                            <Grid item xs={1}>
+                            <Grid item xs={2}>
                                 <Typography variant="h6" color="text.secondary">
                                     Lift
                                 </Typography>
                             </Grid>
-                            <Grid item container xs={9} justifyContent="flex-end">
+                            <Grid item container xs={8} justifyContent="flex-end">
+                                {editLiftStatus === 3 ? <CircularProgress color="primary" /> : ""}
                                 {editLiftStatus === 0 ? (
                                     <Button variant="outlined" onClick={handleEditLift} startIcon={<EditIcon />}>
                                         Edit
@@ -336,7 +506,100 @@ const LiftView: React.FC<Props> = () => {
                             </Grid>
                         </Grid>
                         <hr className={classes.hr} />
-                        <Grid item>{/* {editLiftStatus === 0 ? () : ()} */}</Grid>
+
+                        {editLiftStatus === 0 ? (
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <Typography color="text.secondary" variant="h6">
+                                    Name: {lift?.name}
+                                </Typography>
+                            </Grid>
+                        ) : (
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <InputField
+                                    label={"Edit Lift Name"}
+                                    type={"text"}
+                                    value={editLiftName}
+                                    controlled={true}
+                                    setValue={setEditLiftNameErr}
+                                    errorOverwrite={false}
+                                    autoComplete={""}
+                                    size={6}
+                                    position={-1}
+                                    disabled={false}
+                                    verify={true}
+                                    verifyObj={{
+                                        name: "your lift name",
+                                        required: true,
+                                        range: [0, 20],
+                                        int: false,
+                                        email: false,
+                                        ascii: true,
+                                        dob: false,
+                                        alphaNum: false,
+                                    }}
+                                    onChange={handleLiftNameChange}
+                                />
+                            </Grid>
+                        )}
+                        {editLiftStatus === 0 ? (
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <Typography color="text.secondary" variant="h6">
+                                    Unit: {lift?.plur_abbr}
+                                </Typography>
+                            </Grid>
+                        ) : (
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <FormControl>
+                                    <FormLabel>Unit</FormLabel>
+                                    <RadioGroup
+                                        row
+                                        value={editLiftUnit}
+                                        onChange={(e) => {
+                                            let val = 2;
+                                            try {
+                                                val = parseInt(e.target.value);
+                                                handleLiftUnitChange(val);
+                                            } catch (err) {
+                                                handleLiftUnitChange(val);
+                                            }
+                                        }}
+                                    >
+                                        <FormControlLabel value={2} className={classes.label} control={<Radio />} label="Lbs" />
+                                        <FormControlLabel value={1} className={classes.label} control={<Radio />} label="Kgs" />
+                                    </RadioGroup>
+                                </FormControl>
+                            </Grid>
+                        )}
+                        <Grid item container direction="row" alignItems="center">
+                            <Grid item xs={1}></Grid>
+                            <Grid item>
+                                <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                                    Workout:
+                                </Typography>
+                            </Grid>
+                            <Grid item>
+                                <IconButton
+                                    onClick={() => {
+                                        setOpenDialog(true);
+                                    }}
+                                >
+                                    <EditIcon color="primary" className={classes.smlIcon} />
+                                </IconButton>
+                            </Grid>
+                            <Grid item>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    {lift?.workouts.map((w, i) => {
+                                        if (i === lift?.workouts.length - 1) return w.name;
+                                        return w.name + ", ";
+                                    })}
+                                    {lift?.workouts.length === 0 ? "None" : ""}
+                                </Typography>
+                            </Grid>
+                        </Grid>
                     </Grid>
                     <Grid item container direction="column" xs={3}>
                         2
@@ -349,6 +612,24 @@ const LiftView: React.FC<Props> = () => {
                     </Grid>
                 </Grid>
             </Grid>
+            <WorkoutDialog
+                id="workoutDialog"
+                keepMounted
+                open={openDialog}
+                onSaveParent={onDialogSave}
+                workoutsProp={workoutArray}
+                selectedWorkoutsProp={lift ? getWorkoutIDs(lift.workouts) : []}
+            />
+            <ConfirmDialogWrapper
+                agreeStr="Delete"
+                cancelStr="Cancel"
+                keepMounted
+                message="Are you sure you want to delete your lift? This will remove all data associated with it and will not be recoverable."
+                onConfirm={confirmDeleteLift}
+                onDeny={cancelDeleteLift}
+                open={openDeleteDialog}
+                title="Delete Lift"
+            />
         </Root>
     );
 };

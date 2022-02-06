@@ -72,7 +72,7 @@ const updateLiftMax = async (req, liftId) => {
     let sqlMax = `
         SELECT id
         FROM lift_set
-        WHERE weight = (SELECT MAX(weight) FROM lift_set) AND lift_fk = ?
+        WHERE weight = (SELECT MAX(weight) FROM lift_set WHERE lift_fk = ?) AND lift_fk = ?
         ORDER BY reps DESC
         LIMIT 1
     `;
@@ -80,14 +80,15 @@ const updateLiftMax = async (req, liftId) => {
     let sqlTheoMax = `
         SELECT id
         FROM lift_set
-        WHERE theomax = (SELECT MAX(theomax) FROM lift_set) AND lift_fk = ?
+        WHERE theomax = (SELECT MAX(theomax) FROM lift_set WHERE lift_fk = ?) AND lift_fk = ?
         ORDER BY reps DESC
         LIMIT 1
     `;
 
-    let max = await req.conn.queryAsync(sqlMax, [liftId]);
-    let theomax = await req.conn.queryAsync(sqlTheoMax, [liftId]);
-    if (max.length === 0 || theomax.length === 0) throw Error("Lift has no sets yet.");
+    let max = await req.conn.queryAsync(sqlMax, [liftId, liftId]);
+    let theomax = await req.conn.queryAsync(sqlTheoMax, [liftId, liftId]);
+
+    if (max.length === 0 || theomax.length === 0) return;
 
     let sqlUpdate = `
         UPDATE lift

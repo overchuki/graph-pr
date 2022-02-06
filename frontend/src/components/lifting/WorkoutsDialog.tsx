@@ -7,10 +7,10 @@ import Dialog from "@mui/material/Dialog";
 import FormGroup from "@mui/material/FormGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
-import { workoutObj } from "../../global/globalTypes";
+import { workoutObj, workoutShort } from "../../global/globalTypes";
 
 interface Props {
-    workoutsProp: workoutObj[];
+    workoutsProp: workoutObj[] | workoutShort[];
     selectedWorkoutsProp: number[];
     onSaveParent: (workoutArr: number[] | null) => void;
     open: boolean;
@@ -43,7 +43,7 @@ const WorkoutDialog: React.FC<Props> = ({ workoutsProp, selectedWorkoutsProp, on
     }, [selectedWorkoutsProp]);
 
     return (
-        <Dialog sx={{ "& .MuiDialog-paper": { width: "80%", maxHeight: 435 } }} maxWidth="xs" open={open} {...other}>
+        <Dialog sx={{ "& .MuiDialog-paper": { width: "80%", maxHeight: 435 } }} maxWidth="xs" open={open} onClose={handleCancel} {...other}>
             <DialogTitle>Choose Workouts</DialogTitle>
             <DialogContent dividers>
                 <FormGroup>

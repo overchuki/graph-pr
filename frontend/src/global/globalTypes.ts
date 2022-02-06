@@ -1,5 +1,3 @@
-import { ScatterDataPoint } from "chart.js";
-
 export type ErrorType = string | boolean;
 export type HTTPBasicResponse = {
     success?: string;

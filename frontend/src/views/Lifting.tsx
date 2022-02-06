@@ -1,11 +1,11 @@
 import Config from "../Config";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
-import { Switch, Route, useRouteMatch, Link } from "react-router-dom";
+import { Switch, Route, useRouteMatch, Link, useLocation } from "react-router-dom";
 import LiftView from "./lifting/LiftView";
 import WorkoutView from "./lifting/WorkoutView";
 import axios from "axios";
-import { liftObj, workoutObj, getLiftResponse, getWorkoutResponse, workoutShort } from "../global/globalTypes";
+import { liftObj, workoutObj, getLiftResponse, getWorkoutResponse, workoutShort, snackbarType } from "../global/globalTypes";
 import LiftCard from "../components/lifting/LiftCard";
 import { styled } from "@mui/material/styles";
 import WorkoutCard from "../components/lifting/WorkoutCard";
@@ -16,6 +16,7 @@ import CreateLiftView from "./lifting/CreateLiftView";
 import CreateWorkoutView from "./lifting/CreateWorkoutView";
 import BigButton from "../components/inputs/BigButton";
 import AddLiftSet from "../components/lifting/AddLiftSet";
+import SnackbarWrapper from "../components/SnackbarWrapper";
 
 interface selectedLift {
     id: number;
@@ -58,10 +59,42 @@ const Root = styled("div")(({ theme }) => ({
     },
 }));
 
+type LocationState = {
+    from: {
+        pathname: string;
+    };
+    snackBarStatusRoot?: boolean;
+    snackBarMessage?: string;
+};
+
 const Lifting: React.FC = () => {
+    const location = useLocation<LocationState>();
     let { url, path } = useRouteMatch();
+
     const daysArr = ["U", "M", "T", "W", "R", "F", "S"];
     const [today, setToday] = useState<string>(daysArr[new Date().getDay()]);
+
+    // ------------------------------------------
+    // SNACKBAR OPTIONS
+    // ------------------------------------------
+    const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+    const [snackbarMessage, setSnackbarMessage] = useState<string>("");
+    const [snackbarType, setSnackbarType] = useState<snackbarType>("success");
+
+    const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === "clickaway") return;
+        setSnackbarOpen(false);
+    };
+
+    const openSnackbar = (message: string, type: snackbarType) => {
+        setSnackbarMessage(message);
+        setSnackbarType(type);
+        setSnackbarOpen(true);
+    };
+
+    // ------------------------------------------
+    // SNACKBAR OPTIONS END
+    // ------------------------------------------
 
     const [workoutSearch, setWorkoutSearch] = useState<string>("");
     const [liftSearch, setLiftSearch] = useState<string>("");
@@ -180,11 +213,15 @@ const Lifting: React.FC = () => {
             }
         }
         getData();
+        if (location.state && location.state.snackBarStatusRoot === true) {
+            openSnackbar(location.state.snackBarMessage ? location.state.snackBarMessage : "Success", "success");
+        }
         return () => {};
-    }, [stateChange]);
+    }, [stateChange, location.state]);
 
     return (
         <Root>
+            <SnackbarWrapper open={snackbarOpen} message={snackbarMessage} type={snackbarType} duration={3000} handleClose={handleSnackbarClose} />
             <Switch>
                 <Route exact path={path}>
                     <Grid container direction="row" justifyContent="center" className={classes.mainPage} spacing={5}>
