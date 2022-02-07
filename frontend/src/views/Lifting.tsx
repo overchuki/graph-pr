@@ -372,7 +372,7 @@ const Lifting: React.FC = () => {
                 <Route path={`${path}/lift/:id`}>
                     <LiftView />
                 </Route>
-                <Route path={`${path}/liftSetView`}>
+                <Route path={`${path}/liftSetView/:id`}>
                     <LiftSetView />
                 </Route>
             </Switch>

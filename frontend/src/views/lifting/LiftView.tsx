@@ -402,7 +402,7 @@ const LiftView: React.FC<Props> = () => {
     };
 
     const goToLiftSetView = () => {
-        history.push(`/lifting/liftSetView`, { liftSets: setsWithParent });
+        history.push(`/lifting/liftSetView/${lift?.id}`, { liftSets: setsWithParent });
     };
 
     // ------------------------------------------

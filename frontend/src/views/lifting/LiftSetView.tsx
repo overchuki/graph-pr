@@ -3,45 +3,19 @@ import Config from "../../Config";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
-import { useHistory, Link, useLocation } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import SnackbarWrapper from "../../components/SnackbarWrapper";
-import InputField from "../../components/inputs/InputField";
-import {
-    Button,
-    CircularProgress,
-    Container,
-    FormControl,
-    FormControlLabel,
-    FormLabel,
-    Radio,
-    RadioGroup,
-    TextField,
-    Typography,
-} from "@mui/material";
-import {
-    liftObj,
-    liftSetFull,
-    snackbarType,
-    liftSetAllInfo,
-    datesetArr,
-    tooltipStrings,
-    ErrorType,
-    onChangeFuncStr,
-    HTTPBasicResponse,
-    workoutShort,
-    workoutObj,
-} from "../../global/globalTypes";
+import { TextField, Typography } from "@mui/material";
+import { snackbarType, liftSetAllInfo } from "../../global/globalTypes";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import { capitalizeFirstLetter } from "../../components/util";
 import Pagination from "@mui/material/Pagination";
 import DesktopDatePicker from "@mui/lab/DesktopDatePicker";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import LocalizationProvider from "@mui/lab/LocalizationProvider";
+import LiftSetEdit from "../../components/lifting/LiftSetEdit";
+import SetCard from "../../components/lifting/SetCard";
 
 const PREFIX = "LiftSetsView";
 const classes = {
@@ -81,6 +55,7 @@ const LiftSetView = () => {
 
     const location = useLocation<LocationState>();
     const history = useHistory();
+    const params: { id?: string } = useParams();
 
     const [sets, setSets] = useState<liftSetAllInfo[]>([]);
     const [visibleSets, setVisibleSets] = useState<liftSetAllInfo[]>([]);
@@ -97,6 +72,21 @@ const LiftSetView = () => {
 
     const setUpPageNum = (len: number) => {
         setPageNum(Math.ceil(len / RESULTS_PER_PAGE));
+    };
+
+    // TODO: implement change of state here, update both sets and filtered sets
+    const updateState = (newSets: ([number, number] | null)[] | null, newDate: Date | null, newTopSet: number | null, newNotes: string | null) => {};
+
+    // TODO: implement change of date here, update filtered values
+    const dateRangeChanged = () => {};
+
+    // TODO: implement change of pagination number here, update filtered values
+    const onPaginationChange = (event: any, page: number) => {};
+
+    // TODO: use once basic set cards are implemented
+    const setClicked = (i: number) => {
+        if (i === selectedSet) setSelectedSet(-1);
+        else setSelectedSet(i);
     };
 
     // ------------------------------------------
@@ -168,6 +158,7 @@ const LiftSetView = () => {
                                             dateCpy[0] = newValue;
                                             setDateRange(dateCpy);
                                         }
+                                        dateRangeChanged();
                                     }}
                                     renderInput={(params) => <TextField {...params} />}
                                 />
@@ -192,6 +183,7 @@ const LiftSetView = () => {
                                             dateCpy[1] = newValue;
                                             setDateRange(dateCpy);
                                         }
+                                        dateRangeChanged();
                                     }}
                                     renderInput={(params) => <TextField {...params} />}
                                 />
@@ -204,11 +196,17 @@ const LiftSetView = () => {
                         </Grid>
                     </Grid>
                     <Grid item container direction="row" justifyContent="center">
-                        <Pagination count={pageNum} color="secondary" />
+                        <Pagination onChange={onPaginationChange} count={pageNum} color="secondary" />
                     </Grid>
                 </Grid>
                 <Grid item xs={3}>
-                    Stuffy here
+                    {selectedSet !== -1 ? (
+                        <LiftSetEdit id={params.id ? parseInt(params.id) : -1} liftSet={sets[selectedSet]} updateState={updateState} />
+                    ) : (
+                        <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
+                            Click on a set to edit it here.
+                        </Typography>
+                    )}
                 </Grid>
             </Grid>
         </Root>

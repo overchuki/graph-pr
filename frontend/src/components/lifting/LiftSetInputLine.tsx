@@ -11,7 +11,7 @@ import { ErrorType } from "../../global/globalTypes";
 interface Props {
     values: [number | string, number | string];
     set_num: number;
-    unit: string;
+    unit?: string;
     selected: boolean;
     handleRemove?: (setNumber: number) => void;
     handleWeightChange: (setNumber: number, weight: string) => ErrorType;
@@ -54,7 +54,7 @@ const LiftSetInputLine: React.FC<Props> = ({
                 <TextField
                     variant="outlined"
                     type="number"
-                    label={weightError ? weightError : `Weight (${unit})`}
+                    label={weightError ? weightError : `Weight ${unit ? `(${unit})` : ""}`}
                     error={weightError ? true : false}
                     onChange={(e) => {
                         let err = handleWeightChange(set_num, e.target.value);

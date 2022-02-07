@@ -5,7 +5,6 @@ import Button from "@mui/material/Button";
 import axios from "axios";
 import { HTTPBasicResponse, snackbarType, ErrorType, liftSetAllInfo } from "../../global/globalTypes";
 import { styled } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import DesktopDatePicker from "@mui/lab/DesktopDatePicker";
@@ -16,9 +15,7 @@ import LiftSetInputLine from "./LiftSetInputLine";
 import InputField from "../inputs/InputField";
 import SnackbarWrapper from "../SnackbarWrapper";
 import CircularProgress from "@mui/material/CircularProgress";
-import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 
 const PREFIX = "AddLiftSet";
 const classes = {
@@ -44,7 +41,6 @@ const Root = styled("div")(({ theme }) => ({
 
 interface Props {
     id: number;
-    unit: string;
     name?: string;
     updateState: (newSets: ([number, number] | null)[] | null, newDate: Date | null, newTopSet: number | null, newNotes: string | null) => void;
     liftSet: liftSetAllInfo;
@@ -55,7 +51,7 @@ type setArray = [string, string][];
 const WEIGHT_RANGE = [1, 2000];
 const REPS_RANGE = [1, 30];
 
-const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) => {
+const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
     const [setNum, setSetNum] = useState<number>(0);
 
     const [oldDate, setOldDate] = useState<Date>(new Date());
@@ -73,8 +69,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
     const [snackbarMessage, setSnackbarMessage] = useState<string>("");
     const [snackbarType, setSnackbarType] = useState<snackbarType>("success");
 
-    // 0: not editing, 1: editing, 2: editing but nothing changed, so disable, 3: submited, loading symbol
-    const [submitStatus, setSubmitStatus] = useState<number>(0);
+    // 0: editing, 1: editing but nothing changed, so disable, 2: submited, loading symbol
+    const [submitStatus, setSubmitStatus] = useState<number>(1);
 
     const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
         if (reason === "clickaway") return;
@@ -87,12 +83,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
         setSnackbarOpen(true);
     };
 
-    const handleCancelEdit = () => {};
-
-    const handleEditLift = () => {};
-
     const handleSaveEdit = async (setsSelected: setArray, dateSelected: Date, topSetSelected: number, notesSelected: ErrorType) => {
-        setSubmitStatus(3);
+        setSubmitStatus(2);
 
         const oldDateStr = dateToString(oldDate);
 
@@ -115,7 +107,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
 
         if (topSetSelected !== -1 && (topSetSelected < 0 || topSetSelected > 9)) {
             openSnackbar("Top set out of range", "error");
-            setSubmitStatus(0);
+            setSubmitStatus(1);
             return;
         }
         if (
@@ -123,7 +115,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
             notesSelected === false
         ) {
             openSnackbar("Notes out of range", "error");
-            setSubmitStatus(0);
+            setSubmitStatus(1);
             return;
         } else if (notesSelected !== "" && notesSelected !== true && notesSelected !== oldNotes) data.notes = notesSelected;
 
@@ -135,15 +127,15 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
 
             if (!weight || !reps) {
                 openSnackbar("Please fill out all sets and reps", "error");
-                setSubmitStatus(0);
+                setSubmitStatus(1);
                 return;
             } else if (weight < WEIGHT_RANGE[0] || weight > WEIGHT_RANGE[1]) {
                 openSnackbar("Weight out of range", "error");
-                setSubmitStatus(0);
+                setSubmitStatus(1);
                 return;
             } else if (reps < REPS_RANGE[0] || reps > REPS_RANGE[1]) {
                 openSnackbar("Reps out of range", "error");
-                setSubmitStatus(0);
+                setSubmitStatus(1);
                 return;
             } else if (weight === parseInt(oldSets[i][0]) && reps === parseInt(oldSets[i][1])) {
                 if (data.sets !== null) data.sets.push(null);
@@ -201,7 +193,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
             openSnackbar("Error updating set", "error");
         }
 
-        setSubmitStatus(0);
+        setSubmitStatus(1);
     };
 
     const handleSetWeightChange = (setNumber: number, weight: string): ErrorType => {
@@ -220,8 +212,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
             if (i !== setNumber) tempNewSets.push(newSets[i]);
             else {
                 tempNewSets.push([weight, newSets[i][1]]);
-                if (weight === oldSets[i][0]) setSubmitStatus(2);
-                else setSubmitStatus(1);
+                if (weight === oldSets[i][0]) setSubmitStatus(1);
+                else setSubmitStatus(0);
             }
         }
         setNewSets(tempNewSets);
@@ -245,8 +237,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
             if (i !== setNumber) tempNewSets.push(newSets[i]);
             else {
                 tempNewSets.push([newSets[i][0], reps]);
-                if (reps === oldSets[i][1]) setSubmitStatus(2);
-                else setSubmitStatus(1);
+                if (reps === oldSets[i][1]) setSubmitStatus(1);
+                else setSubmitStatus(0);
             }
         }
         setNewSets(tempNewSets);
@@ -258,8 +250,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
         let newSetNum = setNumber;
         if (setNumber === newTopSet) newSetNum = -1;
 
-        if (newSetNum === oldTopSet) setSubmitStatus(2);
-        else setSubmitStatus(1);
+        if (newSetNum === oldTopSet) setSubmitStatus(1);
+        else setSubmitStatus(0);
 
         setNewTopSet(newSetNum);
     };
@@ -315,8 +307,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
                     setValue={setNewNotes}
                     onChange={(v) => {
                         setNewNotesVal(v);
-                        if (v === oldNotes) setSubmitStatus(2);
-                        else setSubmitStatus(1);
+                        if (v === oldNotes) setSubmitStatus(1);
+                        else setSubmitStatus(0);
                         return { returnError: false, error: "", overwrite: false };
                     }}
                     errorOverwrite={false}
@@ -348,7 +340,6 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
                         values={s}
                         set_num={i}
                         selected={newTopSet === i}
-                        unit={unit}
                         handleRepsChange={handleSetRepsChange}
                         handleWeightChange={handleSetWeightChange}
                         handleTopSetClick={handleTopSetClick}
@@ -356,12 +347,8 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
                 ))}
 
                 <Grid item>
-                    {submitStatus === 3 ? <CircularProgress color="primary" /> : ""}
-                    {submitStatus === 0 ? (
-                        <Button variant="outlined" onClick={handleEditLift} startIcon={<EditIcon />}>
-                            Edit
-                        </Button>
-                    ) : (
+                    {submitStatus === 2 ? <CircularProgress color="primary" /> : ""}
+                    {submitStatus === 0 || submitStatus === 1 ? (
                         <Button
                             variant="outlined"
                             onClick={() => {
@@ -369,26 +356,17 @@ const LiftSetEdit: React.FC<Props> = ({ id, unit, name, updateState, liftSet }) 
                             }}
                             color="success"
                             startIcon={<CheckIcon />}
-                            disabled={submitStatus === 2}
+                            disabled={submitStatus === 1}
                         >
-                            Save
+                            Save Changes
                         </Button>
-                    )}
-                    {submitStatus === 0 ? (
-                        ""
                     ) : (
-                        <Button
-                            variant="outlined"
-                            onClick={handleCancelEdit}
-                            className={classes.marginLeft}
-                            color="warning"
-                            startIcon={<CloseIcon />}
-                        >
-                            Cancel
-                        </Button>
+                        ""
                     )}
                 </Grid>
             </Grid>
         </Root>
     );
 };
+
+export default LiftSetEdit;
