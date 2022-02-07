@@ -16,6 +16,7 @@ import InputField from "../inputs/InputField";
 import SnackbarWrapper from "../SnackbarWrapper";
 import CircularProgress from "@mui/material/CircularProgress";
 import CheckIcon from "@mui/icons-material/Check";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const PREFIX = "AddLiftSet";
 const classes = {
@@ -50,6 +51,7 @@ interface Props {
         newNotes: string | null,
         idx: number
     ) => void;
+    updateStateDelete: (idx: number) => void;
     liftSet: liftSetAllInfo;
 }
 
@@ -58,7 +60,7 @@ type setArray = [string, string][];
 const WEIGHT_RANGE = [1, 2000];
 const REPS_RANGE = [1, 30];
 
-const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet, idx }) => {
+const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, updateStateDelete, liftSet, idx }) => {
     const [setNum, setSetNum] = useState<number>(0);
 
     const [oldDate, setOldDate] = useState<Date>(new Date());
@@ -88,6 +90,27 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet, idx }) =
         setSnackbarMessage(message);
         setSnackbarType(type);
         setSnackbarOpen(true);
+    };
+
+    const handleDeleteSet = async () => {
+        const data: { date: string } = {
+            date: dateToString(oldDate),
+        };
+
+        try {
+            const res: { data: HTTPBasicResponse } = await axios.delete(`${Config.apiUrl}/lift/${id}/set/`, { data: data, withCredentials: true });
+
+            if (res.data.success) {
+                openSnackbar(capitalizeFirstLetter(res.data.success), "success");
+                updateStateDelete(idx);
+            } else if (res.data.error) {
+                openSnackbar(capitalizeFirstLetter(res.data.error), "error");
+            } else {
+                openSnackbar("Error deleting set", "error");
+            }
+        } catch (err) {
+            openSnackbar("Error deleting set", "error");
+        }
     };
 
     const handleSaveEdit = async (setsSelected: setArray, dateSelected: Date, topSetSelected: number, notesSelected: ErrorType) => {
@@ -341,17 +364,28 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet, idx }) =
                 <Grid item>
                     {submitStatus === 2 ? <CircularProgress color="primary" /> : ""}
                     {submitStatus === 0 || submitStatus === 1 ? (
-                        <Button
-                            variant="outlined"
-                            onClick={() => {
-                                handleSaveEdit(newSets, newDate, newTopSet, newNotes);
-                            }}
-                            color="success"
-                            startIcon={<CheckIcon />}
-                            disabled={submitStatus === 1}
-                        >
-                            Save Changes
-                        </Button>
+                        <>
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    handleSaveEdit(newSets, newDate, newTopSet, newNotes);
+                                }}
+                                color="success"
+                                startIcon={<CheckIcon />}
+                                disabled={submitStatus === 1}
+                            >
+                                Save Changes
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={handleDeleteSet}
+                                color="error"
+                                startIcon={<DeleteIcon />}
+                                className={classes.marginLeft}
+                            >
+                                Delete
+                            </Button>
+                        </>
                     ) : (
                         ""
                     )}

@@ -4,12 +4,15 @@ import { liftSetAllInfo } from "../../global/globalTypes";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
+import { Grid } from "@mui/material";
 
 const PREFIX = "SetCard";
 const classes = {
     card: `${PREFIX}-card`,
     selectedCard: `${PREFIX}-selected-card`,
     txt: `${PREFIX}-txt`,
+    marginLeft: `${PREFIX}-marginLeft`,
+    contentPadding: `${PREFIX}-contentPadding`,
 };
 const Root = styled("div")(({ theme }) => ({
     [`& .${classes.card}`]: {
@@ -21,16 +24,22 @@ const Root = styled("div")(({ theme }) => ({
         },
     },
     [`& .${classes.selectedCard}`]: {
-        background: "#0F0F0F",
+        background: "#001636",
 
         "&:hover": {
             cursor: "pointer",
-            background: "#171717",
+            background: "#002254",
         },
     },
     [`& .${classes.txt}`]: {
         cursor: "text",
         marginRight: "5px",
+    },
+    [`& .${classes.marginLeft}`]: {
+        marginLeft: "30px",
+    },
+    [`& .${classes.contentPadding}`]: {
+        padding: "10px 10px 3px 10px",
     },
 }));
 
@@ -56,23 +65,29 @@ const SetCard: React.FC<Props> = ({ set, idx, handleClick, selected }) => {
                     handleClick(idx);
                 }}
             >
-                <CardContent>
-                    <Typography gutterBottom variant="h5" component="div">
-                        {liftSet ? new Date(liftSet.parent.date).toDateString() : ""}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        {liftSet ? (
-                            <>
-                                {liftSet.parent.top_set
-                                    ? `${liftSet.sets[liftSet.parent.top_set - 1].weight} for ${
-                                          liftSet.sets[liftSet.parent.top_set - 1].reps
-                                      } (Theomax: ${liftSet.sets[liftSet.parent.top_set - 1].reps})`
-                                    : `${liftSet.sets[0].weight} for ${liftSet.sets[0].reps} (Theomax: ${liftSet.sets[0].reps})`}
-                            </>
-                        ) : (
-                            ""
-                        )}
-                    </Typography>
+                <CardContent className={classes.contentPadding}>
+                    <Grid container direction="row" alignItems="center" justifyContent="center">
+                        <Grid item container xs={6} direction="row" justifyContent="flex-end">
+                            <Typography gutterBottom variant="h6" component="div">
+                                {liftSet ? new Date(liftSet.parent.date).toDateString() : ""}
+                            </Typography>
+                        </Grid>
+                        <Grid item container xs={6} direction="row" justifyContent="flex-start">
+                            <Typography variant="body2" color="text.secondary" className={classes.marginLeft}>
+                                {liftSet ? (
+                                    <>
+                                        {liftSet.parent.top_set
+                                            ? `${liftSet.sets[liftSet.parent.top_set - 1].weight} for ${
+                                                  liftSet.sets[liftSet.parent.top_set - 1].reps
+                                              } (Theomax: ${liftSet.sets[liftSet.parent.top_set - 1].theomax})`
+                                            : `${liftSet.sets[0].weight} for ${liftSet.sets[0].reps} (Theomax: ${liftSet.sets[0].theomax})`}
+                                    </>
+                                ) : (
+                                    ""
+                                )}
+                            </Typography>
+                        </Grid>
+                    </Grid>
                 </CardContent>
             </Card>
         </Root>
