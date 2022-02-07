@@ -3,7 +3,7 @@ import Config from "../../Config";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
-import { Switch, Route, useHistory, Link, useLocation, useParams } from "react-router-dom";
+import { useHistory, Link, useLocation, useParams } from "react-router-dom";
 import SnackbarWrapper from "../../components/SnackbarWrapper";
 import InputField from "../../components/inputs/InputField";
 import { Button, CircularProgress, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Typography } from "@mui/material";
@@ -31,6 +31,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import WorkoutDialog from "../../components/lifting/WorkoutsDialog";
 import { capitalizeFirstLetter, compareTwoArrays } from "../../components/util";
 import ConfirmDialogWrapper from "../../components/inputs/ConfirmDialogWrapper";
+import AddLiftSet from "../../components/lifting/AddLiftSet";
 
 const PREFIX = "LiftView";
 const classes = {
@@ -123,7 +124,6 @@ const LiftView: React.FC<Props> = () => {
     const [updateState, setUpdateState] = useState<boolean>(false);
 
     const [lift, setLift] = useState<liftObj>();
-    const [sets, setSets] = useState<liftSetFull[]>([]);
     const [setsWithParent, setSetsWithParent] = useState<liftSetAllInfo[]>([]);
 
     const [setsInput, setSetsInput] = useState<datesetArr[]>([]);
@@ -156,9 +156,13 @@ const LiftView: React.FC<Props> = () => {
         let tempXRange: [string, string] = ["", ""];
         let tempYRange: [number, number] = [0, 100];
 
+        let tempSetsWithParent: liftSetAllInfo[] = [];
+
         if (s.length > 0) {
             let curDate = "";
             let curSetIter = 0;
+
+            let curSetWithParent: liftSetAllInfo | null = null;
 
             tempYRange = [parseInt(s[0].theomax), parseInt(s[0].theomax)];
 
@@ -174,7 +178,23 @@ const LiftView: React.FC<Props> = () => {
                     curDate = cur.date;
                     curSetIter++;
                     tempLabelArray.push({ title: "", label: [], footer: cur.top_set ? `Top set: ${cur.top_set}` : "" });
+
+                    if (curSetWithParent !== null) {
+                        tempSetsWithParent.push(curSetWithParent);
+                    }
+
+                    curSetWithParent = {
+                        parent: {
+                            date: s[i].date,
+                            notes: s[i].notes,
+                            set_quantity: s[i].set_quantity,
+                            top_set: s[i].top_set,
+                        },
+                        sets: [],
+                    };
                 }
+
+                curSetWithParent?.sets.push({ reps: s[i].reps, weight: s[i].weight, theomax: s[i].theomax });
 
                 if (tempSetsArray.length < cur.set_num) tempSetsArray.push([]);
                 tempSetsArray[cur.set_num - 1].push({ x: cur.date, y: parseInt(cur.theomax) });
@@ -188,6 +208,10 @@ const LiftView: React.FC<Props> = () => {
                 }
             }
 
+            if (curSetWithParent !== null) {
+                tempSetsWithParent.push(curSetWithParent);
+            }
+
             tempYRange[0] -= GRAPH_PADDING;
             tempYRange[1] += GRAPH_PADDING;
             if (tempYRange[0] < 0) tempYRange[0] = 0;
@@ -198,6 +222,8 @@ const LiftView: React.FC<Props> = () => {
             setXRange(tempXRange);
             setYRange(tempYRange);
         }
+
+        setSetsWithParent(tempSetsWithParent);
 
         tempSetsArray.push(topSetArray);
         let tempSelectedArray: boolean[] = [];
@@ -217,6 +243,10 @@ const LiftView: React.FC<Props> = () => {
         let newSelectedArr = [...selectedArr];
         newSelectedArr[i] = checked;
         setSelectedArr(newSelectedArr);
+    };
+
+    const updateLiftState = () => {
+        setUpdateState(!updateState);
     };
 
     // ------------------------------------------
@@ -371,6 +401,10 @@ const LiftView: React.FC<Props> = () => {
         }
     };
 
+    const goToLiftSetView = () => {
+        history.push(`/lifting/liftSetView`, { liftSets: setsWithParent });
+    };
+
     // ------------------------------------------
     // EDIT LIFT OPTIONS END
     // ------------------------------------------
@@ -382,7 +416,6 @@ const LiftView: React.FC<Props> = () => {
                     withCredentials: true,
                 });
                 setLift(res.data.liftInfo);
-                setSets(res.data.liftSets);
                 configureLiftSets(res.data.liftSets);
             }
 
@@ -457,7 +490,7 @@ const LiftView: React.FC<Props> = () => {
                 </Grid>
                 <Grid item></Grid>
                 <Grid item container direction="row" spacing={3}>
-                    <Grid item container direction="column" xs={3} spacing={3}>
+                    <Grid item container direction="column" xs={3} spacing={editLiftStatus === 0 ? 3 : 1}>
                         <Grid item container direction="row">
                             <Grid item xs={1}></Grid>
                             <Grid item xs={2}>
@@ -601,14 +634,102 @@ const LiftView: React.FC<Props> = () => {
                             </Grid>
                         </Grid>
                     </Grid>
-                    <Grid item container direction="column" xs={3}>
-                        2
+                    <Grid item container direction="column" xs={3} spacing={2}>
+                        <Grid item container direction="row">
+                            <Grid item xs={1}></Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="h6" color="text.secondary">
+                                    Performance
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                        <hr className={classes.hr} />
+                        <Grid item container direction="row" spacing={2}>
+                            <Grid item container justifyContent="flex-end" xs={3}>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    Max:
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={9}>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    {lift && lift.max && lift.max_reps && lift.max_date
+                                        ? `${lift.max} ${lift.plur_abbr} for ${lift.max_reps}. (${new Date(lift.max_date).toDateString()})`
+                                        : "--"}
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                        <Grid item container direction="row" spacing={2}>
+                            <Grid item container justifyContent="flex-end" xs={3}>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    Theomax:
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={9}>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    {lift && lift.theomax && lift.theomax_reps && lift.theomax_date
+                                        ? `${lift.theomax} ${lift.plur_abbr}. ${lift.theomax_weight} for ${lift.theomax_reps}. (${new Date(
+                                              lift.theomax_date
+                                          ).toDateString()})`
+                                        : "--"}
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                        <Grid item container direction="row" spacing={2}>
+                            <Grid item container justifyContent="flex-end" xs={3}>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    Duration:
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={9}>
+                                <Typography variant="subtitle1" color="text.secondary">
+                                    {lift && lift.duration ? `${lift.duration} days` : "--"}
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                        <Grid item container direction="row">
+                            <Button onClick={goToLiftSetView} variant="outlined" color="info">
+                                View and Edit Lift Sets
+                            </Button>
+                        </Grid>
                     </Grid>
                     <Grid item container direction="column" xs={3}>
-                        3
+                        <Grid item container direction="column" xs={3} spacing={2}>
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <Grid item xs={11}>
+                                    <Typography variant="h6" color="text.secondary">
+                                        Latest (
+                                        {setsWithParent.length > 0
+                                            ? new Date(setsWithParent[setsWithParent.length - 1].parent.date).toDateString()
+                                            : ""}
+                                        )
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                            <hr className={classes.hr} />
+                            {setsWithParent.length > 0
+                                ? setsWithParent[setsWithParent.length - 1].sets.map((s, i) => (
+                                      <Grid key={i} item container direction="row">
+                                          <Grid item xs={1}></Grid>
+                                          <Grid item xs={11}>
+                                              <Typography
+                                                  variant="subtitle1"
+                                                  color={
+                                                      i + 1 === setsWithParent[setsWithParent.length - 1].parent.top_set
+                                                          ? "text.primary"
+                                                          : "text.secondary"
+                                                  }
+                                              >
+                                                  {i + 1}: {s.weight} {lift?.plur_abbr} for {s.reps} ({s.theomax} theomax).
+                                              </Typography>
+                                          </Grid>
+                                      </Grid>
+                                  ))
+                                : ""}
+                        </Grid>
                     </Grid>
-                    <Grid item container direction="column" xs={3}>
-                        4
+                    <Grid item container direction="column" xs={3} alignItems="center">
+                        {lift ? <AddLiftSet id={lift.id} updateState={updateLiftState} name={lift.name} unit={lift.plur_abbr} /> : ""}
                     </Grid>
                 </Grid>
             </Grid>

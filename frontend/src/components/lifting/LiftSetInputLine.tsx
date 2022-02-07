@@ -13,7 +13,7 @@ interface Props {
     set_num: number;
     unit: string;
     selected: boolean;
-    handleRemove: (setNumber: number) => void;
+    handleRemove?: (setNumber: number) => void;
     handleWeightChange: (setNumber: number, weight: string) => ErrorType;
     handleRepsChange: (setNumber: number, reps: string) => ErrorType;
     handleTopSetClick: (setNumber: number) => void;
@@ -62,7 +62,6 @@ const LiftSetInputLine: React.FC<Props> = ({
                     }}
                     value={values[0]}
                     style={{ width: "100%" }}
-                    InputProps={{ inputProps: { min: 1, max: 2000 } }}
                 />
             </Grid>
             <Grid item xs={3}>
@@ -76,14 +75,13 @@ const LiftSetInputLine: React.FC<Props> = ({
                         setRepsError(err);
                     }}
                     value={values[1]}
-                    InputProps={{ inputProps: { min: 1, max: 30 } }}
                 />
             </Grid>
-            {set_num !== 0 ? (
+            {set_num !== 0 && handleRemove ? (
                 <Grid item xs={1}>
                     <IconButton
                         onClick={() => {
-                            handleRemove(set_num);
+                            if (handleRemove) handleRemove(set_num);
                         }}
                     >
                         <DeleteIcon />

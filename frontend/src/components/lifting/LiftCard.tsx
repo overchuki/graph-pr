@@ -246,7 +246,9 @@ const LiftCard: React.FC<Props> = ({ liftObj, selected, handleClick, updateLiftS
                                         <Typography
                                             key={i}
                                             variant="subtitle1"
-                                            color={s.set_num === liftObj.lastSet.parent.top_set ? "text.primary" : "text.secondary"}
+                                            color={
+                                                liftObj.lastSet && s.set_num === liftObj.lastSet.parent.top_set ? "text.primary" : "text.secondary"
+                                            }
                                             gutterBottom
                                             className={classes.txt}
                                         >

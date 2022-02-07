@@ -17,6 +17,7 @@ import CreateWorkoutView from "./lifting/CreateWorkoutView";
 import BigButton from "../components/inputs/BigButton";
 import AddLiftSet from "../components/lifting/AddLiftSet";
 import SnackbarWrapper from "../components/SnackbarWrapper";
+import LiftSetView from "./lifting/LiftSetView";
 
 interface selectedLift {
     id: number;
@@ -370,6 +371,9 @@ const Lifting: React.FC = () => {
                 </Route>
                 <Route path={`${path}/lift/:id`}>
                     <LiftView />
+                </Route>
+                <Route path={`${path}/liftSetView`}>
+                    <LiftSetView />
                 </Route>
             </Switch>
         </Root>
