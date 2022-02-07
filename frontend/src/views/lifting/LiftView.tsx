@@ -73,10 +73,11 @@ const Root = styled("div")(({ theme }) => ({
         padding: "0",
     },
     [`& .${classes.outlineNoMrg}`]: {
-        border: "solid 2px",
+        border: "solid 1px",
         borderColor: theme.palette.grey[600],
         borderRadius: "5px",
-        padding: "0",
+        margin: "5px 0",
+        padding: "20px 15px 20px 0",
     },
     [`& .${classes.label}`]: {
         color: theme.palette.text.secondary,
@@ -439,7 +440,7 @@ const LiftView: React.FC<Props> = () => {
     return (
         <Root>
             <SnackbarWrapper open={snackbarOpen} message={snackbarMessage} type={snackbarType} duration={3000} handleClose={handleSnackbarClose} />
-            <Grid container direction="column" spacing={5}>
+            <Grid container direction="column" spacing={2}>
                 <Grid item container direction="row" className={classes.marginTop}>
                     <Grid item container justifyContent="center" xs={1}>
                         <IconButton onClick={goBackToLifting}>
@@ -497,227 +498,232 @@ const LiftView: React.FC<Props> = () => {
                 </Grid>
                 <Grid item></Grid>
                 <Grid item container direction="row" spacing={3}>
-                    <Grid item container direction="column" xs={3}>
-                        <Grid item container direction="row">
-                            <Grid item xs={1}></Grid>
-                            <Grid item xs={2}>
-                                <Typography variant="h4" color="text.secondary">
-                                    Info
-                                </Typography>
-                            </Grid>
-                            <Grid item container xs={8} justifyContent="flex-end">
-                                {editLiftStatus === 3 ? <CircularProgress color="primary" /> : ""}
-                                {editLiftStatus === 0 ? (
-                                    <Button color="info" variant="outlined" onClick={handleEditLift}>
-                                        <EditIcon />
-                                    </Button>
-                                ) : (
-                                    <Button variant="outlined" onClick={handleSaveLift} color="success" disabled={editLiftStatus === 2}>
-                                        <CheckIcon />
-                                    </Button>
-                                )}
-                                {editLiftStatus === 0 ? (
-                                    <Button variant="outlined" onClick={handleDeleteLift} className={classes.marginLeft} color="error">
-                                        <DeleteIcon />
-                                    </Button>
-                                ) : (
-                                    <Button variant="outlined" onClick={handleCancelEdit} className={classes.marginLeft} color="warning">
-                                        <CloseIcon />
-                                    </Button>
-                                )}
-                            </Grid>
-                        </Grid>
-                        <hr className={classes.hr} />
-
-                        {editLiftStatus === 0 ? (
+                    <Grid item container direction="row" xs={3} justifyContent="center">
+                        <Grid item container direction="column" xs={11} className={classes.outlineNoMrg} spacing={2}>
                             <Grid item container direction="row">
                                 <Grid item xs={1}></Grid>
-                                <Typography color="text.secondary" variant="h6">
-                                    Name: {lift?.name}
-                                </Typography>
+                                <Grid item xs={2}>
+                                    <Typography variant="h4" color="text.secondary">
+                                        Info
+                                    </Typography>
+                                </Grid>
+                                <Grid item container xs={8} justifyContent="flex-end">
+                                    {editLiftStatus === 3 ? <CircularProgress color="primary" /> : ""}
+                                    {editLiftStatus === 0 ? (
+                                        <Button color="info" variant="outlined" onClick={handleEditLift}>
+                                            <EditIcon />
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outlined" onClick={handleSaveLift} color="success" disabled={editLiftStatus === 2}>
+                                            <CheckIcon />
+                                        </Button>
+                                    )}
+                                    {editLiftStatus === 0 ? (
+                                        <Button variant="outlined" onClick={handleDeleteLift} className={classes.marginLeft} color="error">
+                                            <DeleteIcon />
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outlined" onClick={handleCancelEdit} className={classes.marginLeft} color="warning">
+                                            <CloseIcon />
+                                        </Button>
+                                    )}
+                                </Grid>
                             </Grid>
-                        ) : (
-                            <Grid item container direction="row">
+                            <br />
+                            {editLiftStatus === 0 ? (
+                                <Grid item container direction="row">
+                                    <Grid item xs={1}></Grid>
+                                    <Typography color="text.secondary" variant="h6">
+                                        Name: {lift?.name}
+                                    </Typography>
+                                </Grid>
+                            ) : (
+                                <Grid item container direction="row">
+                                    <Grid item xs={1}></Grid>
+                                    <InputField
+                                        label={"Edit Lift Name"}
+                                        type={"text"}
+                                        value={editLiftName}
+                                        controlled={true}
+                                        setValue={setEditLiftNameErr}
+                                        errorOverwrite={false}
+                                        autoComplete={""}
+                                        size={6}
+                                        position={-1}
+                                        disabled={false}
+                                        verify={true}
+                                        verifyObj={{
+                                            name: "your lift name",
+                                            required: true,
+                                            range: [0, 20],
+                                            int: false,
+                                            email: false,
+                                            ascii: true,
+                                            dob: false,
+                                            alphaNum: false,
+                                        }}
+                                        onChange={handleLiftNameChange}
+                                    />
+                                </Grid>
+                            )}
+                            {editLiftStatus === 0 ? (
+                                <Grid item container direction="row">
+                                    <Grid item xs={1}></Grid>
+                                    <Typography color="text.secondary" variant="h6">
+                                        Unit: {lift?.plur_abbr}
+                                    </Typography>
+                                </Grid>
+                            ) : (
+                                <Grid item container direction="row">
+                                    <Grid item xs={1}></Grid>
+                                    <FormControl>
+                                        <FormLabel>Unit</FormLabel>
+                                        <RadioGroup
+                                            row
+                                            value={editLiftUnit}
+                                            onChange={(e) => {
+                                                let val = 2;
+                                                try {
+                                                    val = parseInt(e.target.value);
+                                                    handleLiftUnitChange(val);
+                                                } catch (err) {
+                                                    handleLiftUnitChange(val);
+                                                }
+                                            }}
+                                        >
+                                            <FormControlLabel value={2} className={classes.label} control={<Radio />} label="Lbs" />
+                                            <FormControlLabel value={1} className={classes.label} control={<Radio />} label="Kgs" />
+                                        </RadioGroup>
+                                    </FormControl>
+                                </Grid>
+                            )}
+                            <Grid item container direction="row" alignItems="center">
                                 <Grid item xs={1}></Grid>
-                                <InputField
-                                    label={"Edit Lift Name"}
-                                    type={"text"}
-                                    value={editLiftName}
-                                    controlled={true}
-                                    setValue={setEditLiftNameErr}
-                                    errorOverwrite={false}
-                                    autoComplete={""}
-                                    size={6}
-                                    position={-1}
-                                    disabled={false}
-                                    verify={true}
-                                    verifyObj={{
-                                        name: "your lift name",
-                                        required: true,
-                                        range: [0, 20],
-                                        int: false,
-                                        email: false,
-                                        ascii: true,
-                                        dob: false,
-                                        alphaNum: false,
-                                    }}
-                                    onChange={handleLiftNameChange}
-                                />
-                            </Grid>
-                        )}
-                        {editLiftStatus === 0 ? (
-                            <Grid item container direction="row">
-                                <Grid item xs={1}></Grid>
-                                <Typography color="text.secondary" variant="h6">
-                                    Unit: {lift?.plur_abbr}
-                                </Typography>
-                            </Grid>
-                        ) : (
-                            <Grid item container direction="row">
-                                <Grid item xs={1}></Grid>
-                                <FormControl>
-                                    <FormLabel>Unit</FormLabel>
-                                    <RadioGroup
-                                        row
-                                        value={editLiftUnit}
-                                        onChange={(e) => {
-                                            let val = 2;
-                                            try {
-                                                val = parseInt(e.target.value);
-                                                handleLiftUnitChange(val);
-                                            } catch (err) {
-                                                handleLiftUnitChange(val);
-                                            }
+                                <Grid item>
+                                    <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                                        Workout:
+                                    </Typography>
+                                </Grid>
+                                <Grid item>
+                                    <IconButton
+                                        onClick={() => {
+                                            setOpenDialog(true);
                                         }}
                                     >
-                                        <FormControlLabel value={2} className={classes.label} control={<Radio />} label="Lbs" />
-                                        <FormControlLabel value={1} className={classes.label} control={<Radio />} label="Kgs" />
-                                    </RadioGroup>
-                                </FormControl>
-                            </Grid>
-                        )}
-                        <Grid item container direction="row" alignItems="center">
-                            <Grid item xs={1}></Grid>
-                            <Grid item>
-                                <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                                    Workout:
-                                </Typography>
-                            </Grid>
-                            <Grid item>
-                                <IconButton
-                                    onClick={() => {
-                                        setOpenDialog(true);
-                                    }}
-                                >
-                                    <EditIcon color="info" className={classes.smlIcon} />
-                                </IconButton>
-                            </Grid>
-                            <Grid item>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    {lift?.workouts.map((w, i) => {
-                                        if (i === lift?.workouts.length - 1) return w.name;
-                                        return w.name + ", ";
-                                    })}
-                                    {lift?.workouts.length === 0 ? "None" : ""}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                    <Grid item container direction="column" xs={3} spacing={2}>
-                        <Grid item container direction="row">
-                            <Grid item xs={1}></Grid>
-                            <Grid item xs={2}>
-                                <Typography variant="h6" color="text.secondary">
-                                    Performance
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                        <hr className={classes.hr} />
-                        <Grid item container direction="row" spacing={2}>
-                            <Grid item container justifyContent="flex-end" xs={3}>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    Max:
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={9}>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    {lift && lift.max && lift.max_reps && lift.max_date
-                                        ? `${lift.max} ${lift.plur_abbr} for ${lift.max_reps}. (${new Date(lift.max_date).toDateString()})`
-                                        : "--"}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                        <Grid item container direction="row" spacing={2}>
-                            <Grid item container justifyContent="flex-end" xs={3}>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    Theomax:
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={9}>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    {lift && lift.theomax && lift.theomax_reps && lift.theomax_date
-                                        ? `${lift.theomax} ${lift.plur_abbr}. ${lift.theomax_weight} for ${lift.theomax_reps}. (${new Date(
-                                              lift.theomax_date
-                                          ).toDateString()})`
-                                        : "--"}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                        <Grid item container direction="row" spacing={2}>
-                            <Grid item container justifyContent="flex-end" xs={3}>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    Duration:
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={9}>
-                                <Typography variant="subtitle1" color="text.secondary">
-                                    {lift && lift.duration ? `${lift.duration} days` : "--"}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                        <Grid item container direction="row">
-                            <Grid item xs={1}></Grid>
-                            <Grid item xs={11}>
-                                <Button onClick={goToLiftSetView} variant="outlined" color="info">
-                                    View and Edit Lift Sets
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                    <Grid item container direction="column" xs={3}>
-                        <Grid item container direction="column" xs={3} spacing={2}>
-                            <Grid item container direction="row">
-                                <Grid item xs={1}></Grid>
-                                <Grid item xs={11}>
-                                    <Typography variant="h6" color="text.secondary">
-                                        Latest (
-                                        {setsWithParent.length > 0
-                                            ? new Date(setsWithParent[setsWithParent.length - 1].parent.date).toDateString()
-                                            : ""}
-                                        )
+                                        <EditIcon color="info" className={classes.smlIcon} />
+                                    </IconButton>
+                                </Grid>
+                                <Grid item>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        {lift?.workouts.map((w, i) => {
+                                            if (i === lift?.workouts.length - 1) return w.name;
+                                            return w.name + ", ";
+                                        })}
+                                        {lift?.workouts.length === 0 ? "None" : ""}
                                     </Typography>
                                 </Grid>
                             </Grid>
-                            <hr className={classes.hr} />
-                            {setsWithParent.length > 0
-                                ? setsWithParent[setsWithParent.length - 1].sets.map((s, i) => (
-                                      <Grid key={i} item container direction="row">
-                                          <Grid item xs={1}></Grid>
-                                          <Grid item xs={11}>
-                                              <Typography
-                                                  variant="subtitle1"
-                                                  color={
-                                                      i + 1 === setsWithParent[setsWithParent.length - 1].parent.top_set
-                                                          ? "text.primary"
-                                                          : "text.secondary"
-                                                  }
-                                              >
-                                                  {i + 1}: {s.weight} {lift?.plur_abbr} for {s.reps} ({s.theomax} theomax).
-                                              </Typography>
+                        </Grid>
+                    </Grid>
+                    <Grid item container direction="row" xs={3} justifyContent="center">
+                        <Grid item container direction="column" xs={11} spacing={2} className={classes.outlineNoMrg}>
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <Grid item xs={2}>
+                                    <Typography variant="h6" color="text.secondary">
+                                        Performance
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                            <br />
+                            <Grid item container direction="row" spacing={2}>
+                                <Grid item container justifyContent="flex-end" xs={3}>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        Max:
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={9}>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        {lift && lift.max && lift.max_reps && lift.max_date
+                                            ? `${lift.max} ${lift.plur_abbr} for ${lift.max_reps}. (${new Date(lift.max_date).toDateString()})`
+                                            : "--"}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                            <Grid item container direction="row" spacing={2}>
+                                <Grid item container justifyContent="flex-end" xs={3}>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        Theomax:
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={9}>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        {lift && lift.theomax && lift.theomax_reps && lift.theomax_date
+                                            ? `${lift.theomax} ${lift.plur_abbr}. ${lift.theomax_weight} for ${lift.theomax_reps}. (${new Date(
+                                                  lift.theomax_date
+                                              ).toDateString()})`
+                                            : "--"}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                            <Grid item container direction="row" spacing={2}>
+                                <Grid item container justifyContent="flex-end" xs={3}>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        Duration:
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={9}>
+                                    <Typography variant="subtitle1" color="text.secondary">
+                                        {lift && lift.duration ? `${lift.duration} days` : "--"}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                            <Grid item container direction="row">
+                                <Grid item xs={1}></Grid>
+                                <Grid item xs={11}>
+                                    <Button onClick={goToLiftSetView} variant="outlined" color="info">
+                                        View and Edit Lift Sets
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                    <Grid item container direction="row" xs={3} justifyContent="center">
+                        <Grid item container direction="column" xs={11} className={classes.outlineNoMrg}>
+                            <Grid item container direction="column" xs={3} spacing={2}>
+                                <Grid item container direction="row">
+                                    <Grid item xs={1}></Grid>
+                                    <Grid item xs={11}>
+                                        <Typography variant="h6" color="text.secondary">
+                                            Latest (
+                                            {setsWithParent.length > 0
+                                                ? new Date(setsWithParent[setsWithParent.length - 1].parent.date).toDateString()
+                                                : ""}
+                                            )
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                                <br />
+                                {setsWithParent.length > 0
+                                    ? setsWithParent[setsWithParent.length - 1].sets.map((s, i) => (
+                                          <Grid key={i} item container direction="row">
+                                              <Grid item xs={1}></Grid>
+                                              <Grid item xs={11}>
+                                                  <Typography
+                                                      variant="subtitle1"
+                                                      color={
+                                                          i + 1 === setsWithParent[setsWithParent.length - 1].parent.top_set
+                                                              ? "text.primary"
+                                                              : "text.secondary"
+                                                      }
+                                                  >
+                                                      {i + 1}: {s.weight} {lift?.plur_abbr} for {s.reps} ({s.theomax} theomax).
+                                                  </Typography>
+                                              </Grid>
                                           </Grid>
-                                      </Grid>
-                                  ))
-                                : ""}
+                                      ))
+                                    : ""}
+                            </Grid>
                         </Grid>
                     </Grid>
                     <Grid item container direction="column" xs={3} alignItems="center">
