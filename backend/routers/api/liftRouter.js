@@ -647,11 +647,11 @@ router.put("/:id/set/", async (req, res) => {
 
         let okPackets = [];
 
-        if (body.date || body.top_set || body.notes) {
+        if (body.date || body.top_set || body.notes !== null) {
             let updateObj = {};
             if (body.date) updateObj.date = body.date;
             if (body.top_set) updateObj.top_set = body.top_set;
-            if (body.notes) updateObj.notes = body.notes;
+            if (body.notes !== null) updateObj.notes = body.notes;
 
             let parentUpdateString = util.getUpdateStr(updateObj, ["top_set"], []);
             if (parentUpdateString.affected) {

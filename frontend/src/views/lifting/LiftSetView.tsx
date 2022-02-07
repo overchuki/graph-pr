@@ -1,6 +1,4 @@
 import { styled } from "@mui/material/styles";
-import Config from "../../Config";
-import axios from "axios";
 import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
 import { useHistory, useLocation, useParams } from "react-router-dom";
@@ -9,7 +7,6 @@ import { TextField, Typography } from "@mui/material";
 import { snackbarType, liftSetAllInfo } from "../../global/globalTypes";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import IconButton from "@mui/material/IconButton";
-import { capitalizeFirstLetter } from "../../components/util";
 import Pagination from "@mui/material/Pagination";
 import DesktopDatePicker from "@mui/lab/DesktopDatePicker";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
@@ -61,6 +58,7 @@ const LiftSetView = () => {
     const [visibleSets, setVisibleSets] = useState<liftSetAllInfo[]>([]);
 
     const [selectedSet, setSelectedSet] = useState<number>(-1);
+    const [curPage, setCurPage] = useState<number>(1);
 
     const [defaultDateRange, setDefaultDateRange] = useState<[Date, Date]>([new Date(), new Date()]);
     const [dateRange, setDateRange] = useState<[Date, Date]>([new Date(), new Date()]);
@@ -72,18 +70,67 @@ const LiftSetView = () => {
 
     const setUpPageNum = (len: number) => {
         setPageNum(Math.ceil(len / RESULTS_PER_PAGE));
+        setCurPage(1);
     };
 
-    // TODO: implement change of state here, update both sets and filtered sets
-    const updateState = (newSets: ([number, number] | null)[] | null, newDate: Date | null, newTopSet: number | null, newNotes: string | null) => {};
+    const updateState = (
+        newSets: [number | null, number | null][] | null,
+        newDate: Date | null,
+        newTopSet: number | null,
+        newNotes: string | null,
+        idx: number
+    ) => {
+        let tempSet = sets[idx];
+
+        if (newDate) {
+            // TODO: check to see if date is below min now, change that if it is
+            tempSet.parent.date = newDate.toISOString();
+        }
+
+        if (newTopSet) {
+            if (newTopSet === -1) tempSet.parent.top_set = undefined;
+            else tempSet.parent.top_set = newTopSet;
+        }
+
+        if (newNotes !== null) {
+            if (newNotes === "") tempSet.parent.notes = undefined;
+            else tempSet.parent.notes = newNotes;
+        }
+
+        if (newSets) {
+            for (let i = 0; i < newSets.length; i++) {
+                if (newSets[i] !== null) {
+                    let wNum: string = sets[selectedSet].sets[i].weight;
+                    let w = newSets[i][0];
+                    if (w !== null) wNum = w + "";
+
+                    let rNum: number = sets[selectedSet].sets[i].reps;
+                    let r = newSets[i][1];
+                    if (r !== null) rNum = r;
+
+                    tempSet.sets[i].weight = wNum;
+                    tempSet.sets[i].reps = rNum;
+                }
+            }
+        }
+
+        let tempSetsCpy = [...sets];
+        tempSetsCpy[idx] = tempSet;
+
+        setSets(tempSetsCpy);
+    };
 
     // TODO: implement change of date here, update filtered values
     const dateRangeChanged = () => {};
 
-    // TODO: implement change of pagination number here, update filtered values
-    const onPaginationChange = (event: any, page: number) => {};
+    const onPaginationChange = (event: any, page: number) => {
+        let min = (page - 1) * RESULTS_PER_PAGE;
+        let max = (page - 1) * RESULTS_PER_PAGE + 10;
+        if (selectedSet < min || selectedSet >= max) setSelectedSet(-1);
+        setVisibleSets(sets.slice(min, max));
+        setCurPage(page);
+    };
 
-    // TODO: use once basic set cards are implemented
     const setClicked = (i: number) => {
         if (i === selectedSet) setSelectedSet(-1);
         else setSelectedSet(i);
@@ -123,27 +170,29 @@ const LiftSetView = () => {
             }
 
             setUpPageNum(tempSets.length);
+
+            setVisibleSets(tempSets.slice(0, RESULTS_PER_PAGE));
         }
     }, [location.state]);
 
     return (
         <Root>
             <SnackbarWrapper open={snackbarOpen} message={snackbarMessage} type={snackbarType} duration={3000} handleClose={handleSnackbarClose} />
-            <Grid container direction="row">
-                <Grid item xs={3}>
+            <Grid container direction="row" spacing={3}>
+                <Grid item xs={2}>
                     <Grid item container justifyContent="center" xs={4} className={classes.marginTop}>
                         <IconButton onClick={goBackToLiftPage}>
                             <ArrowBackIcon fontSize="large" />
                         </IconButton>
                     </Grid>
                 </Grid>
-                <Grid container item direction="column" justifyContent="space-between" spacing={2} xs={6}>
+                <Grid container item direction="column" justifyContent="flex-start" spacing={2} xs={6}>
                     <Grid item container direction="row" justifyContent="center" className={classes.marginTop}>
                         <Typography variant="h4" color="text.secondary">
                             Edit Sets
                         </Typography>
                     </Grid>
-                    <Grid item container direction="row" xs={2} justifyContent="center" alignItems="center" spacing={3}>
+                    <Grid item container direction="row" justifyContent="center" alignItems="center" spacing={3}>
                         <Grid item>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DesktopDatePicker
@@ -192,16 +241,31 @@ const LiftSetView = () => {
                     </Grid>
                     <Grid item container direction="row">
                         <Grid item container direction="column">
-                            stuff go here
+                            {visibleSets.map((s, i) => (
+                                <Grid item key={i + RESULTS_PER_PAGE * (curPage - 1)}>
+                                    <SetCard
+                                        set={s}
+                                        idx={i + RESULTS_PER_PAGE * (curPage - 1)}
+                                        handleClick={setClicked}
+                                        selected={selectedSet === i + RESULTS_PER_PAGE * (curPage - 1)}
+                                    />
+                                </Grid>
+                            ))}
                         </Grid>
                     </Grid>
-                    <Grid item container direction="row" justifyContent="center">
+                    <Grid item container direction="row" justifyContent="center" style={{ marginBottom: "30px" }}>
                         <Pagination onChange={onPaginationChange} count={pageNum} color="secondary" />
                     </Grid>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid item xs={4}>
                     {selectedSet !== -1 ? (
-                        <LiftSetEdit id={params.id ? parseInt(params.id) : -1} liftSet={sets[selectedSet]} updateState={updateState} />
+                        <LiftSetEdit
+                            id={params.id ? parseInt(params.id) : -1}
+                            idx={selectedSet}
+                            liftSet={sets[selectedSet]}
+                            updateState={updateState}
+                            name={new Date(sets[selectedSet].parent.date).toDateString()}
+                        />
                     ) : (
                         <Typography variant="subtitle1" color="text.secondary" className={classes.marginTop}>
                             Click on a set to edit it here.

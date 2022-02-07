@@ -41,8 +41,15 @@ const Root = styled("div")(({ theme }) => ({
 
 interface Props {
     id: number;
+    idx: number;
     name?: string;
-    updateState: (newSets: ([number, number] | null)[] | null, newDate: Date | null, newTopSet: number | null, newNotes: string | null) => void;
+    updateState: (
+        newSets: [number | null, number | null][] | null,
+        newDate: Date | null,
+        newTopSet: number | null,
+        newNotes: string | null,
+        idx: number
+    ) => void;
     liftSet: liftSetAllInfo;
 }
 
@@ -51,7 +58,7 @@ type setArray = [string, string][];
 const WEIGHT_RANGE = [1, 2000];
 const REPS_RANGE = [1, 30];
 
-const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
+const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet, idx }) => {
     const [setNum, setSetNum] = useState<number>(0);
 
     const [oldDate, setOldDate] = useState<Date>(new Date());
@@ -94,16 +101,18 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
         let data: {
             sets: ([number, number] | null)[] | null;
             oldDate: string;
-            newDate: string | null;
+            date: string | null;
             top_set: number | null;
             notes: string | null;
         } = {
             sets: [],
             oldDate: oldDateStr,
-            newDate: dateStr,
-            top_set: topSetSelected === -1 || topSetSelected === oldTopSet ? null : topSetSelected + 1,
+            date: dateStr,
+            top_set: topSetSelected === -1 || topSetSelected === oldTopSet ? null : topSetSelected,
             notes: null,
         };
+
+        let tempSets: [number | null, number | null][] = [];
 
         if (topSetSelected !== -1 && (topSetSelected < 0 || topSetSelected > 9)) {
             openSnackbar("Top set out of range", "error");
@@ -117,36 +126,41 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
             openSnackbar("Notes out of range", "error");
             setSubmitStatus(1);
             return;
-        } else if (notesSelected !== "" && notesSelected !== true && notesSelected !== oldNotes) data.notes = notesSelected;
+        } else if (notesSelected !== true && notesSelected !== oldNotes) data.notes = notesSelected;
 
+        let modifiedCount = 0;
         for (let i = 0; i < setsSelected.length; i++) {
-            let modifiedCount = 0;
-
-            let weight = parseInt(newSets[i][0]);
-            let reps = parseInt(newSets[i][1]);
+            let weight = newSets[i][0];
+            let reps = newSets[i][1];
 
             if (!weight || !reps) {
                 openSnackbar("Please fill out all sets and reps", "error");
                 setSubmitStatus(1);
                 return;
-            } else if (weight < WEIGHT_RANGE[0] || weight > WEIGHT_RANGE[1]) {
+            } else if (parseInt(weight) < WEIGHT_RANGE[0] || parseInt(weight) > WEIGHT_RANGE[1]) {
                 openSnackbar("Weight out of range", "error");
                 setSubmitStatus(1);
                 return;
-            } else if (reps < REPS_RANGE[0] || reps > REPS_RANGE[1]) {
+            } else if (parseInt(reps) < REPS_RANGE[0] || parseInt(reps) > REPS_RANGE[1]) {
                 openSnackbar("Reps out of range", "error");
                 setSubmitStatus(1);
                 return;
-            } else if (weight === parseInt(oldSets[i][0]) && reps === parseInt(oldSets[i][1])) {
-                if (data.sets !== null) data.sets.push(null);
+            } else if (weight === oldSets[i][0] && reps === oldSets[i][1]) {
+                if (data.sets !== null) {
+                    data.sets.push(null);
+                    tempSets.push([null, null]);
+                }
             } else {
                 modifiedCount++;
-                if (data.sets !== null) data.sets.push([weight, reps]);
+                if (data.sets !== null) {
+                    data.sets.push([parseInt(weight), parseInt(reps)]);
+                    tempSets.push([parseInt(weight), parseInt(reps)]);
+                }
             }
+        }
 
-            if (modifiedCount === 0) {
-                data.sets = null;
-            }
+        if (modifiedCount === 0) {
+            data.sets = null;
         }
 
         try {
@@ -155,35 +169,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
             if (res.data.success) {
                 openSnackbar(capitalizeFirstLetter(res.data.success), "success");
 
-                updateState(data.sets, data.newDate ? new Date(data.newDate) : null, data.top_set, data.notes);
-
-                openSnackbar(capitalizeFirstLetter(res.data.success), "success");
-                setOldDate(data.newDate ? new Date(data.newDate) : oldDate);
-                setOldNotes(data.notes ? data.notes : oldNotes);
-                setOldTopSet(data.top_set ? data.top_set : oldTopSet);
-
-                setNewDate(dateSelected);
-                setNewNotes(data.notes ? data.notes : oldNotes);
-                setNewNotesVal(data.notes ? data.notes : oldNotes);
-                setNewTopSet(data.top_set ? data.top_set : oldTopSet);
-
-                if (data.sets !== null) {
-                    let tempSets: setArray = [];
-                    for (let i = 0; i < data.sets.length; i++) {
-                        if (data.sets !== null && data.sets[i] !== null) {
-                            tempSets.push([data.sets[i]?.[0] + "", data.sets[i]?.[1] + ""]);
-                        } else {
-                            tempSets.push([oldSets[i][0], oldSets[i][1]]);
-                        }
-                    }
-                    setOldSets(tempSets);
-                    setNewSets(tempSets);
-
-                    console.log(tempSets);
-                } else {
-                    setOldSets(oldSets);
-                    setNewSets(oldSets);
-                }
+                updateState(tempSets, data.date ? dateSelected : null, data.top_set, data.notes, idx);
             } else if (res.data.error) {
                 openSnackbar(capitalizeFirstLetter(res.data.error), "error");
             } else {
@@ -198,14 +184,15 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
 
     const handleSetWeightChange = (setNumber: number, weight: string): ErrorType => {
         let error: ErrorType = false;
+        let valueInt: number = 0;
         try {
-            let valueInt: number = parseInt(weight);
+            valueInt = parseInt(weight);
             if (valueInt < WEIGHT_RANGE[0]) error = `Too small.`;
             if (valueInt > WEIGHT_RANGE[1]) error = `Too large.`;
         } catch (err) {
             error = "Invalid type";
         }
-        if (error) return error;
+        if (error) return false;
 
         let tempNewSets: setArray = [];
         for (let i = 0; i < setNum; i++) {
@@ -247,7 +234,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
     };
 
     const handleTopSetClick = (setNumber: number) => {
-        let newSetNum = setNumber;
+        let newSetNum = setNumber + 1;
         if (setNumber === newTopSet) newSetNum = -1;
 
         if (newSetNum === oldTopSet) setSubmitStatus(1);
@@ -267,6 +254,9 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
         }
         setOldSets(tempSets);
 
+        setSetNum(tempSets.length);
+        setSubmitStatus(1);
+
         setNewDate(new Date(liftSet.parent.date));
         setNewNotesVal(liftSet.parent.notes ? liftSet.parent.notes : "");
         setNewTopSet(liftSet.parent.top_set ? liftSet.parent.top_set : -1);
@@ -279,7 +269,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
             <Grid container direction="column" alignItems="center" spacing={2} className={classes.outline}>
                 <Grid item>
                     <Typography variant="h6" color="text.primary" gutterBottom>
-                        Add Set Group {name ? `(${name})` : ""}
+                        Edit Set Group {name ? `(${name})` : ""}
                     </Typography>
                 </Grid>
                 <Grid item>
@@ -291,8 +281,10 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
                             onChange={(newValue) => {
                                 if (!newValue) {
                                     setNewDate(new Date());
+                                    setSubmitStatus(0);
                                 } else {
                                     setNewDate(newValue);
+                                    setSubmitStatus(newValue.getTime() === oldDate.getTime() ? 1 : 0);
                                 }
                             }}
                             renderInput={(params) => <TextField {...params} />}
@@ -339,7 +331,7 @@ const LiftSetEdit: React.FC<Props> = ({ id, name, updateState, liftSet }) => {
                         key={i}
                         values={s}
                         set_num={i}
-                        selected={newTopSet === i}
+                        selected={newTopSet === i + 1}
                         handleRepsChange={handleSetRepsChange}
                         handleWeightChange={handleSetWeightChange}
                         handleTopSetClick={handleTopSetClick}
