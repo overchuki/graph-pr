@@ -41,6 +41,7 @@ const classes = {
     marginTopSml: `${PREFIX}-marginTopSml`,
     hr: `${PREFIX}-hr`,
     outline: `${PREFIX}-outline`,
+    outlineNoMrg: `${PREFIX}-outlineNoMrg`,
     label: `${PREFIX}-label`,
     smlIcon: `${PREFIX}-smlIcon`,
 };
@@ -69,6 +70,12 @@ const Root = styled("div")(({ theme }) => ({
         borderColor: theme.palette.grey[600],
         borderRadius: "5px",
         margin: "0 10px",
+        padding: "0",
+    },
+    [`& .${classes.outlineNoMrg}`]: {
+        border: "solid 2px",
+        borderColor: theme.palette.grey[600],
+        borderRadius: "5px",
         padding: "0",
     },
     [`& .${classes.label}`]: {
@@ -432,7 +439,7 @@ const LiftView: React.FC<Props> = () => {
     return (
         <Root>
             <SnackbarWrapper open={snackbarOpen} message={snackbarMessage} type={snackbarType} duration={3000} handleClose={handleSnackbarClose} />
-            <Grid container direction="column" spacing={3}>
+            <Grid container direction="column" spacing={5}>
                 <Grid item container direction="row" className={classes.marginTop}>
                     <Grid item container justifyContent="center" xs={1}>
                         <IconButton onClick={goBackToLifting}>
@@ -490,50 +497,32 @@ const LiftView: React.FC<Props> = () => {
                 </Grid>
                 <Grid item></Grid>
                 <Grid item container direction="row" spacing={3}>
-                    <Grid item container direction="column" xs={3} spacing={editLiftStatus === 0 ? 3 : 1}>
+                    <Grid item container direction="column" xs={3}>
                         <Grid item container direction="row">
                             <Grid item xs={1}></Grid>
                             <Grid item xs={2}>
-                                <Typography variant="h6" color="text.secondary">
-                                    Lift
+                                <Typography variant="h4" color="text.secondary">
+                                    Info
                                 </Typography>
                             </Grid>
                             <Grid item container xs={8} justifyContent="flex-end">
                                 {editLiftStatus === 3 ? <CircularProgress color="primary" /> : ""}
                                 {editLiftStatus === 0 ? (
-                                    <Button variant="outlined" onClick={handleEditLift} startIcon={<EditIcon />}>
-                                        Edit
+                                    <Button color="info" variant="outlined" onClick={handleEditLift}>
+                                        <EditIcon />
                                     </Button>
                                 ) : (
-                                    <Button
-                                        variant="outlined"
-                                        onClick={handleSaveLift}
-                                        color="success"
-                                        startIcon={<CheckIcon />}
-                                        disabled={editLiftStatus === 2}
-                                    >
-                                        Save
+                                    <Button variant="outlined" onClick={handleSaveLift} color="success" disabled={editLiftStatus === 2}>
+                                        <CheckIcon />
                                     </Button>
                                 )}
                                 {editLiftStatus === 0 ? (
-                                    <Button
-                                        variant="outlined"
-                                        onClick={handleDeleteLift}
-                                        className={classes.marginLeft}
-                                        color="error"
-                                        startIcon={<DeleteIcon />}
-                                    >
-                                        Delete
+                                    <Button variant="outlined" onClick={handleDeleteLift} className={classes.marginLeft} color="error">
+                                        <DeleteIcon />
                                     </Button>
                                 ) : (
-                                    <Button
-                                        variant="outlined"
-                                        onClick={handleCancelEdit}
-                                        className={classes.marginLeft}
-                                        color="warning"
-                                        startIcon={<CloseIcon />}
-                                    >
-                                        Cancel
+                                    <Button variant="outlined" onClick={handleCancelEdit} className={classes.marginLeft} color="warning">
+                                        <CloseIcon />
                                     </Button>
                                 )}
                             </Grid>
@@ -620,7 +609,7 @@ const LiftView: React.FC<Props> = () => {
                                         setOpenDialog(true);
                                     }}
                                 >
-                                    <EditIcon color="primary" className={classes.smlIcon} />
+                                    <EditIcon color="info" className={classes.smlIcon} />
                                 </IconButton>
                             </Grid>
                             <Grid item>
@@ -687,9 +676,12 @@ const LiftView: React.FC<Props> = () => {
                             </Grid>
                         </Grid>
                         <Grid item container direction="row">
-                            <Button onClick={goToLiftSetView} variant="outlined" color="info">
-                                View and Edit Lift Sets
-                            </Button>
+                            <Grid item xs={1}></Grid>
+                            <Grid item xs={11}>
+                                <Button onClick={goToLiftSetView} variant="outlined" color="info">
+                                    View and Edit Lift Sets
+                                </Button>
+                            </Grid>
                         </Grid>
                     </Grid>
                     <Grid item container direction="column" xs={3}>
