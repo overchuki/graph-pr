@@ -191,7 +191,7 @@ const Lifting: React.FC = () => {
     useEffect(() => {
         async function getData() {
             try {
-                const resLift: { data: getLiftResponse } = await axios.get(`${Config.apiUrl}/lift/?limit=20&offset=0`, { withCredentials: true });
+                const resLift: { data: getLiftResponse } = await axios.get(`${Config.apiUrl}/lift/?limit=40&offset=0`, { withCredentials: true });
 
                 const resWorkout: { data: getWorkoutResponse } = await axios.get(`${Config.apiUrl}/lift/workout/`, { withCredentials: true });
 

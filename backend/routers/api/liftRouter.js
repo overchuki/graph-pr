@@ -166,7 +166,7 @@ router.get("/workout/:id/", async (req, res) => {
 // Get all user's lifts
 router.get("/", async (req, res) => {
     const query = req.query;
-    const limit = query.limit || 10;
+    const limit = query.limit || 40;
     const offset = query.offset || 0;
 
     let sql = `

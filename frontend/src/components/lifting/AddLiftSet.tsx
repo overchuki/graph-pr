@@ -212,7 +212,7 @@ const AddLiftSet: React.FC<Props> = ({ id, unit, name, updateState }) => {
     };
 
     return (
-        <Root style={{ width: "90%" }}>
+        <Root style={{ width: "90%", position: "sticky", top: "0" }}>
             <SnackbarWrapper open={snackbarOpen} message={snackbarMessage} type={snackbarType} duration={3000} handleClose={handleSnackbarClose} />
             <Grid container direction="column" alignItems="center" spacing={2} className={classes.outline}>
                 <Grid item>
@@ -299,6 +299,7 @@ const AddLiftSet: React.FC<Props> = ({ id, unit, name, updateState }) => {
                     ) : (
                         <Button
                             variant="contained"
+                            color="secondary"
                             onClick={() => {
                                 handleSubmitSet(sets, date, topSet, notes);
                             }}
