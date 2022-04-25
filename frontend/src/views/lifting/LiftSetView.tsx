@@ -98,6 +98,7 @@ const LiftSetView = () => {
 
     const resetAllValues = (allSets: liftSetAllInfo[], o: number, offset: [number, number]) => {
         setUpPageNum(allSets.length);
+        // TODO: change page num to exclude offsetted values
         onPaginationChange(false, curPage, o, offset);
     };
 
@@ -150,10 +151,13 @@ const LiftSetView = () => {
             }
 
             setDateRange(dateCpy);
+            console.log("DATE RANGE CPY");
+            console.log(defDateCpy);
             setDefaultDateRange(defDateCpy);
             dateRangeChanged(dateCpy);
 
             tempSet.parent.date = newDate.toISOString();
+            // TODO: reorder here if date moved it
         }
 
         if (newTopSet) {
@@ -220,7 +224,8 @@ const LiftSetView = () => {
 
             if (leftDate.getTime() <= range[1].getTime() && leftFound === -1) {
                 leftFound = left;
-            } else if (rightDate.getTime() >= range[0].getTime() && rightFound === -1) {
+            }
+            if (rightDate.getTime() >= range[0].getTime() && rightFound === -1) {
                 rightFound = i;
             }
 
@@ -260,6 +265,8 @@ const LiftSetView = () => {
     };
 
     const resetFilter = () => {
+        console.log(defaultDateRange[0]);
+        console.log(defaultDateRange[defaultDateRange.length - 1]);
         setDateRange(defaultDateRange);
         dateRangeChanged(defaultDateRange);
     };
@@ -276,8 +283,20 @@ const LiftSetView = () => {
             let tempSets = location.state.liftSets;
 
             if (tempSets.length > 0) {
-                setDateRange([new Date(tempSets[0].parent.date), new Date(tempSets[tempSets.length - 1].parent.date)]);
-                setDefaultDateRange([new Date(tempSets[0].parent.date), new Date(tempSets[tempSets.length - 1].parent.date)]);
+                let dateLow: Date = new Date(tempSets[0].parent.date.substring(0, 10));
+                let dateHigh: Date = new Date(tempSets[tempSets.length - 1].parent.date.substring(0, 10));
+
+                console.log(dateLow);
+                console.log(dateHigh);
+
+                // dateLow.setHours(0, 0, 0);
+                // dateHigh.setHours(0, 0, 0);
+
+                console.log(dateLow);
+                console.log(dateHigh);
+
+                setDateRange([dateLow, dateHigh]);
+                setDefaultDateRange([dateLow, dateHigh]);
             }
 
             tempSets.reverse();
